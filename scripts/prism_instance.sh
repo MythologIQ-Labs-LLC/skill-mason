@@ -17,13 +17,14 @@
 # running the gate: `audit-prism` measures the commit against its parent, and the
 # commit that installs the instance sets its ceiling.
 #
-# Then: scripts/prism_reference_gate.sh <new-instance-dir> host <logfile>
+# Then, only on a disposable, credential-free, isolated runner (issue #9):
+#   PRISM_GATE_WORKDIR=<fresh-dir> scripts/prism_reference_gate.sh <new-instance-dir> host <logfile>
 set -euo pipefail
 
 PIN=b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
 
 if [[ $# -ne 2 ]]; then
-  sed -n '2,20p' "$0" >&2
+  sed -n '2,21p' "$0" >&2
   exit 64
 fi
 

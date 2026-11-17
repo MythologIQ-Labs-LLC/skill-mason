@@ -26,4 +26,6 @@ These instructions prepare Claude to **develop Skill Mason**. The project-local 
 - **Candidate:** one eligibility decision, `SM-01`, is carried in [`prism-overlay/`](prism-overlay/README.md) and passed the complete gate in a rebuilt instance. It is **not adopted**.
 - **Hold:** Skill Mason is not a Prism-built application. Adoption waits on owner acceptance of [ADR-0003](docs/adr/0003-prism-application-adoption.md). Do not install a template instance into this repository, replace root `AGENTS.md`, or extend the candidate into general skill generation before that.
 
-Useful entry points: `scripts/prism_instance.sh` rebuilds an instance from the pinned template plus the overlay, and `scripts/prism_reference_gate.sh` runs a checkout's own gate inside the SDK image its lock selects.
+- **Runner hold:** do not run the SDK image in any session, workstation or runner that holds credentials, and do not delete or replace the cached image. The native gate waits on an isolated, credential-free runner ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9)). The wrapper refuses to start otherwise; treat a refusal as the answer, not an obstacle.
+
+Useful entry points: `scripts/prism_instance.sh` rebuilds an instance from the pinned template plus the overlay, and `scripts/prism_reference_gate.sh` runs a clean checkout's own gate, in a staged copy, inside the SDK image its lock selects.

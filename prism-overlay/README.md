@@ -61,6 +61,8 @@ Not proved, and not claimed: that a code is true. The application decides over f
 
 ## Rebuild and verify
 
+**On hold for any machine that holds credentials** ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9)). The SDK image comes from a personal registry namespace. Run it only on a disposable, credential-free, isolated runner with its own Docker daemon. The wrapper refuses to start otherwise.
+
 Needs Docker, about 25 GB of disk for the SDK image, and network for a cold cache.
 
 ```bash
@@ -72,13 +74,15 @@ git -C template checkout b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
 scripts/prism_instance.sh template work/prism
 ```
 
-Commit `work/prism` in a Git repository, then run the complete gate:
+Commit `work` as a Git repository (the instance must be committed, and the commit that adds it sets the shrink-only ceiling), then run the complete gate. The wrapper stages its own copy and writes everything under `PRISM_GATE_WORKDIR`:
 
 ```bash
-PRISM_GATE_MOUNT=work scripts/prism_reference_gate.sh work/prism host gate.log
+PRISM_GATE_WORKDIR=/var/tmp/gate-run-1 scripts/prism_reference_gate.sh work/prism host gate.log
 ```
 
-The gate passes only if `gate.log` ends with `vv: the acceptance gate passed` and `GATE_EXIT=0`. Results of the runs made on 2026-11-17, including the planted defects and what was not established, are in the [evidence record](../docs/evidence/prism-phase0-20261117/README.md).
+The gate passes only if `gate.log` ends with `vv: the acceptance gate passed` and `GATE_EXIT=0`.
+
+The wrapper in this repository has not yet been run against the SDK image, and by default it does not give the SDK container the Docker socket. If a stage turns out to need it, that is a finding to record, and `PRISM_GATE_DOCKER_SOCKET=disposable-daemon` is the explicit, throwaway-machine-only opt-in. Results of the runs made on 2026-11-17 with the earlier wrapper, including the planted defects and what was not established, are in the [evidence record](../docs/evidence/prism-phase0-20261117/README.md).
 
 ## Changing it
 

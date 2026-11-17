@@ -16,6 +16,7 @@
 | Phase 1: smallest eligibility decision in the genuine framework | **Built and verified as a candidate**: complete gate exit 0, twice, on a nested instance carrying `SM-01` |
 | Independent proof-level verification of any artifact | **Not established**: `P0 unverified` |
 | Native Qortara checks | `NOT_RUN` ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)) |
+| Running the SDK gate again | **HOLD**: needs an isolated, credential-free runner ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9), section 9) |
 
 ## 1. Identities
 
@@ -183,14 +184,29 @@ Independent runtime, `prism-code 0.9.5`: `12 of 12 vectors passed (holo, Skill M
 - Session-start discovery of the skills on a branch that already contains them.
 - Anything about generated skill bytes or a consuming host.
 
-## 9. Deviations and discarded runs
+## 9. Execution topology, and why it must not be repeated as it was
+
+Raised by the owner in [issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9). The facts, stated plainly:
+
+- Every gate run in this record was made by a wrapper that **bound the Docker daemon's socket into the SDK container** and **recursively chowned the mounted checkout** to uid 1000. Both mirror what upstream's `bootstrap.yml` does on a CI runner.
+- The machine was a disposable cloud VM with its own Docker daemon, started for this work. No workstation and no shared runner was involved, and only scratch checkouts were chowned, never this repository's working tree.
+- That VM was **not credential-free**. Its environment held credential-like variables for the session. They were not passed into the container, but the socket gives the image control of the daemon, which is root on that VM. So a third-party image from a personal registry namespace ran with a path to those credentials. Nothing observed suggests it used that path. The evidence cannot show that it did not.
+- Digest pinning fixes the image's bytes. It says nothing about who published them or whether they are harmless.
+
+The results in sections 4 to 6 stand as recorded for that topology. What changed:
+
+- `scripts/prism_reference_gate.sh` was rewritten. It now stages a throwaway copy identified by commit and tree hash, never mounts or chowns the source, does not bind the socket unless `PRISM_GATE_DOCKER_SOCKET=disposable-daemon`, and refuses before starting a container when the runner holds credential-like variables or credential stores, when the path is symlinked, when the tree is not clean, when the lock selects an unexpected or mutable image, or when the work directory already exists.
+- Those refusals and the `docker run` arguments are tested with a stand-in for `docker` (`tests/test_prism_gate_wrapper.py`, 19 tests; three planted regressions were each caught). Run for real in the session that produced this record, the new wrapper exits 77 because credential-like variables are present.
+- **The rewritten wrapper has not been run against the SDK image.** Whether the complete gate passes without the socket is `NOT_RUN`; `prismpm template check` may need it. The native gate is on **HOLD** until a disposable, credential-free, isolated runner exists.
+
+## 10. Deviations and discarded runs
 
 - The first gate attempts failed before reaching the gate: the wrapper lacked upstream's `--user` flag, then the image's entrypoint turned out to run as uid 1000 regardless. The wrapper now runs as uid 1000 on a checkout it owns. No gate content was changed.
-- Runs 1 and 2 of section 4 and the controls used a scratch copy of the wrapper. `scripts/prism_reference_gate.sh` is that wrapper with the proxy CA and mount made configurable; it was used for section 4 run 3 and everything in sections 5 and 6.
+- Runs 1 and 2 of section 4 and the controls used a scratch copy of the wrapper. The first committed `scripts/prism_reference_gate.sh` (commit `8ed121b`) was that wrapper with the proxy CA and mount made configurable; it was used for section 4 run 3 and everything in sections 5 and 6. The wrapper now in the repository is the rewrite described in section 9 and produced none of these logs.
 - One offline `just app` run was discarded. It shared a scratch `/tmp` with other containers started at the same time and failed with `PP5008 … custody absent or changed after generation`. The same command passed when run alone. The discarded log is not included.
 - The first `scripts/prism_instance.sh` used `git apply`, which silently skipped the patch inside a nested repository. Comparing its output tree with the instance under test caught it; the script now uses `patch` and verifies each hunk.
 - Image pull logs are not included because they contain short-lived signed URLs.
 
-## 10. Reproduce
+## 11. Reproduce
 
-See [`prism-overlay/README.md`](../../../prism-overlay/README.md). Expect about 25 GB of disk, six minutes per reference gate run and eleven per run with the candidate, on four cores.
+Only on a disposable, credential-free, isolated runner; see section 9 and [issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9). Steps are in [`prism-overlay/README.md`](../../../prism-overlay/README.md). The runs above took about six minutes per reference gate run and eleven per run with the candidate, on four cores, with about 25 GB of disk.
