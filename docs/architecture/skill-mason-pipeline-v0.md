@@ -1,4 +1,4 @@
-# Architecture: proposed Skill Mason pipeline
+# Skill Mason Pipeline v0: proposed architecture
 
 **Status:** proposed; interfaces may be refined after Prism feasibility. No runtime exists yet.
 
@@ -74,4 +74,4 @@ Refusal codes (initial): `UNTRUSTED_CATALOG`, `UNKNOWN_ID`, `SOURCE_MISMATCH`, `
 
 Prism is the intended source of the typed model and replay-verification foundation. A version pin plus actual application exercising the public Prism route / verifier API is required before claiming integration. The initial README and schemas do **not** count as that integration.
 
-See RFC-0001 for explicit feasibility research and the boundary between mathematical assembly correctness and empirical skill efficacy.
+See [RFC-0001](../RFC-0001-prism-feasibility.md) for explicit feasibility research and the boundary between mathematical assembly correctness and empirical skill efficacy.

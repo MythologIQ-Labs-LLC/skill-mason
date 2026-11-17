@@ -39,4 +39,4 @@ Success requires both positive and adversarial tests, then separately evidenced 
 - Generated skill packages are outputs of **this repository / the user's host**, never written back into `skillz` by default.
 - CI passing is not proof of intended host behavior. State source/content validation, machine checks, and observed behavior separately.
 
-See `docs/PRD.md`, `docs/ARCHITECTURE.md`, and `ARCHITECTURE_INDEX.md` on the upcoming architecture branch for the proposed build contract.
+The current foundation is staged in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not merged or host-qualified. Start at [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md), follow its [canonical architecture owner register](docs/README.md) and read the [PRD](docs/PRD.md) and [proposed architecture](docs/architecture/skill-mason-pipeline-v0.md). [GOVERNANCE.md](GOVERNANCE.md), [SECURITY.md](SECURITY.md) and [Qortara evidence / Shadow Genome rules](docs/technical/governed-evidence.md) establish the mandatory governance documentation baseline. The security-reporting route and native Qortara checks remain unqualified.

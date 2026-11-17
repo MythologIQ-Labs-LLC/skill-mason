@@ -1,16 +1,16 @@
-# Architecture Index
+# Skill Mason Architecture Index
 
-Canonical index for the Skill Mason architecture. Keep this file synchronized with additions or changes.
+**Role:** Mandatory root architecture entrypoint. It is a **routing contract**, not the canonical decision register, second architecture authority, sign-off, test result or implementation claim.
 
-| Document | State | Purpose |
-|---|---|---|
-| [README.md](README.md) | Current inception baseline | Product identity, boundaries and first gate |
-| [AGENTS.md](AGENTS.md) | Current governance | Agent instructions, authority, reproducibility and evidence standards |
-| [docs/PRD.md](docs/PRD.md) | Proposed contract | Stakeholders, use cases, requirements and release criteria |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Proposed architecture | Catalog adapter, planner, composer, verification and output flow |
-| [docs/RFC-0001-prism-feasibility.md](docs/RFC-0001-prism-feasibility.md) | Open RFC | Real Prism integration, formal scope, evidence and failure questions |
-| [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) | Planned acceptance | Test matrix and proof obligations |
-| [schemas/recipe.v0.schema.json](schemas/recipe.v0.schema.json) | Draft v0 interface | Input recipe contract. Schema validity is not a trust decision |
-| [Issue #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1) | Tracking | Delivery epic and acceptance checklist |
+The **one canonical architecture-owner register** is [docs/README.md](docs/README.md). Start there before planning, reviewing, implementing, changing documentation or substantiating an architecture-affecting change. It identifies the exact owner of each scoped claim, including the proposed architecture and ADRs.
 
-No engine crate or CLI is present at this checkpoint. This index intentionally makes no claim that the above specifications are implemented.
+## Mandatory Qortara-style rules
+
+1. Resolve the current **accepted** subject decision/contract and exact revision; a later file, code change or test PASS does not silently supersede it.
+2. Record architecture drift when code, docs, contract or evidence disagree. Preserve the conflicting revisions, effects and owner.
+3. A proposal must name the current owner, replacement claim, dependencies/consumers, security and authority effects, migration and regression obligations.
+4. Update the owning decision/contract **and its registration in docs/README.md together**, with explicit accepted supersession once actual owner approval is established.
+5. Validate the entrypoint/register, direct registration of `docs/architecture/*.md` documents, link integrity and non-disableable repository-document requirements with the genuine Qortara local checker when available. Structural checks do not certify semantic correctness.
+6. Governed activity and Shadow learning evidence belong in `.qortara/` and must be written by their canonical runtime, not by editing a Markdown report or agent memory.
+
+**Maturity:** Inception. Mandatory source files are being established in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2); native `qortara check architecture-index`, `qortara check repository-documents` and host qualification are **not yet executed or evidenced** for Skill Mason. The proposed decision records have not been independently authenticated as owner-accepted.

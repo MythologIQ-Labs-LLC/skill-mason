@@ -22,3 +22,20 @@
 | A18 | Source snapshot does not expose a required source family | Unknown/unsearched warning; do not label capability absent |
 
 **Minimum pilot gate:** A1-A14 (relevant cases) automated at pinned source/tool versions, A15 explicitly demonstrated as different evidence classes, and two different capability subdomain scenarios. Evidence must include reproducible commands and actual results. No test in this document has been executed just because it is listed.
+
+## Qortara repository-governance acceptance (not yet executed)
+
+| Case | Expected check / negative control | Required evidence |
+|---|---|---|
+| D1 | Root `GOVERNANCE.md`, `SECURITY.md`, architecture index and owner register are present and meaningful | Installed `qortara check repository-documents` and `qortara check architecture-index` |
+| D2 | Remove either mandatory policy; attempt to disable it via config | Native check rejects both absence and bypass |
+| D3 | Add an unregistered or multiply registered `docs/architecture/*.md` | Native architecture-index check refuses |
+| D4 | Approved ADR conflicts with a newer unapproved branch doc | Drift reported, not silent acceptance |
+| D5 | `.qortara/shadow.jsonl` contains no events at inception | No fabricated findings/closures or clean-health claim |
+| D6 | Record a real Shadow event using the canonical runtime | Exact typed event appended/verified with source evidence |
+| D7 | Malformed Shadow entry or interrupted ledger chain | Canonical runtime reports/refuses invalid history; no silent rewrite |
+| D8 | Simulated remediation without enforcer + applicable PASS audit | Closure refused and pending state preserved |
+| D9 | Attempts to commit `.qortara/keys/*`, session markers, locks or temp files | Git ignores local-only paths; no secret publication |
+| D10 | Structural docs test passes but confidential reporting route remains unresolved | No qualified security policy or implied owner acceptance |
+
+**Current result:** No native Qortara CLI is installed in this working environment; D1-D10 are planned test cases, **not passed**. An auxiliary static check is not equivalent to native Qortara enforcement.
