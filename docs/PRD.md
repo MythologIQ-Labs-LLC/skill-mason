@@ -22,6 +22,12 @@ Stakeholders:
 5. Validate the assembly decision and record everything that was verified, refused or not run.
 6. Detect unsupported requested outcomes and route to source discovery or separately authorized new authorship, not invented expertise.
 
+## Generated skill collection
+
+Skill Mason may expose a **generated, governed skill collection** organized by the same open-ended domain -> subdomain -> capability routes used by `skillz`. A generated skill has one canonical package identity and may appear under multiple routes without cloning its contents or counting it twice. Each route exposes the specific essential outcomes it demonstrably serves and its unresolved gaps, source rights, exact version, trust state and host qualification. This collection is **not** a fork or wholesale copy of third-party pinned source corpora.
+
+The producer/consumer relationship is asymmetric: `skillz` advances discovery and independently reviewed evidence, while Skill Mason derives its own auditable generation outputs. No downstream generation result automatically changes the upstream `skillz` review or license state.
+
 ## Non-goals for the first pilot
 
 No autonomous crawling, cross-account personalization, third-party code execution, remote connectors, silent source copying, unconditional trust in catalog metadata, dependency installation, recursive self-modification, LLM inference, general behavioral truth proofs or universal skill coverage.
