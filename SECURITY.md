@@ -1,4 +1,4 @@
-# Skill Mason Security Policy
+# Qortara Skills Security Policy
 
 **Status:** Initial, **not yet owner-qualified**. The confidential reporting/handling choice requires owner confirmation. This file is intentionally present and honest rather than claiming a private mailbox, enabled GitHub advisories, or supported releases that have not been established.
 
