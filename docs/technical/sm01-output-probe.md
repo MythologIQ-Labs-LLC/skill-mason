@@ -26,6 +26,12 @@ If the holo, checksum or exact runtime is missing, the command **refuses**. A pa
 
 **Assurance boundary:** `--allow-p0` explicitly enables a restrictive development-fixture policy `minimum: P0, effects: []` while independently embedded signed proofs are unavailable. The program deliberately does **not** pass the runtime's `allowUnverified: true` override, which would bypass failed check results. Even a 12/12 pass remains **P0 unverified** and does not prove the truth of the four input assertions or the fitness of generated skills.
 
+## Source-only staging artifact
+
+The [Prism source-staging workflow](../../.github/workflows/prism-source-stage.yml) fetches the **exact pinned UOR template**, applies the locally versioned SM-01 overlay and compares all seven protected template policy files byte-for-byte. It runs **no Docker, SDK, native Prism gate, Prism guest, or Qortara verification**. It publishes a source-only tarball and a source manifest for a subsequent isolated build runner. The archive is **not** an executable holo, not an SDK trust endorsement, and not a completed acceptance artifact.
+
+A full Prism application must still be installed through the accepted nested architecture and run through the unreduced native gate. The source-staging artifact is a reproducible input, not proof of output behavior.
+
 ## Recorded and missing tests
 
 `node --test tests/sm01_probe.test.mjs` uses a **stand-in Prism interface** to check command guardrails, all 12 raw byte fixtures, digest/policy refusals, exact output matching and no-overwrite behavior. It is **not** evidence of executing a real holo. Do not claim native execution from this test or a green CI status.
