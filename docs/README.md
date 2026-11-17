@@ -1,0 +1,48 @@
+# Qortara Skills Documentation and Canonical Architecture-Owner Register
+
+**Role:** The **single canonical architecture-owner register**. [Root ARCHITECTURE_INDEX.md](../ARCHITECTURE_INDEX.md) routes here; this page maps subjects to their real owners and does not itself approve or prove an architectural claim.
+
+## Decision precedence and states
+
+A subject's latest **owner-accepted** ADR/contract controls its design. Source code and versioned schemas own actual implemented behavior, executed receipts own qualification, and release/deployment observations own delivery. A newer Git commit, unreviewed PR, prose summary or passing structural check does not confer supersession or approval.
+
+Use **Proposed**, **Accepted**, **Implemented**, **Qualified**, **Historical**, **Superseded**, each with exact revision and scope when evidenced. An item may be implemented without being qualified; an owner-accepted design can remain unimplemented. Unknown facts are `NOT_ESTABLISHED`.
+
+## Claim ownership register
+
+| Claim / shelf | Single accountable owner / source | Status / boundary |
+|---|---|---|
+| Project direction, decisions, branch / review / approval rules | [GOVERNANCE.md](../GOVERNANCE.md) with project-owner acceptance | Proposed; owner authentication / exact adoption not established |
+| Confidential vulnerability reporting, response and supported versions | [SECURITY.md](../SECURITY.md) | Incomplete / `NOT_ESTABLISHED` for intake choice |
+| Proposed Skill Mason product intent, skillz separation and zero-inference semantics | [ADR-0001](adr/0001-product-and-authority-boundary.md) | Proposed; no generated runtime |
+| Qortara repository document baseline, single architecture register, runtime evidence/Shadow boundary | [ADR-0002](adr/0002-qortara-governance-adoption.md) | Proposed adoption based on verified upstream ADRs |
+| Skill assembly architecture, components, source trust and output contract | [Skill Mason Pipeline v0](architecture/skill-mason-pipeline-v0.md) | Proposed; **direct registration 1/1** under docs/architecture |
+| Requirements, stakeholder journeys and feature acceptance | [PRD](PRD.md) | Proposed; no compiled executable |
+| Prism implementation feasibility and formal evidence limitations | [RFC-0001](RFC-0001-prism-feasibility.md) | OPEN research; implementation unverified |
+| Recipe v0 syntax | [Recipe JSON Schema](../schemas/recipe.v0.schema.json) | Draft; parseable schema is not an authority or eligibility verdict |
+| Canonical repository-local lifecycle / Shadow event ownership and custody | [Qortara evidence and Shadow guide](technical/governed-evidence.md), upstream Qortara Logic ADR-0009/0011/0017 | Local reference guide; actual artifacts only by runtime |
+| Claude Code Prism development procedures (not product skills) | [CLAUDE.md](../CLAUDE.md), [source register](../.claude/PRISM_SOURCES.md), [version compatibility / decision record](../.claude/PRISM_COMPATIBILITY.md) -> three [project-only skills](../.claude/skills/prism-source-gate/SKILL.md) | Developer instructions; no architectural authority or Prism execution claim |
+| Required tests and proof scope | [Acceptance matrix](ACCEPTANCE.md) | Planned; not actual executed acceptance |
+| Work in progress and unclosed dependencies | [Epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1), [Prism spike #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Work tracking, not canonical accepted architecture |
+
+## Registered architecture documents
+
+Each file under `docs/architecture/` must appear **exactly once** in the owning table above, with a specific subject owner. Currently:
+
+- `architecture/skill-mason-pipeline-v0.md`: Skill Mason's proposed deterministic assembly pipeline, owned by the project owner through its eventual accepted architecture decision.
+
+The root entrypoint is a locator. This register is a locator. Neither competes with accepted ADRs or executable evidence.
+
+## Documentation lifecycle and supersession
+
+1. Establish the current accepted owning claim, its exact source revision/digest and authority; distinguish branch base and new candidate.
+2. Identify affected interfaces, schemas, threats, security/rights constraints, consumers, tests and prior claims.
+3. Submit a scoped change. Proposed claims remain **Proposed** until authenticated owner acceptance, even when on a branch or `main`.
+4. Update the **one** owning document and this register in the same change. An accepted supersession records old/new claim, reasons, effective revision/decision, dependent artifacts and stale tests/qualifications needing rerun. Retain history.
+5. Run local Qortara structural and lifecycle checks if installed, plus adversarial challenge on exact revision; preserve actual results. If tooling or host authority is unavailable, mark `NOT_RUN` / `NOT_ESTABLISHED`; do not label it compliant.
+
+If code contradicts an accepted owner, register a drift defect; do not silently rewrite either side to get a green check. A solo owner may permit adversarial review without a second human; evidence and actual merge authority remain required.
+
+## Repository-local evidence is separate
+
+`.qortara/ledger.jsonl` is the chained lifecycle event record. `.qortara/shadow.jsonl` is the canonical Shadow Genome history. Gate and intent-lock artifacts accompany actual operations. A README, rendered report or issue is not a substitute. See [governed evidence](technical/governed-evidence.md).

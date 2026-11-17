@@ -1,0 +1,17 @@
+name: Documentation structure (supplemental only)
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  docs-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Planted positive and negative controls
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Verify static layout and surface policy holds
+        run: python3 scripts/check_governance_static.py --root .
