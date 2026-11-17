@@ -6,7 +6,7 @@
 
 Qortara Skills is a **proposed**, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
 
-> **Project state: Foundation / pre-implementation.** The public repository's architecture and governance foundation is under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). **No working skill-generation CLI, Prism application integration, published release, or behaviorally validated generated skill exists yet.** The zero-inference-token objective is a design requirement, not a measured claim.
+> **Project state: Foundation / pre-implementation.** The source-documentation foundation was merged in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). Confidential security intake and native Qortara qualification remain **on hold** ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)). **No working skill-generation CLI, Prism application integration, published release, or behaviorally validated generated skill exists yet.** The zero-inference-token objective is a design requirement, not a measured claim.
 
 [Brand icon](assets/brand/qortara-skills-icon.webp) · [Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
 
@@ -178,9 +178,9 @@ For repository vulnerabilities and disclosure rules, read [SECURITY.md](SECURITY
 
 | Milestone | Current evidence | Status |
 | --- | --- | --- |
-| Project identity and repository | Public repository; foundation under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
-| Repository governance documents | Governance/security policies and an architecture ownership register staged in PR #2 | Staged, **not qualified** |
-| Supplemental structure tests | Nine negative/positive controls passed in [the recorded CI run](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44174111869) | Tested, narrow scope |
+| Project identity and repository | Public repository; source foundation merged in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation, pre-implementation |
+| Repository governance documents | Root governance/security policies and canonical architecture owner register in `main` | Present, **not fully qualified** |
+| Supplemental structure tests | [20/20 tests passed on PR #2's exact head](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44193398009); separate qualification step failed with a security hold | Tested, narrow scope |
 | Repository policy qualification | Confidential incident-handling decisions and required repository checks not yet qualified | **Blocked**, [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4) |
 | Prism decision/replay prototype | [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Proposed |
 | First deterministic skill compiler | Requirements and [acceptance cases](docs/ACCEPTANCE.md), no runtime | Not implemented |
@@ -217,16 +217,13 @@ git clone https://github.com/MythologIQ-Labs-LLC/skill-mason.git
 cd skill-mason
 ```
 
-The proposed governance foundation exists on the [PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
+The source foundation is now on `main`. To inspect it in a local checkout:
 
 ```sh
-git fetch origin feature/foundation-contract-20261117
-git switch --detach origin/feature/foundation-contract-20261117
-
 # Supplemental structural tests only; Python 3 is required.
-python3 -m unittest discover -s tests -p 'test_governance_static.py' -v
+python3 -m unittest discover -s tests -p 'test_*.py' -v
 
-# Returns nonzero while owner-specific security policy is unresolved.
+# Returns nonzero while owner-specific security reporting remains unqualified.
 python3 scripts/check_governance_static.py --root .
 ```
 
@@ -236,7 +233,7 @@ That structural check **is expected to report a qualification hold**, not a full
 
 ## Repository governance
 
-Development governance is **not part of Qortara Skills's product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. Policies and qualification still pending are tracked in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
+Development governance is **not part of the Qortara Skills product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. The [PR #2 merge record](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) documents the bounded source-only exception; unresolved security and native-governance qualification remain tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
 
 ## Frequently asked questions
 
@@ -256,7 +253,7 @@ Not by itself. Prism is a **candidate** for checking formal decision properties,
 No released generator or installer exists. The repository presently contains product/architecture contracts and a narrow supplemental documentation checker.
 
 **Why is the governance CI job not passing?**  
-The initial nine tests passed, but the qualification step intentionally reported an unresolved owner-specific security reporting policy. See [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Hiding that failure would make the dashboard prettier and the evidence worse.
+All 20 supplemental tests passed on PR #2, but the qualification step intentionally reported an unresolved owner-specific security reporting policy. See [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Hiding that failure would make the dashboard prettier and the evidence worse.
 
 ## Contributions and licensing
 
