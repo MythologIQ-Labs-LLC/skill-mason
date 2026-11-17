@@ -11,7 +11,7 @@ import json
 import re
 from pathlib import Path
 
-REQUIRED = ("ARCHITECTURE_INDEX.md", "docs/README.md", "GOVERNANCE.md", "SECURITY.md")
+REQUIRED = ("README.md", "ARCHITECTURE_INDEX.md", "docs/README.md", "GOVERNANCE.md", "SECURITY.md")
 IGNORE = ("keys/", "session", "*.lock", "*.tmp", "hooks.jsonl")
 LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 ARCH_OWNER_LINK = re.compile(r"\]\(architecture/([^)/#]+\.md)(?:#[^)]*)?\)")
@@ -57,11 +57,22 @@ def assess(root: Path) -> tuple[list[str], list[str]]:
         if not (root / "docs" / "architecture" / name).is_file():
             errors.append(f"owner register references missing architecture page: {name}")
 
-    for rel in ("ARCHITECTURE_INDEX.md", "docs/README.md"):
+    for rel in ("README.md", "ARCHITECTURE_INDEX.md", "docs/README.md"):
         if rel not in texts:
             continue
         parent = (root / rel).parent
+        readme_slugs = set()
+        if rel == "README.md":
+            headings = re.findall(r"^#{1,6}\s+(.+?)\s*$", texts[rel], re.MULTILINE)
+            readme_slugs = {
+                re.sub(r"-+", "-", re.sub(r"[^a-z0-9 -]", "", h.lower()).strip().replace(" ", "-"))
+                for h in headings
+            }
         for target in LINK.findall(texts[rel]):
+            if target.startswith("#") and rel == "README.md":
+                if target[1:] not in readme_slugs:
+                    errors.append(f"broken README heading link: {target}")
+                continue
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
             filepart = target.split("#", 1)[0]
