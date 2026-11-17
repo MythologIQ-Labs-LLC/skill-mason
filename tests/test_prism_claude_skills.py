@@ -192,10 +192,16 @@ class UpstreamSkillSubmissionTests(unittest.TestCase):
                 title = (UPSTREAM / f"{name}.title.txt").read_text()
                 self.assertTrue(title.startswith(f"[feature] Agent skill: {name}"))
 
-    def test_submission_is_marked_unfiled(self):
+    def test_submission_records_where_each_skill_was_filed(self):
         readme = (UPSTREAM / "README.md").read_text()
-        self.assertIn("prepared, not filed", readme)
-        self.assertEqual(readme.count("gh issue create --repo UOR-Foundation/PrismPM"), 3)
+        self.assertIn("Status: filed on 2026-11-17", readme)
+        for name, number in zip(NAMES, (720, 721, 722)):
+            with self.subTest(name=name):
+                self.assertRegex(
+                    readme,
+                    rf"\| `{re.escape(name)}` \| \[UOR-Foundation/PrismPM#{number}\]"
+                    rf"\(https://github\.com/UOR-Foundation/PrismPM/issues/{number}\) \|",
+                )
 
     def test_upstream_copies_keep_the_substance_of_the_project_skills(self):
         for name in NAMES:

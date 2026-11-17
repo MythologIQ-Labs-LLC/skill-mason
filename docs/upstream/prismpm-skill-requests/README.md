@@ -1,6 +1,14 @@
-# Three agent skills, ready to file with PrismPM
+# Three agent skills, filed with PrismPM
 
-**Status: prepared, not filed.** Filing needs a GitHub identity that can open issues on `UOR-Foundation/PrismPM`. The automated session that prepared these could not write to that repository.
+**Status: filed on 2026-11-17.** The bodies below were filed unchanged.
+
+| Skill | Request |
+| --- | --- |
+| `prism-source-gate` | [UOR-Foundation/PrismPM#720](https://github.com/UOR-Foundation/PrismPM/issues/720) |
+| `prism-model-first` | [UOR-Foundation/PrismPM#721](https://github.com/UOR-Foundation/PrismPM/issues/721) |
+| `prism-proof-audit` | [UOR-Foundation/PrismPM#722](https://github.com/UOR-Foundation/PrismPM/issues/722) |
+
+As filed, each carries the labels `area/docs` and `agent-submitted`. None carries `kind/feature`, which is the label PrismPM's request index ranks by, so the requests may not appear there until a maintainer triages them. The "Searched existing requests" box in each body was still unticked when checked after filing.
 
 Everything under this directory is written to stand alone. It names only upstream repositories, upstream commits and upstream tool versions.
 
@@ -17,29 +25,9 @@ Everything under this directory is written to stand alone. It names only upstrea
 
 Each body follows PrismPM's feature-request form: Submitted by, Component (`docs`), Problem, Proposed API or behavior, Acceptance test, Current workaround, Searched existing requests.
 
-## Before filing
+## If a body needs to change
 
-1. Read PrismPM's rendered `/docs/requests.md` and confirm no request already covers these. The open and closed issues were searched on 2026-11-17 and only #353 (closed) is related; the rendered page itself could not be loaded.
-2. Tick the box under "Searched existing requests" in each body once you have. PrismPM's intake leaves a request in `triage/needs-information` otherwise.
-3. Decide whether you want three requests or one. Three matches the form's one-capability-per-request shape and lets each be voted on separately. To file one, concatenate the three "Proposed" sections under a single body.
-
-## File
-
-These are the commands PrismPM's `CONTRIBUTING.md` documents for filing without a browser. Run them from this directory.
-
-```bash
-gh issue create --repo UOR-Foundation/PrismPM --label kind/feature,agent-submitted --title "$(cat prism-source-gate.title.txt)" --body-file prism-source-gate.issue.md
-```
-
-```bash
-gh issue create --repo UOR-Foundation/PrismPM --label kind/feature,agent-submitted --title "$(cat prism-model-first.title.txt)" --body-file prism-model-first.issue.md
-```
-
-```bash
-gh issue create --repo UOR-Foundation/PrismPM --label kind/feature,agent-submitted --title "$(cat prism-proof-audit.title.txt)" --body-file prism-proof-audit.issue.md
-```
-
-If `gh` reports that you may not apply labels, drop `--label`; the intake workflow adds `agent-submitted` and the area label from the body.
+Edit the skill file, regenerate the body, and update the request by hand or with `gh issue edit <number> --repo UOR-Foundation/PrismPM --body-file <name>.issue.md`. Keep the filed text and this directory identical.
 
 ## What the proposals claim, and do not
 
