@@ -88,6 +88,20 @@ The acceptance matrix cases this slice addresses in model form are A5, A6, A7 an
 - The SDK image is published under `ghcr.io/afflom/prismpm-sdk-patched`. The owner should decide whether that trust root is acceptable.
 - Every later capability meets the shrink-only ratchet. Budget for it in the design, not at merge time.
 
+## Review recommendation (not an owner decision)
+
+**Recommendation date:** 2026-11-17. **Status:** Proposed amendment only; ADR-0003 remains **Proposed** and does not authorize installation, trust-root acceptance, running the SDK on a developer workstation, or a product release.
+
+1. **Prefer nested option A**, subject to all six proposed conditions and an additional enforced runner-isolation prerequisite in [issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9). Root governance files remain authoritative. The nested template is an instance, not the repository-level trust root.
+2. **First application name:** `Qortara Skills Eligibility`. The existing candidate's `Skill Mason eligibility` name is not silently renamed: naming changes require rebuilt holos, fresh hashes/receipts and a complete gate run before installing.
+3. **First capability:** only `SM-01`, with its exact four-code decision, scenario, generated conformance registration and test. No broader skill construction or catalog integration in the installing commit. If the first-slice ratchet ceiling cannot support future capability work without modifying generated/universal files, raise a separate SDK ergonomics issue before adoption.
+4. **Browser-frame code:** retain the byte-bound upstream frame temporarily as a clearly labelled template artifact, not a supported product feature. Removal should be evaluated as a separate, verifiable shrink-only operation after installation; nothing in this ADR asserts the frame must be user-facing.
+5. **Input assertion boundaries:** the builder must not accept caller-supplied `1` codes as truth. Evidence and rights must be backed by a **version-pinned, reviewed source record** and explicit rights policy. Authority must be derived from the authenticated owner's/host's actual permission ceiling. Coverage must be supported by a requirement-to-method evidence mapping. The proposed first slice remains **fixture-only** until each assertion is bound to a named, auditable real authority and freshness/revocation rules are tested.
+6. **SDK trust and network:** hold production approval. The pinned personal-registry image is a **development candidate only**. The existing wrapper recursively `chown`s its checkout and exposes the host Docker socket to that image. Do not run it on a workstation or privileged shared runner. [Issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9) requires a disposable, credential-free, isolated build runner, a verified trust root, recorded network dependencies, and negative controls. Do not delete or upgrade the existing 21 GB image without separate explicit authorization.
+7. **P0-to-P2 assurance:** do not treat an in-toto signature or `prism-code attest` invocation alone as proof-level qualification. The pinned PrismPM guide calls its attestation section experimental and notes its Rust reader refuses that added section until the wire model changes. Maintain `P0 unverified` for the independently checked holos until an exactly pinned compatible build, embedded statements, trusted signer and verification policy all pass.
+
+**Decision boundary:** These are review recommendations and conditions. The owner must accept or amend this ADR explicitly before the installing commit. Even after acceptance, native Qortara governance, reporting intake and P2 assurance remain separate, honestly reported gates.
+
 ## Owner decisions requested
 
 1. Accept, amend or reject option A and its six conditions.
