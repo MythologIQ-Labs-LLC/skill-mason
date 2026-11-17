@@ -1,0 +1,50 @@
+$ prism-code --version
+0.9.5
+
+$ sha256sum reference.holo
+da1a5c9fea5180e13f2b25e91ce65a18bfb796e5245ff32272cf874f0ed8650e  reference.holo
+$ prism-code vectors reference.holo
+9 of 9 vectors passed (holo, Template contract, identities verified)
+exit=0
+$ prism-code check reference.holo
+FAILED  P0 unverified  policy default requires P2 or above
+holo    reference.holo
+digest  blake3:9fdfcd05f039104c091eaef5aa5b9ba6499a49397bc1a06f467192bbcda91dfc
+
+Reasons:
+  provenance.statement (Verification, withholds P1)
+    The holo carries no provenance statement.
+  proof.statement (ProofMismatch, withholds P2)
+    The holo carries no proof statement.
+  replay.statement (Replay, withholds P3)
+    The holo carries no replay statement.
+  policy.level (PP5601, Verification, policy rule)
+    The level is P0; the policy requires P2 or above.
+exit=1
+
+$ sha256sum eligibility.holo
+4092fea915c0c718c668be332c076c75d8593836e2a055e604b4772026ee6962  eligibility.holo
+$ prism-code vectors eligibility.holo
+12 of 12 vectors passed (holo, Skill Mason eligibility, identities verified)
+exit=0
+$ prism-code check eligibility.holo
+FAILED  P0 unverified  policy default requires P2 or above
+holo    eligibility.holo
+digest  blake3:b5d8011b76c20ac654962dc38914d7002d1c8f4d1e13649218f94ef1003d6ce9
+
+Reasons:
+  provenance.statement (Verification, withholds P1)
+    The holo carries no provenance statement.
+  proof.statement (ProofMismatch, withholds P2)
+    The holo carries no proof statement.
+  replay.statement (Replay, withholds P3)
+    The holo carries no replay statement.
+  policy.level (PP5601, Verification, policy rule)
+    The level is P0; the policy requires P2 or above.
+exit=1
+
+# one byte of reference.holo flipped at offset 6000
+$ prism-code vectors tampered.holo
+digest_mismatch: integrity failure: the holo was altered: the footer is not the BLAKE3 of the body; to open it anyway, pass allowUnverified: true (--allow-unverified on the command line)
+check: holo.integrity
+exit=1

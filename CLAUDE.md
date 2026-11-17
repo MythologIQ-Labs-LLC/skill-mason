@@ -18,4 +18,15 @@ These instructions prepare Claude to **develop Skill Mason**. The project-local 
 4. Never hand-author proofs, conformance results, shadow/ledger JSONL events, gate receipts, operator approvals or license rights.
 5. Work in reviewable branches, retain issues #1/#3/#4, and stop at unresolved owner decisions; do not fake a second approver.
 
-**Qualification status:** Three Claude-only development skills are present and statically checked; no Claude host discovery, compatible Prism SDK installation, built holo, replay or full toolchain acceptance has been demonstrated for Skill Mason.
+## Qualification status (2026-11-17)
+
+- **Skills:** all three were discovered and invoked by a Claude Code host, after an initial `Unknown skill` failure. A session that starts on a branch without `.claude/skills/` does not see them, and a checkout that adds them is not usable until the host refreshes its listing. Confirm each skill appears in the session's skill listing before relying on it.
+- **Route:** route A is selected and its upstream reference application passed the complete gate here. See [`.claude/PRISM_COMPATIBILITY.md`](.claude/PRISM_COMPATIBILITY.md).
+- **Evidence:** [`docs/evidence/prism-phase0-20261117/README.md`](docs/evidence/prism-phase0-20261117/README.md).
+- **Candidate:** one eligibility decision, `SM-01`, is carried in [`prism-overlay/`](prism-overlay/README.md) and passed the complete gate in a rebuilt instance. It is **not adopted**.
+- **Decision:** the owner accepted the nested `prism/` location as architecture direction only ([ADR-0003](docs/adr/0003-prism-application-adoption.md)). That is a layout decision, not an installation.
+- **Hold:** Skill Mason is not a Prism-built application and nothing is installed. The installing commit is a separately qualified change: it needs the runner in issue #9, the remaining owner decisions listed in ADR-0003, and a complete gate run on the renamed application. Until then do not create `prism/`, replace root `AGENTS.md`, or extend the candidate into general skill generation.
+
+- **Runner hold:** do not run the SDK image in any session, workstation or runner that holds credentials, and do not delete or replace the cached image. The native gate waits on an isolated, credential-free runner ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9)). The wrapper refuses to start otherwise; treat a refusal as the answer, not an obstacle.
+
+Useful entry points: `scripts/prism_instance.sh` rebuilds an instance from the pinned template plus the overlay, and `scripts/prism_reference_gate.sh` runs a clean checkout's own gate, in a staged copy, inside the SDK image its lock selects.

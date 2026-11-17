@@ -1,6 +1,6 @@
 # RFC-0001: Prism-backed deterministic skill compilation
 
-**Status:** OPEN / research proposal. **Decision:** Do not claim Prism-integrated generation until an executable proof-of-concept is built and checked.
+**Status:** OPEN / research proposal. **Decision:** Do not claim Prism-integrated generation. An executable proof-of-concept now exists as a candidate (see results below); a claim additionally needs an owner-accepted adoption ([ADR-0003](adr/0003-prism-application-adoption.md)).
 
 ## Hypothesis
 
@@ -17,13 +17,27 @@ These are **source-repository descriptions**, not a successful Skill Mason build
 
 ## Owner direction: legitimate Prism application (2026-11-17)
 
-Skill Mason is required to be a **genuine Prism-built application**, not merely an external program using the Prism name or Rust façade library. The source-pinned [UOR application template](https://github.com/UOR-Foundation/template) describes one concrete **older candidate** acceptance route: authored LexLean `.lex.tex`, PrismPM holo build, Lean named proofs and the digest-pinned SDK's full `just vv` gate. However, later PrismPM guides tagged `available_in: "0.6"` describe `prism/spec.json` decision-app authoring and the `1.0-beta` guide describes a different CLI. See [the recorded compatibility matrix](../.claude/PRISM_COMPATIBILITY.md) and [upstream issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). Select and verify **one actual installed, compatible route** rather than imposing every generation's instructions. No route has yet been executed for Skill Mason.
+Skill Mason is required to be a **genuine Prism-built application**, not merely an external program using the Prism name or Rust façade library. The source-pinned [UOR application template](https://github.com/UOR-Foundation/template) describes one concrete **older candidate** acceptance route: authored LexLean `.lex.tex`, PrismPM holo build, Lean named proofs and the digest-pinned SDK's full `just vv` gate. However, later PrismPM guides tagged `available_in: "0.6"` describe `prism/spec.json` decision-app authoring and the `1.0-beta` guide describes a different CLI. See [the recorded compatibility matrix](../.claude/PRISM_COMPATIBILITY.md) and [upstream issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). Select and verify **one actual installed, compatible route** rather than imposing every generation's instructions. Route A has since been executed for the upstream reference application and for one Skill Mason candidate; see the results section below. No route is adopted.
 
 **Build the Claude developer skills first:** `CLAUDE.md`, `.claude/PRISM_SOURCES.md`, and the three project-only skills under `.claude/skills/` establish source-audit, model-first and proof-qualification procedures. They are not skills for ingestion into `skillz` or user-facing generated output. Their presence does not execute/verify Prism. Verify their actual Claude host discovery before relying on them.
 
 **Architecture correction:** the native Rust `uor-prism` path below may be useful for a supporting library; by itself it **cannot satisfy** the application acceptance target. Evaluate whether the **complete verified-app template contract** can be adopted into existing Skill Mason *or* an actually supported newer spec-driven application contract can be demonstrated. Both must preserve Qortara's `GOVERNANCE.md`, `SECURITY.md`, one architecture owner register, Shadow/ledger writer custody, history and owner decisions. No partial copy may be called template-conformant; an unverified beta command may not be called supported.
 
 The template SDK/locks and PrismPM v0.4.0 candidate must be independently verified at exact pins; the production SDK is not established as accepted by Skill Mason. If its language cannot represent the intended compiler semantics, record the limitation rather than writing hidden fallback application behavior.
+
+## Phase 0 and first-slice results (2026-11-17)
+
+Executed evidence is in the [qualification record](evidence/prism-phase0-20261117/README.md). It answers several of this RFC's questions for route A at the recorded pins, and no further:
+
+- **The verified-application route is executable.** The template's reference application passed `just vv` twice in the digest-pinned SDK image; seven planted defects were each refused by the intended gate.
+- **A bounded decision with typed refusals is modelable.** A four-fact, fail-closed eligibility decision with a decides-theorem and 12 acceptance vectors verified, and passed the complete gate in a nested template instance. It is a candidate in [`prism-overlay/`](../prism-overlay/README.md), not adopted.
+- **Repeatability holds on one machine.** Clean rebuilds gave byte-identical `.holo` files and attestation manifests. Cross-machine reproducibility is untested.
+- **The proof layer attests decisions over canonical inputs.** It also binds the built guest and replays vectors byte for byte. It does not attest generated skill text, which this slice does not produce.
+- **Independent proof-level replay is not available at these versions.** `prism-code` replays vectors and verifies archive identities but grades both holos `P0 unverified`.
+- **Build-time inference is zero on the path tested offline.** The application build-and-prove stage passed with the network disabled. The complete gate is not hermetic: `just deny` fetches a mutable advisory database.
+- **Hand-written code beside the model may only shrink.** This constrains how every later capability is added and is the main design cost of route A.
+
+Open questions this did not answer: heterogeneous outcome-coverage lists at corpus scale, the compositional primitive, package manifests for assets and nested licences, catalog partitioning, and the trust root for evidence exported from `skillz`. The decision that follows from the evidence is proposed in [ADR-0003](adr/0003-prism-application-adoption.md).
 
 ## Two integration paths to qualify, not conflate
 

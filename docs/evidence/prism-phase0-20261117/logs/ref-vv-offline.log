@@ -1,0 +1,8 @@
+cargo fmt --all -- --check
+cargo run -q --locked -p xtask -- validate
+error: failed to download from `https://static.crates.io/crates/serde_spanned/1.1.3/download`
+
+Caused by:
+  [6] Could not resolve hostname (Could not resolve host: static.crates.io)
+error: recipe `model` failed on line 21 with exit code 101
+GATE_EXIT=101 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=19s cmd=just vv

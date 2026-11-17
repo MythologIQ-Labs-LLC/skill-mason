@@ -1,0 +1,8 @@
+cargo run -q --locked -p xtask -- new-capability 'SM-01' 'build' 'eligibility' 'The decision answers eligible exactly when the evidence, rights, authority and coverage codes are each the single admitted code'
+new-capability: SM-01 registered
+  model/ids.toml
+  features/suites/eligibility.feature
+  crates/conformance/tests/eligibility.rs (fn eligibility_sm_01, failing)
+  CONFORMANCE.md
+Next: make eligibility_sm_01 assert the scenario, implement until it passes, plant the defect it exists to catch, then run `just vv`.
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=7s cmd=just new-capability SM-01 build eligibility The decision answers eligible exactly when the evidence, rights, authority and coverage codes are each the single admitted code

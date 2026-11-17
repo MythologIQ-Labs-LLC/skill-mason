@@ -1,0 +1,5 @@
+3 modules are canonical
+lexlean.lock is current
+verified attestation: 927392b7031ac862683e5f28bbaf11431a1049ed13e2158921fca329c6f1539f
+app: kept attestation 927392b7031ac862683e5f28bbaf11431a1049ed13e2158921fca329c6f1539f with the inputs it binds
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=341s cmd=just app

@@ -1,0 +1,2 @@
+wrote lexlean.lock
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=1s cmd=./.in-eligibility.sh lexlean lock

@@ -1,0 +1,25 @@
+cargo fmt --all -- --check
+Diff in /tmp/claude-0/-home-user-skill-mason/d49803a1-97a7-5e68-b12f-70e6557a3ccb/scratchpad/run/inst/crates/conformance/tests/eligibility.rs:23:
+ fn declaration<'a>(model: &'a str, name: &str) -> &'a str {
+     let one_line = format!("{{name: {name}, ");
+     if let Some(start) = model.find(&one_line) {
+-        let end = model[start..].find('\n').expect("a declaration ends its line");
++        let end = model[start..]
++            .find('\n')
++            .expect("a declaration ends its line");
+         return &model[start..start + end];
+     }
+     let start = model
+Diff in /tmp/claude-0/-home-user-skill-mason/d49803a1-97a7-5e68-b12f-70e6557a3ccb/scratchpad/run/inst/crates/conformance/tests/eligibility.rs:96:
+         "a request of any other length must be invalid, never eligible:\n{dispatch}"
+     );
+     assert!(
+-        dispatch.contains("(if (eligible (observe value)) then (prim utf8_encode \"eligible\" : Bytes) else"),
++        dispatch.contains(
++            "(if (eligible (observe value)) then (prim utf8_encode \"eligible\" : Bytes) else"
++        ),
+         "the response must be decided by eligible, the function SM-01 proves"
+     );
+ }
+error: recipe `fmt-check` failed on line 15 with exit code 1
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=0s cmd=just fmt-check

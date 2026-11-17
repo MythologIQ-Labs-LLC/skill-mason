@@ -100,7 +100,7 @@ Qortara Skills will not silently copy an entire third-party corpus, treat a popu
                             optional, separate behavioral test
 ```
 
-**Prism feasibility remains open.** The project is comparing a native Rust/Prism decision route with a verified-application route using [Prism-DevRel](https://github.com/afflom/prism-devrel) and the [UOR template](https://github.com/UOR-Foundation/template). Neither route has been proven in Qortara Skills. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+**Prism feasibility remains open, with first evidence.** The verified-application route using the [UOR template](https://github.com/UOR-Foundation/template) was executed on 2026-11-17: its reference application passed its complete gate, and one candidate eligibility decision was built and verified in a rebuilt instance ([evidence](docs/evidence/prism-phase0-20261117/README.md)). The owner has accepted [ADR-0003](docs/adr/0003-prism-application-adoption.md)'s **nested Prism architecture**; installation, full native checks and artifact assurance remain unqualified, so Qortara Skills is **not yet a Prism-built application**. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
 
 ## The zero-inference-token contract
 
@@ -230,6 +230,8 @@ python3 scripts/check_governance_static.py --root .
 That structural check **is expected to report a qualification hold**, not a full PASS. It checks document links and layout conventions, not owner acceptance, complete repository policy qualification, or product behavior.
 
 **No `skill-mason build` command is currently implemented.** The code block above tests documentation scaffolding only.
+
+A [development-only SM-01 output probe](docs/technical/sm01-output-probe.md) is available for testing **actual compiled Prism `.holo` outputs**, once the nested application produces an artifact at a verified digest. Its local contract tests use a stand-in; no real holo has yet been run through the probe in this repository. It is not a skill builder or proof of P2 assurance.
 
 ## Repository governance
 

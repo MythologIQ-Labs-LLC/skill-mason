@@ -1,0 +1,2 @@
+verified attestation: 7bed00d0e9c306489ad1b57e9c46ade9cd3d681b7b34e805b197de2c5e7ec4a0
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=331s cmd=prismpm --project eligibility verify
