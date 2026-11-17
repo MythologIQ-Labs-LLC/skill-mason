@@ -1,18 +1,20 @@
-# Skill Mason
+![Qortara Skills banner](assets/brand/qortara-skills-banner.webp)
 
-**Build agent capabilities from qualified methods, without model inference during assembly.**
+# Qortara Skills
 
-Skill Mason is a proposed, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
+**A zero-inference-token agent-skill builder for the Qortara family.**
 
-> **Project state: Foundation / pre-implementation.** The architecture and initial governance documents are proposed in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), and have not yet been owner-qualified or merged. **There is no working skill-generation CLI, verified Prism integration, published release, or validated generated skill yet.**
+Qortara Skills is a **proposed**, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
 
-[Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
+> **Project state: Foundation / pre-implementation.** The public repository's architecture and governance foundation is under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). **No working skill-generation CLI, Prism application integration, published release, or behaviorally validated generated skill exists yet.** The zero-inference-token objective is a design requirement, not a measured claim.
+
+[Brand icon](assets/brand/qortara-skills-icon.webp) · [Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
 
 ---
 
 ## Contents
 
-- [Why Skill Mason exists](#why-skill-mason-exists)
+- [Why Qortara Skills exists](#why-qortara-skills-exists)
 - [What it will do](#what-it-will-do)
 - [How the pieces fit together](#how-the-pieces-fit-together)
 - [The zero-inference-token contract](#the-zero-inference-token-contract)
@@ -25,13 +27,13 @@ Skill Mason is a proposed, evidence-driven compiler for portable AI-agent skills
 - [Frequently asked questions](#frequently-asked-questions)
 - [Contributions and licensing](#contributions-and-licensing)
 
-## Why Skill Mason exists
+## Why Qortara Skills exists
 
 Finding a skill is not the same as having a skill an agent can safely and effectively use.
 
 A catalog may identify hundreds of promising procedures, but a specific task still needs reliable answers: **What outcome must the agent achieve? Which method actually covers it? May that source be reused? Which tools, permissions, data, and host features are required? What has been tested?**
 
-[skillz](https://github.com/Knapp-Kevin/skillz) is growing into a broad, curated capability library across disciplines. Skill Mason is its **separate downstream engineering project**. Instead of treating discovery counts as finished capabilities, Skill Mason aims to assemble methods only when the requested outcome and its constraints can be supported.
+[skillz](https://github.com/Knapp-Kevin/skillz) is growing into a broad, curated capability library across disciplines. Qortara Skills is its **separate downstream engineering project**. Instead of treating discovery counts as finished capabilities, Qortara Skills aims to assemble methods only when the requested outcome and its constraints can be supported.
 
 The goal is not to manufacture impressive-looking `SKILL.md` files. It is to produce **small, traceable, fit-for-purpose skills**, or explain precisely why one cannot yet be produced.
 
@@ -60,14 +62,14 @@ These are **requirements, not shipped capabilities**. The definitive scope and f
 
 ### What it will not do
 
-Skill Mason will not silently copy an entire third-party corpus, treat a popular skill as safe, infer reuse rights from a repository badge, execute commands found in candidate text, grant itself permissions, install packages without approval, or invent missing expertise. New method authorship may eventually be supported through an **explicitly separate** process; it is not part of the zero-inference build.
+Qortara Skills will not silently copy an entire third-party corpus, treat a popular skill as safe, infer reuse rights from a repository badge, execute commands found in candidate text, grant itself permissions, install packages without approval, or invent missing expertise. New method authorship may eventually be supported through an **explicitly separate** process; it is not part of the zero-inference build.
 
 ## How the pieces fit together
 
 | System | Owns | Does **not** authorize |
 | --- | --- | --- |
 | [skillz](https://github.com/Knapp-Kevin/skillz) | Passive discovery, taxonomy, source versions, reviews, and qualification leads | Automatically reusing or executing discovered methods |
-| **Skill Mason** | Planned selection, eligibility decisions, deterministic assembly, and artifact receipts | Rewriting upstream assessments or activating output in a host |
+| **Qortara Skills** | Planned selection, eligibility decisions, deterministic assembly, and artifact receipts | Rewriting upstream assessments or activating output in a host |
 | [UOR Prism](https://github.com/UOR-Foundation/prism) | Candidate typed computation and replay-verification foundation | Claims about external task success without observed evidence |
 | **Consuming agent / authorized host** | Actual installation, execution, credentials, and observed use | Treating compiled text as permission to bypass host policy |
 
@@ -98,7 +100,7 @@ Skill Mason will not silently copy an entire third-party corpus, treat a popular
                             optional, separate behavioral test
 ```
 
-**Prism feasibility remains open.** The project is comparing a native Rust/Prism decision route with a verified-application route using [Prism-DevRel](https://github.com/afflom/prism-devrel) and the [UOR template](https://github.com/UOR-Foundation/template). Neither route has been proven in Skill Mason. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+**Prism feasibility remains open.** The project is comparing a native Rust/Prism decision route with a verified-application route using [Prism-DevRel](https://github.com/afflom/prism-devrel) and the [UOR template](https://github.com/UOR-Foundation/template). Neither route has been proven in Qortara Skills. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
 
 ## The zero-inference-token contract
 
@@ -176,7 +178,7 @@ For repository vulnerabilities and disclosure rules, read [SECURITY.md](SECURITY
 
 | Milestone | Current evidence | Status |
 | --- | --- | --- |
-| Project identity and repository | Internal repository, README on `main`; foundation staged in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
+| Project identity and repository | Public repository; foundation under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
 | Repository governance documents | Governance/security policies and an architecture ownership register staged in PR #2 | Staged, **not qualified** |
 | Supplemental structure tests | Nine negative/positive controls passed in [the recorded CI run](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44174111869) | Tested, narrow scope |
 | Repository policy qualification | Confidential incident-handling decisions and required repository checks not yet qualified | **Blocked**, [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4) |
@@ -208,14 +210,14 @@ There are **no** runtime packages, installation instructions, host connectors, o
 
 ## Develop and validate
 
-The repository is currently **internal**. Clone access requires actual GitHub permissions.
+This repository is **public**. Source visibility does not confer contribution rights, reuse rights, or an installed release.
 
 ```sh
 git clone https://github.com/MythologIQ-Labs-LLC/skill-mason.git
 cd skill-mason
 ```
 
-The governance foundation exists on the [draft PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
+The proposed governance foundation exists on the [PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
 
 ```sh
 git fetch origin feature/foundation-contract-20261117
@@ -234,12 +236,12 @@ That structural check **is expected to report a qualification hold**, not a full
 
 ## Repository governance
 
-Development governance is **not part of Skill Mason's product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. Policies and qualification still pending are tracked in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
+Development governance is **not part of Qortara Skills's product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. Policies and qualification still pending are tracked in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
 
 ## Frequently asked questions
 
-**Is Skill Mason a replacement for skillz?**  
-No. `skillz` remains the passive discovery and evaluation source. Skill Mason is a proposed **active, separate** builder and output collection. Neither project automatically changes the other's accepted evidence.
+**Is Qortara Skills a replacement for skillz?**  
+No. `skillz` remains the passive discovery and evaluation source. Qortara Skills is a proposed **active, separate** builder and output collection. Neither project automatically changes the other's accepted evidence.
 
 **Does zero-token mean a generated skill costs no tokens to use?**  
 No. It means the **deterministic generation transaction** uses no model inference. A consuming agent may still spend tokens reading and applying the instructions.
@@ -250,7 +252,7 @@ That is the long-term coverage aspiration, **not a present guarantee**. If an es
 **Does Prism verify that a skill is safe and effective?**  
 Not by itself. Prism is a **candidate** for checking formal decision properties, and its integration is unproven here. Real task effectiveness and host permissions require separate evidence.
 
-**Can I install Skill Mason today?**  
+**Can I install Qortara Skills today?**  
 No released generator or installer exists. The repository presently contains product/architecture contracts and a narrow supplemental documentation checker.
 
 **Why is the governance CI job not passing?**  
@@ -258,7 +260,7 @@ The initial nine tests passed, but the qualification step intentionally reported
 
 ## Contributions and licensing
 
-This is currently an **internal** project maintained under [GOVERNANCE.md](GOVERNANCE.md). Its contribution policy has **not** been established as open or invited. Access or a submitted patch does not authorize adoption, changes to architecture, or redistribution of source material.
+This is a **public, owner-maintained** project governed by [GOVERNANCE.md](GOVERNANCE.md). Public visibility does not mean open contributions, and acceptance of outside contributions is not established. Access or a submitted patch does not authorize adoption, changes to architecture, or redistribution of source material.
 
 **No repository-wide license has been adopted here.** Do not assume the project code or generated artifacts are MIT-licensed because some upstream dependencies or catalog sources use MIT. Every incorporated method and bundled asset retains its own verified rights constraints.
 

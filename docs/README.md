@@ -1,4 +1,4 @@
-# Skill Mason Documentation and Canonical Architecture-Owner Register
+# Qortara Skills Documentation and Canonical Architecture-Owner Register
 
 **Role:** The **single canonical architecture-owner register**. [Root ARCHITECTURE_INDEX.md](../ARCHITECTURE_INDEX.md) routes here; this page maps subjects to their real owners and does not itself approve or prove an architectural claim.
 
