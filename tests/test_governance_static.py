@@ -9,6 +9,7 @@ def fixture(root: Path) -> None:
     (root / "docs" / "architecture").mkdir(parents=True)
     (root / ".qortara").mkdir()
     (root / "ARCHITECTURE_INDEX.md").write_text("[register](docs/README.md)\n", encoding="utf-8")
+    (root / "README.md").write_text("# Intro\n[overview](#intro) [governance](GOVERNANCE.md)\n", encoding="utf-8")
     (root / "docs" / "README.md").write_text("[owned](architecture/entry.md)\n", encoding="utf-8")
     (root / "docs" / "architecture" / "entry.md").write_text("# Contract\n", encoding="utf-8")
     (root / "GOVERNANCE.md").write_text("# Governance\nowner approval exception\n", encoding="utf-8")
@@ -33,6 +34,18 @@ class GovernanceStaticTests(unittest.TestCase):
 
     def test_known_good_layout(self):
         self.assertEqual(assess(self.root), ([], []))
+
+    def test_readme_broken_document_link(self):
+        with (self.root / "README.md").open("a") as f:
+            f.write("[missing](docs/nothing.md)\n")
+        errors, _ = assess(self.root)
+        self.assertTrue(any("broken local link: README.md" in x for x in errors))
+
+    def test_readme_broken_contents_anchor(self):
+        with (self.root / "README.md").open("a") as f:
+            f.write("[missing](#not-a-heading)\n")
+        errors, _ = assess(self.root)
+        self.assertTrue(any("broken README heading link" in x for x in errors))
 
     def test_mandatory_policy_missing(self):
         (self.root / "GOVERNANCE.md").unlink()
