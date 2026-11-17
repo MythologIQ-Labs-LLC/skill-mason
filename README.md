@@ -1,18 +1,20 @@
-# Skill Mason
+![Qortara Skills banner](assets/brand/qortara-skills-banner.webp)
 
-**Build agent capabilities from qualified methods, without model inference during assembly.**
+# Qortara Skills
 
-Skill Mason is a proposed, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
+**A zero-inference-token agent-skill builder for the Qortara family.**
 
-> **Project state: Foundation / pre-implementation.** The architecture and initial governance documents are in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). **There is no working skill-generation CLI, verified Prism integration, published release, or validated generated skill yet.** Do not use the design below as evidence that those features already exist.
+Qortara Skills is a **proposed**, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
 
-[Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
+> **Project state: Foundation / pre-implementation.** The public repository's architecture and governance foundation is under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). **No working skill-generation CLI, Prism application integration, published release, or behaviorally validated generated skill exists yet.** The zero-inference-token objective is a design requirement, not a measured claim.
+
+[Brand icon](assets/brand/qortara-skills-icon.webp) · [Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
 
 ---
 
 ## Contents
 
-- [Why Skill Mason exists](#why-skill-mason-exists)
+- [Why Qortara Skills exists](#why-qortara-skills-exists)
 - [What it will do](#what-it-will-do)
 - [How the pieces fit together](#how-the-pieces-fit-together)
 - [The zero-inference-token contract](#the-zero-inference-token-contract)
@@ -21,17 +23,17 @@ Skill Mason is a proposed, evidence-driven compiler for portable AI-agent skills
 - [Project status and roadmap](#project-status-and-roadmap)
 - [Explore the repository](#explore-the-repository)
 - [Develop and validate](#develop-and-validate)
-- [Governance and learning](#governance-and-learning)
+- [Repository governance](#repository-governance)
 - [Frequently asked questions](#frequently-asked-questions)
 - [Contributions and licensing](#contributions-and-licensing)
 
-## Why Skill Mason exists
+## Why Qortara Skills exists
 
 Finding a skill is not the same as having a skill an agent can safely and effectively use.
 
 A catalog may identify hundreds of promising procedures, but a specific task still needs reliable answers: **What outcome must the agent achieve? Which method actually covers it? May that source be reused? Which tools, permissions, data, and host features are required? What has been tested?**
 
-[skillz](https://github.com/Knapp-Kevin/skillz) is growing into a broad, curated capability library across disciplines. Skill Mason is its **separate downstream engineering project**. Instead of treating discovery counts as finished capabilities, Skill Mason aims to assemble methods only when the requested outcome and its constraints can be supported.
+[skillz](https://github.com/Knapp-Kevin/skillz) is growing into a broad, curated capability library across disciplines. Qortara Skills is its **separate downstream engineering project**. Instead of treating discovery counts as finished capabilities, Qortara Skills aims to assemble methods only when the requested outcome and its constraints can be supported.
 
 The goal is not to manufacture impressive-looking `SKILL.md` files. It is to produce **small, traceable, fit-for-purpose skills**, or explain precisely why one cannot yet be produced.
 
@@ -60,16 +62,15 @@ These are **requirements, not shipped capabilities**. The definitive scope and f
 
 ### What it will not do
 
-Skill Mason will not silently copy an entire third-party corpus, treat a popular skill as safe, infer reuse rights from a repository badge, execute commands found in candidate text, grant itself permissions, install packages without approval, or invent missing expertise. New method authorship may eventually be supported through an **explicitly separate** process; it is not part of the zero-inference build.
+Qortara Skills will not silently copy an entire third-party corpus, treat a popular skill as safe, infer reuse rights from a repository badge, execute commands found in candidate text, grant itself permissions, install packages without approval, or invent missing expertise. New method authorship may eventually be supported through an **explicitly separate** process; it is not part of the zero-inference build.
 
 ## How the pieces fit together
 
 | System | Owns | Does **not** authorize |
 | --- | --- | --- |
 | [skillz](https://github.com/Knapp-Kevin/skillz) | Passive discovery, taxonomy, source versions, reviews, and qualification leads | Automatically reusing or executing discovered methods |
-| **Skill Mason** | Planned selection, eligibility decisions, deterministic assembly, and artifact receipts | Rewriting upstream assessments or activating output in a host |
+| **Qortara Skills** | Planned selection, eligibility decisions, deterministic assembly, and artifact receipts | Rewriting upstream assessments or activating output in a host |
 | [UOR Prism](https://github.com/UOR-Foundation/prism) | Candidate typed computation and replay-verification foundation | Claims about external task success without observed evidence |
-| [Qortara Logic](https://github.com/MythologIQ-Labs-LLC/qortara-logic) | Governed development rules and the canonical local evidence/Shadow model when used by a qualified host | Hidden file writes, independent tool permissions, or automatic owner approval |
 | **Consuming agent / authorized host** | Actual installation, execution, credentials, and observed use | Treating compiled text as permission to bypass host policy |
 
 ```text
@@ -99,7 +100,7 @@ Skill Mason will not silently copy an entire third-party corpus, treat a popular
                             optional, separate behavioral test
 ```
 
-**Prism feasibility remains open, with first evidence.** The verified-application route using the [UOR template](https://github.com/UOR-Foundation/template) was executed on 2026-11-17: its reference application passed the complete gate, and one candidate eligibility decision was built and verified in a rebuilt instance ([evidence](docs/evidence/prism-phase0-20261117/README.md)). Nothing is adopted: Skill Mason is not a Prism-built application until the owner accepts [ADR-0003](docs/adr/0003-prism-application-adoption.md). See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+**Prism feasibility remains open, with first evidence.** The verified-application route using the [UOR template](https://github.com/UOR-Foundation/template) was executed on 2026-11-17: its reference application passed its complete gate, and one candidate eligibility decision was built and verified in a rebuilt instance ([evidence](docs/evidence/prism-phase0-20261117/README.md)). Nothing is adopted: Qortara Skills is not a Prism-built application until the owner accepts [ADR-0003](docs/adr/0003-prism-application-adoption.md). See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
 
 ## The zero-inference-token contract
 
@@ -177,10 +178,10 @@ For repository vulnerabilities and disclosure rules, read [SECURITY.md](SECURITY
 
 | Milestone | Current evidence | Status |
 | --- | --- | --- |
-| Project identity and repository | Internal repository, README on `main`; foundation staged in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
-| Qortara documentation and Shadow layout | Root governance/security docs, one architecture owner register, empty canonical `.qortara/shadow.jsonl` in PR #2 | Staged, **not qualified** |
+| Project identity and repository | Public repository; foundation under review in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
+| Repository governance documents | Governance/security policies and an architecture ownership register staged in PR #2 | Staged, **not qualified** |
 | Supplemental structure tests | Nine negative/positive controls passed in [the recorded CI run](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44174111869) | Tested, narrow scope |
-| Repository policy qualification | Unconfirmed confidential security intake; native Qortara checks not executed | **Blocked**, [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4) |
+| Repository policy qualification | Confidential incident-handling decisions and required repository checks not yet qualified | **Blocked**, [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4) |
 | Prism decision/replay prototype | [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Proposed |
 | First deterministic skill compiler | Requirements and [acceptance cases](docs/ACCEPTANCE.md), no runtime | Not implemented |
 | Real host behavioral validation | No generated skill or host test receipt | Not established |
@@ -202,33 +203,21 @@ The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues
 | [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) | Planned positive, adversarial, and host acceptance cases |
 | [`GOVERNANCE.md`](GOVERNANCE.md) · [`SECURITY.md`](SECURITY.md) | Owner authority, change controls, and unresolved reporting policy |
 | [`AGENTS.md`](AGENTS.md) | Required operating instructions for development agents |
-| [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Canonical `.qortara/` events, Shadow Genome, lifecycle evidence |
+| [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Internal governance evidence and audit-record procedures |
 | [`scripts/check_governance_static.py`](scripts/check_governance_static.py) · [tests](tests/test_governance_static.py) | Supplemental read-only layout lint and planted controls |
 
 There are **no** runtime packages, installation instructions, host connectors, or downloadable skill artifacts to document yet. Links to those will be added only when the corresponding code and evidence exist.
 
-## Claude Code developer skills
-
-Before attempting Prism-based product implementation, Claude Code should use three **repository-local development skills**:
-
-- [`prism-source-gate`](.claude/skills/prism-source-gate/SKILL.md): exact-version upstream API, command, feature and proof-claim source checks.
-- [`prism-model-first`](.claude/skills/prism-model-first/SKILL.md): build a genuine LexLean-modelled, PrismPM-built application with registered claims, scenarios and failing tests.
-- [`prism-proof-audit`](.claude/skills/prism-proof-audit/SKILL.md): verify the adopted full acceptance gate, generated holo, formal-scope limits and independently replayed receipts.
-
-Read the [Claude project entrypoint](CLAUDE.md) and [pinned upstream source register](.claude/PRISM_SOURCES.md) first. These are **skills to guide Claude's development of Skill Mason**, never additions to the `skillz` catalog or artifacts of the future compiler. They were discovered and invoked by a Claude Code host on 2026-11-17, after an initial discovery failure recorded in the [evidence](docs/evidence/prism-phase0-20261117/README.md). Their presence does not mean a Prism application is adopted.
-
-**Strict Prism requirement:** importing the `uor-prism` Rust library does not by itself make Skill Mason a Prism-built application. The [application-version compatibility guide](.claude/PRISM_COMPATIBILITY.md) documents the incompatibility between older LexLean/template instructions and newer `prism/spec.json`/1.0-beta CLI guides, linked to [upstream PrismPM issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). [RFC-0001](docs/RFC-0001-prism-feasibility.md) controls the evidence-backed selection of one supported application route without overriding Qortara governance.
-
 ## Develop and validate
 
-The repository is currently **internal**. Clone access requires actual GitHub permissions.
+This repository is **public**. Source visibility does not confer contribution rights, reuse rights, or an installed release.
 
 ```sh
 git clone https://github.com/MythologIQ-Labs-LLC/skill-mason.git
 cd skill-mason
 ```
 
-The governance foundation exists on the [draft PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
+The proposed governance foundation exists on the [PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
 
 ```sh
 git fetch origin feature/foundation-contract-20261117
@@ -241,28 +230,18 @@ python3 -m unittest discover -s tests -p 'test_governance_static.py' -v
 python3 scripts/check_governance_static.py --root .
 ```
 
-That second command **is expected to report a qualification hold**, not a full PASS. It checks selected document links and layout conventions. It cannot authenticate owner approval, verify Shadow events cryptographically, replace Qortara's native lifecycle, or prove runtime behavior.
-
-When a qualified local Qortara CLI is actually available, the intended governance checks are `qortara check repository-documents`, `qortara check architecture-index`, and `qortara check all`. Their results must be recorded for the **exact revision**. The hosted Qortara evaluator is not a substitute for a repository-local runtime.
+That structural check **is expected to report a qualification hold**, not a full PASS. It checks document links and layout conventions, not owner acceptance, complete repository policy qualification, or product behavior.
 
 **No `skill-mason build` command is currently implemented.** The code block above tests documentation scaffolding only.
 
-## Governance and learning
+## Repository governance
 
-Skill Mason follows Qortara Logic's **one-owner-per-claim** model:
-
-- Root [architecture index](ARCHITECTURE_INDEX.md) routes to the one [owner register](docs/README.md). Proposed ADRs are proposals, not authenticated approval or implementation.
-- [`GOVERNANCE.md`](GOVERNANCE.md) describes the owner-controlled decision and adversarial review process. Permissions, reviews, merges, and releases require the real host/repository authority.
-- [`.qortara/shadow.jsonl`](.qortara/shadow.jsonl) is the **single canonical Shadow Genome event file**. Its initial empty state is a scaffold, not proof of a flawless history.
-- `.qortara/ledger.jsonl`, gate iterations, intent locks, and provenance sidecars are recorded **only by the canonical runtime as relevant events actually happen**. They have not been invented to populate this repository.
-- Shadow findings can drive governed remediation, but learning events cannot rewrite policies, close defects, or approve a build by themselves. Proper closure requires an applicable enforcer and actual audit evidence.
-
-Read the [evidence and learning guide](docs/technical/governed-evidence.md) before touching `.qortara/`. Do not manually edit structured events, create a second `SHADOW_GENOME.md` authority, or commit session keys and transient state.
+Development governance is **not part of Qortara Skills's product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. Policies and qualification still pending are tracked in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
 
 ## Frequently asked questions
 
-**Is Skill Mason a replacement for skillz?**  
-No. `skillz` remains the passive discovery and evaluation source. Skill Mason is a proposed **active, separate** builder and output collection. Neither project automatically changes the other's accepted evidence.
+**Is Qortara Skills a replacement for skillz?**  
+No. `skillz` remains the passive discovery and evaluation source. Qortara Skills is a proposed **active, separate** builder and output collection. Neither project automatically changes the other's accepted evidence.
 
 **Does zero-token mean a generated skill costs no tokens to use?**  
 No. It means the **deterministic generation transaction** uses no model inference. A consuming agent may still spend tokens reading and applying the instructions.
@@ -273,7 +252,7 @@ That is the long-term coverage aspiration, **not a present guarantee**. If an es
 **Does Prism verify that a skill is safe and effective?**  
 Not by itself. Prism is a **candidate** for checking formal decision properties, and its integration is unproven here. Real task effectiveness and host permissions require separate evidence.
 
-**Can I install Skill Mason today?**  
+**Can I install Qortara Skills today?**  
 No released generator or installer exists. The repository presently contains product/architecture contracts and a narrow supplemental documentation checker.
 
 **Why is the governance CI job not passing?**  
@@ -281,7 +260,7 @@ The initial nine tests passed, but the qualification step intentionally reported
 
 ## Contributions and licensing
 
-This is currently an **internal** project maintained under [GOVERNANCE.md](GOVERNANCE.md). Its contribution policy has **not** been established as open or invited. Access or a submitted patch does not authorize adoption, changes to architecture, or redistribution of source material.
+This is a **public, owner-maintained** project governed by [GOVERNANCE.md](GOVERNANCE.md). Public visibility does not mean open contributions, and acceptance of outside contributions is not established. Access or a submitted patch does not authorize adoption, changes to architecture, or redistribution of source material.
 
 **No repository-wide license has been adopted here.** Do not assume the project code or generated artifacts are MIT-licensed because some upstream dependencies or catalog sources use MIT. Every incorporated method and bundled asset retains its own verified rights constraints.
 

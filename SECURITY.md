@@ -4,7 +4,7 @@
 
 ## Scope and supported versions
 
-Skill Mason is an **internal, pre-implementation** repository. No release, production service, supported version range, external vulnerability intake, or service-level response time has been established. A future published or deployed version must receive an explicit security support and disclosure policy.
+Qortara Skills (repository `skill-mason`) is a **public, pre-implementation** repository. No release, production service, supported version range, external vulnerability intake, or service-level response time has been established. A future published or deployed version must receive an explicit security support and disclosure policy.
 
 ## Reporting vulnerabilities
 

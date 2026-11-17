@@ -6,7 +6,7 @@
 
 - **Accountable project owner:** MythologIQ Labs, LLC retains product direction, repository governance, security posture, legal/licensing, merge, release and deployment decisions.
 - **Maintainer model:** Solo-developer owner workflow is the stated working context. Owner-authorized adversarial review is an acceptable form of challenge; do not invent a second required human. Actual GitHub protections and host permissions remain separately authoritative.
-- **Repository visibility:** GitHub currently reports **internal**, not public; visibility may change without changing this policy automatically.
+- **Repository visibility:** GitHub reports **public** as of 2026-11-17. Visibility does not establish contribution policy or license rights.
 - **Contribution intent:** `NOT_ESTABLISHED` until the owner explicitly confirms closed / invited / open. Repository visibility is not evidence of contribution policy.
 - **Maintainers and agents:** May propose/review/modify only as independently authorized for the specific task, repository, branch and host. Tool access or an agent statement does not constitute owner acceptance.
 

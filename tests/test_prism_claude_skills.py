@@ -49,14 +49,26 @@ class PrismClaudeSkillTests(unittest.TestCase):
         self.assertIn("not catalog entries", project.lower())
         self.assertFalse((ROOT / "skills" / "authored" / "prism-source-gate").exists())
 
-    def test_readme_and_agent_instructions_link_project_skills(self):
+    def test_developer_instructions_link_project_skills_without_polluting_readme(self):
         readme = (ROOT / "README.md").read_text()
         agents = (ROOT / "AGENTS.md").read_text()
+        claude = (ROOT / "CLAUDE.md").read_text()
+        self.assertNotIn(".claude/skills/", readme)
         for name in NAMES:
             with self.subTest(name=name):
-                self.assertIn(f".claude/skills/{name}/SKILL.md", readme)
                 self.assertIn(f".claude/skills/{name}/SKILL.md", agents)
+                self.assertIn(f".claude/skills/{name}/SKILL.md", claude)
         self.assertIn(".claude/PRISM_SOURCES.md", agents)
+
+    def test_public_product_brand_and_artwork_are_present(self):
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("# Qortara Skills", readme)
+        self.assertIn("zero-inference-token agent-skill builder", readme)
+        self.assertIn("assets/brand/qortara-skills-banner.webp", readme)
+        self.assertIn("assets/brand/qortara-skills-icon.webp", readme)
+        self.assertNotIn("Qortara Logic", readme)
+        for name in ("qortara-skills-banner.webp", "qortara-skills-icon.webp"):
+            self.assertTrue((ROOT / "assets" / "brand" / name).is_file())
 
 
     def test_version_conflict_is_explicit_and_pinned(self):
