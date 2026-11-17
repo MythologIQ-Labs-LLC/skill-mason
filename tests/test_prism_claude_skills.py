@@ -106,19 +106,27 @@ class PrismClaudeSkillTests(unittest.TestCase):
         self.assertIn("**route B**", model)
         self.assertIn("HOLD", model)
         self.assertIn("not selected and not executed", model)
-        self.assertIn("no Prism application adopted", (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text())
+        compatibility = (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text()
+        self.assertIn("nested location", compatibility)
+        self.assertIn("no installed Prism application", compatibility)
         self.assertIn("ADR-0003", entry)
         self.assertIn("not a Prism-built application", entry)
 
-    def test_adoption_decision_is_proposed_not_accepted(self):
+    def test_nested_architecture_accepted_but_application_uninstalled(self):
         adr = (ROOT / "docs" / "adr" / "0003-prism-application-adoption.md").read_text()
-        self.assertIn("**Status:** Proposed.", adr)
-        self.assertNotIn("**Status:** Accepted", adr)
+        self.assertIn("**Status:** **Accepted, architecture direction only (option A)**", adr)
+        self.assertIn("nested `prism/`", adr)
+        self.assertIn("Implementation NOT_INSTALLED", adr)
+        self.assertIn("Prism application qualification NOT_RUN", adr)
         self.assertIn("9a1fe3f73ab2963812c35976909c331292e1ca39ce47c0711ec1aafe8b869d87", adr)
-        self.assertIn("Owner decisions requested", adr)
+        self.assertIn("Remaining owner decisions and evidence gates", adr)
+        self.assertIn("P0 unverified", adr)
+        self.assertIn("issue #9", adr)
         register = (ROOT / "docs" / "README.md").read_text()
         self.assertEqual(register.count("](adr/0003-prism-application-adoption.md)"), 1)
-        self.assertIn("Proposed; owner decision pending; nothing adopted", register)
+        self.assertIn("Accepted architecture direction", register)
+        self.assertIn("no installing commit", register)
+        self.assertFalse((ROOT / "prism").exists(), "acceptance is not an installed application")
 
     def test_skills_use_one_evidence_vocabulary_and_observed_diagnostics(self):
         source = (ROOT / ".claude" / "skills" / "prism-source-gate" / "SKILL.md").read_text()
