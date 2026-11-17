@@ -6,9 +6,15 @@
 | --- | --- | --- | --- |
 | [UOR-Foundation/template](https://github.com/UOR-Foundation/template/tree/b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b) | `b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b` | `README.md`, `AGENTS.md`, `Justfile`, `model/ids.toml`, `TEMPLATE-CONTRACT.md`, `CONFORMANCE.md`, `prismpm.lock` | **Canonical starting point for a model-first Prism application** |
 | [UOR-Foundation/PrismPM](https://github.com/UOR-Foundation/PrismPM/tree/d896ab59e287650aecbcf02b8e867121601fdde5) | `d896ab59e287650aecbcf02b8e867121601fdde5` | `SPEC.md` (normative), `README.md` (explanatory), `AGENTS.md` | Compiler, verifier, package boundaries and accepted command semantics |
-| [UOR-Foundation/LexLean](https://github.com/UOR-Foundation/LexLean/tree/a74b1f99bba637e51d19fb4efc508316aafa6664) | `a74b1f99bba637e51d19fb4efc508316aafa6664` | Repository identity pinned; syntax/semantic source **not yet inspected at this pin** | Required language implementation, detailed API review pending |
+| [UOR-Foundation/LexLean](https://github.com/UOR-Foundation/LexLean/tree/a74b1f99bba637e51d19fb4efc508316aafa6664) | `a74b1f99bba637e51d19fb4efc508316aafa6664` | Pinned `README.md`, normative `SPEC.md` and `AGENTS.md` source-inspected; runtime/compiler verification **not executed** | Closed LexLean language/compiler contract; support for Skill Mason's intended application semantics still unproven |
 | [UOR-Foundation/prism](https://github.com/UOR-Foundation/prism/tree/507995bab43c0cb06ec244c96e6fc25b3f502204) | `507995bab43c0cb06ec244c96e6fc25b3f502204` | `README.md`, `AGENTS.md` | Standard-library façade and separate replay façade; **not** the full application template |
 | [afflom/prism-devrel](https://github.com/afflom/prism-devrel/tree/ace153e37c7c29646f3efa6e273c3c4f8c9fb8bc) | `ace153e37c7c29646f3efa6e273c3c4f8c9fb8bc` | `README.md`, `AGENTS.md`, `TEMPLATE-CONTRACT.md` | Worked Prism application and proof/coverage learning reference, not automatic feature authority |
+
+## Required version compatibility check
+
+Before interpreting any upstream authoring instructions, read [PRISM_COMPATIBILITY.md](PRISM_COMPATIBILITY.md), including [upstream PrismPM docs issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). The pinned PrismPM `SPEC.md`/`README.md`, `0.6` spec JSON guides, and `1.0-beta` CLI guide are **different version-scoped surfaces**. Their tools, authoritative model inputs, and acceptance gates must not be combined without observed, compatible toolchain evidence.
+
+**Additional pinned PrismPM docs inspected:** `docs/site/guides/write-the-model.md`, `docs/site/guides/write-from-examples.md`, `docs/site/get-started/quickstart.md`, `docs/site/guides/agents.md` and `RELEASE-STATUS.md` at `d896ab59e287650aecbcf02b8e867121601fdde5`.
 
 ## Source-of-truth order for claims
 

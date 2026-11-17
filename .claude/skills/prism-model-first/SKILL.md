@@ -1,38 +1,42 @@
 ---
 name: prism-model-first
-description: Build Skill Mason as a genuine LexLean-modelled, PrismPM-built application using the verified UOR template contract, with registered claims, behavioral scenarios, failing tests and locked dependencies.
+description: Help build Skill Mason as a real version-pinned Prism application; first qualify the active LexLean/PrismPM or JSON-spec workflow, then preserve its single model source, locked SDK, claims, tests and proof boundaries.
 ---
 
-# Model-first Prism application development
+# Genuine Prism application construction
 
-**For Claude Code working in Skill Mason; NOT a skill for the external `skillz` corpus or Skill Mason's future generated output.**
+**Claude Code developer skill only.** Never import it into `skillz` or include it in Skill Mason's generated user-skill corpus.
 
-## Preconditions
+## Mandatory prerequisites
 
-1. Run/read `prism-source-gate` and `.claude/PRISM_SOURCES.md`. Check real source at the pinned commits, not remembered syntax.
-2. Locate the actual Skill Mason accepted architecture owner via `ARCHITECTURE_INDEX.md` -> `docs/README.md`. Proposed RFCs/ADRs have not automatically been accepted.
-3. Inspect the pinned [UOR application template](https://github.com/UOR-Foundation/template) completely enough to preserve its **mandatory universal policy**, lock, bootstrap, verification, and model contract. Do not blindly paste selected source files into Skill Mason.
-4. **Integration decision required:** Skill Mason already exists with Qortara docs, Git history, governance, and `.qortara/shadow.jsonl`. A full template-based application is the **proposed** route; prepare an evidence-backed migration/adoption design that retains those contracts and explicitly declares any unsupported template requirement. Never call a partial template transplant `uor/template-contract/1` conformant.
+1. Read/invoke `prism-source-gate`. Review `.claude/PRISM_SOURCES.md`, `.claude/PRISM_COMPATIBILITY.md`, Skill Mason RFC-0001, and upstream [PrismPM documentation issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718).
+2. Locate the actual accepted Skill Mason architecture owner at root `ARCHITECTURE_INDEX.md` -> `docs/README.md`. A proposed ADR is **not** owner acceptance.
+3. **Choose one version-correct, demonstrated application route.** The pins record different authoring generations: old UOR template uses authored `.lex.tex`; newer `available_in: "0.6"` docs describe authored `prism/spec.json` for decisions; the `1.0-beta` quickstart documents a different `prism` CLI. Never treat their instructions as interchangeable.
+4. Establish a real SDK, lock, binary and reference app, then run the version's documented full gate and negative controls. If the selected version cannot be installed/verified, return **HOLD** without product code, rather than emulate Prism.
 
-## Model-first workflow (after the integration is authorized)
+## If **route A** is actually selected: UOR template / older model-authoring contract
 
-1. Define the **smallest genuine Prism application behavior** required for the first Skill Mason pilot: a typed choice of source methods for explicit required outcomes, with fail-closed rights and authority decisions. Distinguish **formal model behavior** from host IO, source authentication, rights judgments and package delivery.
-2. Register each capability ID and its claim level in the template's authoritative model register (`model/ids.toml` **in the adopted template**). Imported facts are `some-true`, locally constructed+validated claims are `build`, and unknown/empirical claims are `open`; never promote one level silently.
-3. Register a behavioral scenario in the template's `features/suites/` and a **failing test** bound to the ID before implementing it. The upstream template documents `just new-capability` for this workflow; check its actual help/recipe at the pinned source before executing it.
-4. Author actual application semantics in the model's `.lex.tex` files (the template includes `app/src/Contract.lex.tex`). Consult the pinned LexLean compiler/docs before choosing any construct; do not invent grammar, types or syntax from natural-language examples.
-5. Generate derived model/conformance output only with upstream-supported commands (template documents `just model-write`). Never hand-edit generated `CONFORMANCE.md`, `.lean`, `lakefile.lean`, app-specific Rust/Wasm behavior, or proof assertions as a stand-in for the modeled source.
-6. Implement only the modeled behavior. Every public failure must be typed, registered and covered by a **planted negative test**. No stubs, knowingly deferred requirements, speculative optional-feature escapes, or hidden alternate non-Prism implementation that bypasses the generated guest.
-7. Use exact locked production dependency versions, SDK digest and toolchains from a **validated** `prismpm.lock` and related locks. The UOR template's claims do not make a copied or hand-modified lock trustworthy; independently verify it.
-8. Maintain the Skill Mason-specific `docs/architecture/` owner register, rights/authority source boundaries, refusal semantics, and Qortara `.qortara/` writer custody as a separate governance obligation. Do not replace Qortara's event writer with a model claim or invent history.
+- Preserve the **complete** upstream template contract `uor/template-contract/1` (universal R1–R6, lock and trust roots, bootstrap, conformance generation, tests and `just vv`), not cherry-picked source files. The existing Skill Mason repo already has Qortara-owned documentation, history and `.qortara/`; preserve those while reviewing how full template adoption can occur.
+- Use its supported authoritative model graph (`app/src/Contract.lex.tex` is the template's example), `model/ids.toml`, scenarios and failing tests. Confirm all concrete LexLean syntax against the pinned LexLean `SPEC.md`, examples and actual SDK.
+- Template documentation describes `just new-capability`, `just model-write` and `just vv`. Use those **only** after the exact route has been adopted and their real commands and gate outcomes verified. Never hand-edit generated conformance or Lean code.
+- Every claimed capability has a registered ID, scenario and red test first. Every public failure has a typed model entry and planted negative control. No hidden handwritten substitute for model semantics.
 
-## Mandatory constraints
+## If **route B** is actually selected: version-compatible JSON decision spec
 
-- `uor-prism` Rust façade import or `prism_model!` alone is **not** sufficient to say the resulting skill compiler is a PrismPM-built application.
-- The Rust/Python/Node scaffolding may integrate tools or independently evaluate real artifacts **only** within the actual accepted host boundary. Never move the product's claimed application semantics into a handwritten fallback.
-- PrismPM `SPEC.md` and the selected template contract control the application model; proposed Skill Mason requirements cannot invent unsupported Prism language features.
-- If the Prism model cannot represent an intended skill-composition operation, make a typed explicit limitation/gap and return to design review, rather than substituting unverified prose or host behavior.
-- Preserve exact source pins and the decision's proof limits.
+- Require an actual supported implementation of the `prism/spec/1` profile and associated SDK/CLI. The `0.6` help pages are **source descriptions, not a verified installed release**.
+- Author the accepted decision-app semantics in `prism/spec.json`, using precisely its supported field kinds, conditions, ordered rules, outcomes, guarantees and acceptance vectors. Treat rendered LexLean as **generated**, not writable application authority. Never author a second competing `.lex.tex` model.
+- The bounded JSON profile describes **stateless decision applications**. The upstream stateful/JSON-spec gap is [PrismPM #664](https://github.com/UOR-Foundation/PrismPM/issues/664). Do not assume it supports arbitrary skill generation, file IO, mutable package state, network access or complex proof claims.
+- Discover the exact version-correct build, check, verify, template and artifact commands from installed help/contract. The `1.0-beta` `prism` CLI is not automatically part of an earlier SDK.
+- If scope is too narrow for the intended generator, record unrepresentable behavior as a product/design blocker. Do not move its *claimed* application semantics into handwritten Rust/Python/JS while still calling it Prism-built.
 
-## Acceptance handoff
+## In either route, after actual qualification
 
-Give `prism-proof-audit` the exact model/claim IDs, scenarios, negative tests, source revision, selected toolchain/lock, and build commands **verified at that revision**. A completed draft model is **not** an independently verified Prism application.
+1. Model only the smallest honest first decision: bounded explicit outcomes, source evidence state, reuse rights, authority ceiling and fail-closed refusal. Inputs that are accepted as external fact are **not** proven true by formal verification.
+2. Preserve precisely one canonical authoring input for the selected toolchain. Register tests and proof obligations as that toolchain demands.
+3. Run applicable positive, malicious, tampered, uncovered and rights-restricted cases; capture actual failure boundary and exit result. Reuse the exact locked dependencies and SDK identity.
+4. Separate formal decision verification from actual source authenticity, license determinations, artifact bytes and host behavioral use. Do not claim capabilities that were not demonstrated.
+5. Preserve Skill Mason's canonical architecture owner register, Qortara `GOVERNANCE.md` / `SECURITY.md` and canonical `.qortara/` runtime writer.
+
+## Exit
+
+Pass to `prism-proof-audit` the selected version/route, exact source/toolchain pins, authoritative input, registered model/scenario/test links, build and negative outputs, and limits. If the branch lacks a genuine version-compatible Prism application, state **NOT_IMPLEMENTED**. Do not call an imported Rust façade or docs-only scaffold proof of a Prism-built product.

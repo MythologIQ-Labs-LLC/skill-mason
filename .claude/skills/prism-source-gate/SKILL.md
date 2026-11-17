@@ -13,12 +13,12 @@ Run this first for every task described as implementing, upgrading, integrating,
 
 ## Authoritative procedure
 
-1. Read Skill Mason's `AGENTS.md`, `ARCHITECTURE_INDEX.md`, `docs/README.md`, and `docs/RFC-0001-prism-feasibility.md`. Then read `.claude/PRISM_SOURCES.md` for the inspected exact upstream commit pins.
+1. Read Skill Mason's `AGENTS.md`, `ARCHITECTURE_INDEX.md`, `docs/README.md`, and `docs/RFC-0001-prism-feasibility.md`. Then read `.claude/PRISM_SOURCES.md` **and** `.claude/PRISM_COMPATIBILITY.md` for exact upstream pins, supported routes and version-collision holds.
 2. Verify GitHub/local source at each **full commit SHA** rather than unpinned `main`, search snippets or model memory. The source must actually describe the claimed command, option, type or behavior. Retain the repo, SHA, file path, symbol/section and verification method.
 3. Distinguish **Prism standard-library Rust usage** (`UOR-Foundation/prism`, `uor-prism`) from a **full model-first Prism application** (UOR template + LexLean + PrismPM + proof and holo). Never equate the two. This project requires a legitimate Prism-built app, so Rust façade usage alone is insufficient.
-4. Check the source-of-truth chain: PrismPM `SPEC.md` is normative for compiler behavior, the template's `AGENTS.md` / `TEMPLATE-CONTRACT.md` / `Justfile` for template gates, the pinned LexLean source for syntax. Use Prism-DevRel as a worked example, not as unilateral permission to invent capabilities.
+4. Check **which version** a source describes. PrismPM `SPEC.md` is normative for its compiler contract, the UOR template's `AGENTS.md` / `TEMPLATE-CONTRACT.md` / `Justfile` for that template's gate, and the pinned LexLean `SPEC.md` for its own language. Later guides tagged `available_in: "0.6"` describe `prism/spec.json` for decision apps; the `1.0-beta` quickstart describes a different `prism` CLI. **Do not mix** those with the older `.lex.tex` / `just vv` contract. Use Prism-DevRel as a worked example, not universal authority; see upstream issue #718.
 5. For any command not demonstrated by the pinned version, first inspect the real binary's help **if one is installed and authorized**. Do not paste guessed commands into scripts or developer docs. If unavailable, mark the command `NOT_RUN`; source-only validation stays `SOURCE_INSPECTED`, not `EXECUTED`.
-6. Produce an evidence matrix for the requested slice:
+6. First record a **single chosen and actually supported application authoring route**, its tool version, exact input format and validation/acceptance commands; if no route is qualified, classify it as **HOLD** and do not implement claimed Prism app behavior. Then produce an evidence matrix for the requested slice:
 
 | Proposed claim | Source repo@commit + path | Observed support | Executed? | Disposition |
 | --- | --- | --- | --- | --- |

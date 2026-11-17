@@ -9,22 +9,22 @@ description: Verify whether Skill Mason has genuinely produced and independently
 
 ## Preconditions
 
-Run/read `prism-source-gate` and `prism-model-first`, then inspect the actual adopted template's `Justfile`, `prismpm.lock`, `TEMPLATE-CONTRACT.md`, `AGENTS.md` and the pinned PrismPM `SPEC.md`. If those files were not actually adopted into Skill Mason and validated, the commands below are *upstream reference commands*, not runnable project gates.
+Read/invoke `prism-source-gate` and `prism-model-first` and review `.claude/PRISM_COMPATIBILITY.md`. First identify the actually selected, supported and installed SDK authoring route. **For route A only**, inspect the adopted template's `Justfile`, `prismpm.lock`, `TEMPLATE-CONTRACT.md`, `AGENTS.md` and pinned PrismPM `SPEC.md`; without adopted/validated files, those commands are *upstream reference commands*, not Skill Mason gates. **For route B**, establish the installed spec-JSON toolchain's own version-correct build/check/verification contract; do not run old-template commands on a newer spec or vice versa.
 
 ## The actual upstream distinctions
 
 - PrismPM `check`: model/snapshot validation, **not** proof of an app's output.
 - PrismPM `build`: generates artifacts but **does not issue an acceptance claim**.
 - PrismPM `verify`: only stage permitted by the inspected PrismPM specification to issue a `prismpm/application-acceptance/1` artifact, subject to exact supported toolchain.
-- Upstream template's `just vv`: full acceptance recipe combining formatting, model checks, SDK template/lock checks, Clippy, tests, dependency policy and actual app verification.
-- Upstream template `just app`: executes `prismpm --project app verify` in the declared application path, using the **selected digest-pinned SDK image** and appropriate proof reuse restrictions.
+- Upstream template's `just vv`: **route A only**, full acceptance recipe combining formatting, model checks, SDK template/lock checks, Clippy, tests, dependency policy and actual app verification.
+- Upstream template `just app`: **route A only**, executes `prismpm --project app verify` in the declared application path, using the **selected digest-pinned SDK image** and appropriate proof reuse restrictions. A `1.0-beta` `prism check` sample is **not** evidence that this older gate exists in the same binary.
 - Independent checking of `.holo` with `prism-code` is described in the UOR template README; **actual binary/API, version and verification command must still be verified and executed** before making a standalone independent replay claim.
 
 ## Execution workflow
 
 1. Prove environment and source identity: exact Skill Mason commit, template/PrismPM/LexLean pins, SDK manifest digest, architecture and platform, installed binaries' versions and observed command help. Verify `prismpm.lock` and `standards.lock` through their supported authentic SDK route.
 2. Run a **known-good upstream reference case** in the pinned environment first, showing a real app verification. Keep its output/receipt, and keep upstream feasibility separate from success of the new Skill Mason model.
-3. Run the adopted Skill Mason `just vv` full gate (or the exact upstream-supported equivalent after an explicit integration decision). Do not reduce the gate to `cargo test`, `prism_model!`, an SDK import check, or a mocked verification response. Capture each step's exit status.
+3. Run the **selected version's** full proven gate: `just vv` only if the complete route A template is genuinely adopted; otherwise the exact compatible and observed gate for a properly released/installed spec-JSON route. Do not assume the two are equivalent. Do not reduce the gate to `cargo test`, `prism_model!`, an SDK import check, or a mocked verification response. Capture each step's exit status.
 4. Confirm a real `prismpm verify` result, generated model and guest identities, and exact artifact hashes. Distinguish: source syntax check, source build, Lean proof, PrismPM application-acceptance, independent holo inspection, behavioral acceptance in a consuming host.
 5. Plant and observe meaningful **negative controls**: uncovered essential outcome, rights refused, unauthorized side effect, tampered model/artifact or wrong source pin, and one broken proof or acceptance-vector binding. Verify each is refused by the **specific claimed gate** rather than an unrelated parse error.
 6. Independently replay the emitted exact-version artifact/receipt using the supported verifier. If a verifier is unavailable or the replay fails, report `NOT_RUN` / `FAIL`; never label it independently verified.

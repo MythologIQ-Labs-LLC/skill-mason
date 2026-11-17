@@ -21,7 +21,7 @@ Use **Proposed**, **Accepted**, **Implemented**, **Qualified**, **Historical**, 
 | Prism implementation feasibility and formal evidence limitations | [RFC-0001](RFC-0001-prism-feasibility.md) | OPEN research; implementation unverified |
 | Recipe v0 syntax | [Recipe JSON Schema](../schemas/recipe.v0.schema.json) | Draft; parseable schema is not an authority or eligibility verdict |
 | Canonical repository-local lifecycle / Shadow event ownership and custody | [Qortara evidence and Shadow guide](technical/governed-evidence.md), upstream Qortara Logic ADR-0009/0011/0017 | Local reference guide; actual artifacts only by runtime |
-| Claude Code Prism development procedures (not product skills) | [CLAUDE.md](../CLAUDE.md) and [source register](../.claude/PRISM_SOURCES.md) -> three [project-only skills](../.claude/skills/prism-source-gate/SKILL.md) | Developer instructions; no architectural authority or Prism execution claim |
+| Claude Code Prism development procedures (not product skills) | [CLAUDE.md](../CLAUDE.md), [source register](../.claude/PRISM_SOURCES.md), [version compatibility / decision record](../.claude/PRISM_COMPATIBILITY.md) -> three [project-only skills](../.claude/skills/prism-source-gate/SKILL.md) | Developer instructions; no architectural authority or Prism execution claim |
 | Required tests and proof scope | [Acceptance matrix](ACCEPTANCE.md) | Planned; not actual executed acceptance |
 | Work in progress and unclosed dependencies | [Epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1), [Prism spike #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Work tracking, not canonical accepted architecture |
 

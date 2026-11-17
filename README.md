@@ -217,7 +217,7 @@ Before attempting Prism-based product implementation, Claude Code should use thr
 
 Read the [Claude project entrypoint](CLAUDE.md) and [pinned upstream source register](.claude/PRISM_SOURCES.md) first. These are **skills to guide Claude's development of Skill Mason**, never additions to the `skillz` catalog or artifacts of the future compiler. Their presence has not been exercised in Claude Code, and does not mean a Prism application or its toolchain is already installed.
 
-**Strict Prism requirement:** importing the `uor-prism` Rust library does not by itself meet the proposed LexLean/PrismPM application contract. [RFC-0001](docs/RFC-0001-prism-feasibility.md) governs how the complete UOR template contract can be evaluated and adopted without overriding Qortara repository governance.
+**Strict Prism requirement:** importing the `uor-prism` Rust library does not by itself make Skill Mason a Prism-built application. The [application-version compatibility guide](.claude/PRISM_COMPATIBILITY.md) documents the incompatibility between older LexLean/template instructions and newer `prism/spec.json`/1.0-beta CLI guides, linked to [upstream PrismPM issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). [RFC-0001](docs/RFC-0001-prism-feasibility.md) controls the evidence-backed selection of one supported application route without overriding Qortara governance.
 
 ## Develop and validate
 

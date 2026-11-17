@@ -58,6 +58,27 @@ class PrismClaudeSkillTests(unittest.TestCase):
                 self.assertIn(f".claude/skills/{name}/SKILL.md", agents)
         self.assertIn(".claude/PRISM_SOURCES.md", agents)
 
+
+    def test_version_conflict_is_explicit_and_pinned(self):
+        doc = (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text()
+        self.assertIn('available_in: "0.6"', doc)
+        self.assertIn('available_in: "1.0-beta"', doc)
+        self.assertIn("d896ab59e287650aecbcf02b8e867121601fdde5", doc)
+        self.assertIn("issues/718", doc)
+        self.assertIn("NOT_EXECUTED", doc)
+        self.assertIn("No route is selected or qualified", doc)
+
+    def test_product_implementation_requires_route_qualification(self):
+        entry = (ROOT / "CLAUDE.md").read_text()
+        model = (ROOT / ".claude" / "skills" / "prism-model-first" / "SKILL.md").read_text()
+        source = (ROOT / ".claude" / "skills" / "prism-source-gate" / "SKILL.md").read_text()
+        for text in (entry, model, source):
+            self.assertIn(".claude/PRISM_COMPATIBILITY.md", text)
+        self.assertIn("**route A**", model)
+        self.assertIn("**route B**", model)
+        self.assertIn("HOLD", model)
+        self.assertIn("No route is selected", (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text())
+
     def test_no_staged_prism_app_claim(self):
         register = (ROOT / ".claude" / "PRISM_SOURCES.md").read_text()
         self.assertIn("not runtime-qualified", register)
