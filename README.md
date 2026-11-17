@@ -231,6 +231,8 @@ That structural check **is expected to report a qualification hold**, not a full
 
 **No `skill-mason build` command is currently implemented.** The code block above tests documentation scaffolding only.
 
+A [development-only SM-01 output probe](docs/technical/sm01-output-probe.md) is available for testing **actual compiled Prism `.holo` outputs**, once the nested application produces an artifact at a verified digest. Its local contract tests use a stand-in; no real holo has yet been run through the probe in this repository. It is not a skill builder or proof of P2 assurance.
+
 ## Repository governance
 
 Development governance is **not part of the Qortara Skills product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. The [PR #2 merge record](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) documents the bounded source-only exception; unresolved security and native-governance qualification remain tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).

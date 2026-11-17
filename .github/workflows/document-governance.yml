@@ -13,5 +13,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Planted positive and negative controls
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: SM-01 output probe guardrail tests (stand-in only; no holo)
+        run: node --test tests/sm01_probe.test.mjs
       - name: Verify static layout and surface policy holds
         run: python3 scripts/check_governance_static.py --root .
