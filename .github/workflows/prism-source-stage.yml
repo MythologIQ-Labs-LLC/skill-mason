@@ -1,0 +1,64 @@
+name: Prism nested source staging (no SDK execution)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prism-source-stage.yml'
+      - 'prism-overlay/**'
+      - 'scripts/prism_instance.sh'
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Qortara Skills source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout exact upstream template pin
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: UOR-Foundation/template
+          ref: b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
+          path: template
+          persist-credentials: false
+      - name: Materialize nested source without running upstream code
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C template rev-parse HEAD)" = b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
+          scripts/prism_instance.sh template work/prism
+          for path in \
+            .devcontainer/devcontainer.json \
+            .github/workflows/bootstrap.yml \
+            AGENTS.md VERIFICATION.md prismpm.lock template-contract.json template.lock; do
+            cmp -- "template/$path" "work/prism/$path"
+          done
+          test -s work/prism/eligibility/src/Eligibility.lex.tex
+          grep -q '^id = "SM-01"$' work/prism/model/ids.toml
+          grep -q '^eligibility:$' work/prism/Justfile
+          grep -q '^| `SM-01` | `build` |' work/prism/CONFORMANCE.md
+          {
+            echo 'Source staging only: NO Prism SDK, NO .holo, NO native Qortara checks'
+            printf 'skill-mason-source-sha='; git rev-parse HEAD
+            printf 'template-source-sha='; git -C template rev-parse HEAD
+            echo 'protected-template-policy-paths=7/7 byte-identical'
+            echo 'installed-sm01-model=yes (source only)'
+            sha256sum work/prism/eligibility/src/Eligibility.lex.tex
+            sha256sum work/prism/template.lock work/prism/prismpm.lock
+          } > source-manifest.txt
+          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+            -C work -cf prism-source.tar prism
+          gzip -n prism-source.tar
+          sha256sum prism-source.tar.gz >> source-manifest.txt
+      - name: Upload source staging artifact (not verified executable)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prism-source-only-${{ github.sha }}
+          path: |
+            prism-source.tar.gz
+            source-manifest.txt
+          if-no-files-found: error
+          retention-days: 14
