@@ -3,3 +3,15 @@
 *.jsonl text eol=lf
 *.py text eol=lf
 *.yml text eol=lf
+# Byte-sensitive Prism overlay inputs: LexLean refuses CRLF, and lexlean.lock,
+# template.patch and the conformance test are bound by digest or applied verbatim.
+*.sh text eol=lf
+*.tex text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+*.patch text eol=lf
+*.feature text eol=lf
+*.rs text eol=lf
+*.txt text eol=lf
+# Evidence logs are checksummed in SHA256SUMS and must never be converted.
+*.log -text
