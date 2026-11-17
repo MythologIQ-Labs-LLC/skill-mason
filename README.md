@@ -1,42 +1,280 @@
 # Skill Mason
 
-**Deterministic skill assembly and verification.**
+**Build agent capabilities from qualified methods, without model inference during assembly.**
 
-Skill Mason is a separate, active skill-engineering system. It consumes evidence-backed, exact-version capability records from [skillz](https://github.com/Knapp-Kevin/skillz) and produces auditable agent-skill packages without LLM inference during deterministic assembly.
+Skill Mason is a proposed, evidence-driven compiler for portable AI-agent skills. It is designed to turn explicit capability requirements and eligible, version-pinned source material into reproducible skill packages, with clear refusals when the evidence, rights, or coverage are insufficient.
 
-> Status: **inception / experimental**. No generated skill has yet been behaviorally qualified. Do not describe the generator as generally capable, secure, or Prism-verified until the relevant tests and proof artifacts exist.
+> **Project state: Foundation / pre-implementation.** The architecture and initial governance documents are in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). **There is no working skill-generation CLI, verified Prism integration, published release, or validated generated skill yet.** Do not use the design below as evidence that those features already exist.
 
-## Project objective
+[Product requirements](docs/PRD.md) · [Architecture](docs/architecture/skill-mason-pipeline-v0.md) · [Governance](GOVERNANCE.md) · [Current work](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1)
 
-Build a capability-oriented generator that can:
+---
 
-1. Identify required outcomes and candidate methods by domain, subdomain, and capability.
-2. Accept only eligible, version-pinned, rights-compatible source packages for the selected use.
-3. Assemble a portable skill from reviewed, explicitly licensed, composable building blocks.
-4. Refuse incomplete coverage, ambiguous authority, unresolved rights, stale evidence, unsafe dependencies, and unsupported target hosts.
-5. Produce a deterministic, reproducible build receipt that explains source identities, decisions, verification limits, and output hashes.
-6. Test selected builds against observable acceptance cases in a separately authorized sandbox before describing them as behaviorally validated.
+## Contents
 
-**“Zero-token” means zero model-inference calls/tokens in the deterministic compiler path.** It does not mean the output is token-free when a host agent later reads a generated skill, nor does it imply the system can invent new methods without an authored or otherwise qualified source.
+- [Why Skill Mason exists](#why-skill-mason-exists)
+- [What it will do](#what-it-will-do)
+- [How the pieces fit together](#how-the-pieces-fit-together)
+- [The zero-inference-token contract](#the-zero-inference-token-contract)
+- [Capability model and output](#capability-model-and-output)
+- [Trust, security, and refusals](#trust-security-and-refusals)
+- [Project status and roadmap](#project-status-and-roadmap)
+- [Explore the repository](#explore-the-repository)
+- [Develop and validate](#develop-and-validate)
+- [Governance and learning](#governance-and-learning)
+- [Frequently asked questions](#frequently-asked-questions)
+- [Contributions and licensing](#contributions-and-licensing)
 
-## Architectural boundary
+## Why Skill Mason exists
 
-- **skillz:** Passive discovery, source records, taxonomy, exact-version curation, security/license/authority evidence. Read-only input to Skill Mason; no generator runtime, background processing, or generated-user-skill writes in skillz.
-- **Skill Mason:** Active selection, compatibility/coverage checks, authorized composition, build receipts, local verification and packaging. Never silently upgrades source review states.
-- **UOR Prism:** Planned deterministic computation/typed modeling and replay-verification substrate. Integration and conformance are **not yet established**; no claim of Prism-backed proof is made.
-- **User/host:** Explicitly controls authorization to install, execute, export, access private data, use a model, or write to an external system.
+Finding a skill is not the same as having a skill an agent can safely and effectively use.
 
-## First delivery gate
+A catalog may identify hundreds of promising procedures, but a specific task still needs reliable answers: **What outcome must the agent achieve? Which method actually covers it? May that source be reused? Which tools, permissions, data, and host features are required? What has been tested?**
 
-A bounded MVP accepts an explicit, version-pinned local catalog export and an explicit recipe; it refuses unknown or unqualified sources and insufficient coverage, writes a reproducible skill package to a requested destination, and emits an independently checkable receipt. No network crawling, license inference, automatic installation, secret access, or model calls.
+[skillz](https://github.com/Knapp-Kevin/skillz) is growing into a broad, curated capability library across disciplines. Skill Mason is its **separate downstream engineering project**. Instead of treating discovery counts as finished capabilities, Skill Mason aims to assemble methods only when the requested outcome and its constraints can be supported.
 
-Success requires both positive and adversarial tests, then separately evidenced Prism integration and observed host qualification.
+The goal is not to manufacture impressive-looking `SKILL.md` files. It is to produce **small, traceable, fit-for-purpose skills**, or explain precisely why one cannot yet be produced.
 
-## Governance
+### Who it is for
 
-- Solo-developer owner authority; adversarial review substitutes for an independent human approval role, never for evidence.
-- Changes to the generator must retain provenance, exact hashes, source rights, safety constraints, and reproducibility tests.
-- Generated skill packages are outputs of **this repository / the user's host**, never written back into `skillz` by default.
-- CI passing is not proof of intended host behavior. State source/content validation, machine checks, and observed behavior separately.
+| Audience | Intended value |
+| --- | --- |
+| Agent users | A relevant skill matched to a concrete outcome, with clear limitations |
+| Solo developers and teams | Reproducible packages that are easier to review, compare, and update |
+| Skill maintainers | Provenance, dependency and rights boundaries retained across composition |
+| Security and governance reviewers | Explicit authority limits, refusals, and evidence that can be checked independently |
+| Host and tool builders | A future versioned recipe, artifact, and verification contract rather than opaque prompts |
 
-The current foundation is staged in [draft PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not merged or host-qualified. Start at [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md), follow its [canonical architecture owner register](docs/README.md) and read the [PRD](docs/PRD.md) and [proposed architecture](docs/architecture/skill-mason-pipeline-v0.md). [GOVERNANCE.md](GOVERNANCE.md), [SECURITY.md](SECURITY.md) and [Qortara evidence / Shadow Genome rules](docs/technical/governed-evidence.md) establish the mandatory governance documentation baseline. The security-reporting route and native Qortara checks remain unqualified.
+## What it will do
+
+The planned compiler has six responsibilities:
+
+1. **Understand the requested outcome.** Identify the domain, subdomain, specific capability, essential workflow, target host, and permitted authority.
+2. **Read a pinned catalog snapshot.** Inspect exact source identities and evidence supplied through an approved, read-only adapter. An unindexed capability is **unknown**, not necessarily absent.
+3. **Qualify possible building blocks.** Check fit, rights (including nested assets), source freshness, package security, dependencies, portability, and permitted side effects independently.
+4. **Choose and compose deterministically.** Assemble eligible methods using declared rules, templates, and parameters. Refuse an essential outcome that cannot be represented faithfully.
+5. **Produce inspectable artifacts.** Emit a portable skill, provenance and source manifest, decision trace, verification status, and reproducible digests.
+6. **Support separate behavioral qualification.** A consuming host can later run authorized sandbox tests. Passing a compiler check never means the skill actually worked in that host.
+
+These are **requirements, not shipped capabilities**. The definitive scope and first-pilot acceptance criteria live in the [PRD](docs/PRD.md) and [acceptance matrix](docs/ACCEPTANCE.md).
+
+### What it will not do
+
+Skill Mason will not silently copy an entire third-party corpus, treat a popular skill as safe, infer reuse rights from a repository badge, execute commands found in candidate text, grant itself permissions, install packages without approval, or invent missing expertise. New method authorship may eventually be supported through an **explicitly separate** process; it is not part of the zero-inference build.
+
+## How the pieces fit together
+
+| System | Owns | Does **not** authorize |
+| --- | --- | --- |
+| [skillz](https://github.com/Knapp-Kevin/skillz) | Passive discovery, taxonomy, source versions, reviews, and qualification leads | Automatically reusing or executing discovered methods |
+| **Skill Mason** | Planned selection, eligibility decisions, deterministic assembly, and artifact receipts | Rewriting upstream assessments or activating output in a host |
+| [UOR Prism](https://github.com/UOR-Foundation/prism) | Candidate typed computation and replay-verification foundation | Claims about external task success without observed evidence |
+| [Qortara Logic](https://github.com/MythologIQ-Labs-LLC/qortara-logic) | Governed development rules and the canonical local evidence/Shadow model when used by a qualified host | Hidden file writes, independent tool permissions, or automatic owner approval |
+| **Consuming agent / authorized host** | Actual installation, execution, credentials, and observed use | Treating compiled text as permission to bypass host policy |
+
+```text
+  USER / HOST REQUEST
+  outcome + target + permitted authority
+                 |
+                 v
+  skillz: pinned capability evidence (read only)
+                 |
+                 v
+  [Catalog adapter] -> [Eligibility and coverage gates]
+                                 |            |
+                               refuse       eligible
+                                              |
+                                              v
+                              [Deterministic skill composer]
+                                              |
+                                              v
+                            [Verification and replay]  (planned)
+                                              |
+                                              v
+                          SKILL.md + sources + receipt + hashes
+                                              |
+                                      user/host approval
+                                              |
+                                              v
+                            optional, separate behavioral test
+```
+
+**Prism feasibility remains open.** The project is comparing a native Rust/Prism decision route with a verified-application route using [Prism-DevRel](https://github.com/afflom/prism-devrel) and the [UOR template](https://github.com/UOR-Foundation/template). Neither route has been proven in Skill Mason. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+
+## The zero-inference-token contract
+
+**Zero inference tokens at build time** means the deterministic assembly path makes **zero LLM inference calls**. It is a measurable execution property, not a metaphor.
+
+| Situation | Token implication |
+| --- | --- |
+| Selecting and assembling from already qualified, structured methods | Target: **0 LLM inference tokens** during the build |
+| Preparing new expert-authored source material | Human work or other authoring cost; not part of the zero-inference claim |
+| Optional future LLM-assisted method authoring | Model tokens would be counted separately and disclosed |
+| A host agent reading or executing a generated skill | May use context and inference tokens; **not** zero-token consumption |
+| Compiling/verifying with CPU, storage, or tools | Still consumes compute, time, and possibly infrastructure cost |
+
+The pilot must demonstrate this with actual instrumentation, offline repeatability, pinned dependencies, and independently checked outputs. **No such measurement has been completed here yet.**
+
+A deterministic compiler cannot derive a new expert procedure from an empty catalog by wishing harder. A missing method becomes a **recorded capability gap**, not a confident paragraph.
+
+## Capability model and output
+
+Coverage is evaluated at the level of the **essential outcome**, not the number of files in a parent domain.
+
+```text
+Domain
+  -> Subdomain
+      -> Capability
+          -> Essential outcome / acceptance condition
+              -> Eligible method(s) and constraints
+```
+
+A method may support several capability routes without duplicating its canonical identity. Every route retains its own evidence and gaps. Source candidates, statically assessed packages, approved reusable components, generated outputs, and behaviorally validated skills are distinct states.
+
+### Planned recipe-to-package contract
+
+The [draft recipe schema](schemas/recipe.v0.schema.json) describes the fields a future caller would supply: a skill ID and description, target host, required outcomes, exact catalog snapshot, selected method identities and hashes, and an explicit authority ceiling.
+
+When implemented, a successful compilation is expected to produce:
+
+```text
+<requested-output-directory>/
+  SKILL.md               # Human/agent-readable procedure
+  skill-mason.json       # Package identity, format, host target
+  SOURCES.json           # Exact source identities, dependencies, reuse terms
+  RECEIPT.json           # Selection rationale, outcome coverage, hashes, limits
+```
+
+**Illustrative output contract only.** No such package has been generated by this repository. The schema describes syntax, not actual source trust or execution eligibility. File naming and serialization are still subject to the accepted implementation contract.
+
+### When no valid skill can be built
+
+An honest result should identify the missing outcome or blocked constraint, report which evidence was evaluated, and suggest the next **authorized** discovery or authorship step. Example refusal classes include `OUTCOME_UNCOVERED`, `RIGHTS_UNRESOLVED`, `SOURCE_MISMATCH`, `AUTHORITY_EXCEEDED`, and `HOST_UNSUPPORTED`. See the [proposed architecture](docs/architecture/skill-mason-pipeline-v0.md) for the draft refusal vocabulary.
+
+## Trust, security, and refusals
+
+**Source content is untrusted input, even when it appears in a familiar repository.** A candidate skill cannot tell the compiler to run code, reveal a secret, contact a server, or rewrite governance.
+
+The design separates evidence into independent gates:
+
+| Gate | Question that must be answered |
+| --- | --- |
+| Identity and provenance | Is this the exact inspected package at its declared source revision? |
+| Capability fit | Does the method cover each required outcome, with observable acceptance criteria? |
+| Rights and dependencies | May the text, supporting files, and nested assets actually be transformed and redistributed? |
+| Semantic review | What was reviewed, by whom or what, and at which source version? |
+| Security and authority | What was checked, what permissions are requested, and what remains unknown? |
+| Host compatibility | Can the target host interpret and use the intended procedure? |
+| Behavioral evidence | Was this particular output tested in the relevant host and environment? |
+
+An aggregate score may help prioritize methods, but it **cannot override a failed essential gate**. Unknown, stale, incomplete, rejected, or reference-only status must remain visible. A formal proof of selection rules does **not** prove that an external instruction is medically, legally, scientifically, or technically correct.
+
+For repository vulnerabilities and disclosure rules, read [SECURITY.md](SECURITY.md). **Its confidential reporting route is not yet owner-qualified; do not disclose sensitive details through a public issue.** The remaining decision is tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
+
+## Project status and roadmap
+
+**As documented on November 17, 2026:** this is a **design and governance foundation**, not an alpha release. Live progress belongs to the linked issues and pull requests, not a manually maintained success badge.
+
+| Milestone | Current evidence | Status |
+| --- | --- | --- |
+| Project identity and repository | Internal repository, README on `main`; foundation staged in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) | Foundation |
+| Qortara documentation and Shadow layout | Root governance/security docs, one architecture owner register, empty canonical `.qortara/shadow.jsonl` in PR #2 | Staged, **not qualified** |
+| Supplemental structure tests | Nine negative/positive controls passed in [the recorded CI run](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44174111869) | Tested, narrow scope |
+| Repository policy qualification | Unconfirmed confidential security intake; native Qortara checks not executed | **Blocked**, [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4) |
+| Prism decision/replay prototype | [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Proposed |
+| First deterministic skill compiler | Requirements and [acceptance cases](docs/ACCEPTANCE.md), no runtime | Not implemented |
+| Real host behavioral validation | No generated skill or host test receipt | Not established |
+
+**Delivery order:** govern the repository and accept the relevant contracts; prove a minimal deterministic eligibility decision; implement a reproducible, fail-closed compiler pilot; verify Prism-backed replay; then qualify generated outputs with real consuming hosts. Expanding to more capability domains follows demonstrated correctness, not file-count targets.
+
+The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1) owns milestones and completion criteria.
+
+## Explore the repository
+
+| Start here | Purpose |
+| --- | --- |
+| [`ARCHITECTURE_INDEX.md`](ARCHITECTURE_INDEX.md) | Required architecture entrypoint; **locator only** |
+| [`docs/README.md`](docs/README.md) | Single canonical owner register, statuses, and supersession rules |
+| [`docs/PRD.md`](docs/PRD.md) | Stakeholders, intended outcomes, functional requirements, pilot release criteria |
+| [`docs/architecture/skill-mason-pipeline-v0.md`](docs/architecture/skill-mason-pipeline-v0.md) | Proposed component model, trust boundaries, receipts, and refusals |
+| [`docs/RFC-0001-prism-feasibility.md`](docs/RFC-0001-prism-feasibility.md) | Open Prism integration questions and evidence needed |
+| [`schemas/recipe.v0.schema.json`](schemas/recipe.v0.schema.json) | Draft input format; **not** a working generator API |
+| [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) | Planned positive, adversarial, and host acceptance cases |
+| [`GOVERNANCE.md`](GOVERNANCE.md) · [`SECURITY.md`](SECURITY.md) | Owner authority, change controls, and unresolved reporting policy |
+| [`AGENTS.md`](AGENTS.md) | Required operating instructions for development agents |
+| [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Canonical `.qortara/` events, Shadow Genome, lifecycle evidence |
+| [`scripts/check_governance_static.py`](scripts/check_governance_static.py) · [tests](tests/test_governance_static.py) | Supplemental read-only layout lint and planted controls |
+
+There are **no** runtime packages, installation instructions, host connectors, or downloadable skill artifacts to document yet. Links to those will be added only when the corresponding code and evidence exist.
+
+## Develop and validate
+
+The repository is currently **internal**. Clone access requires actual GitHub permissions.
+
+```sh
+git clone https://github.com/MythologIQ-Labs-LLC/skill-mason.git
+cd skill-mason
+```
+
+The governance foundation exists on the [draft PR #2 branch](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2), not on `main` yet. To inspect that work in an authorized checkout:
+
+```sh
+git fetch origin feature/foundation-contract-20261117
+git switch --detach origin/feature/foundation-contract-20261117
+
+# Supplemental structural tests only; Python 3 is required.
+python3 -m unittest discover -s tests -p 'test_governance_static.py' -v
+
+# Returns nonzero while owner-specific security policy is unresolved.
+python3 scripts/check_governance_static.py --root .
+```
+
+That second command **is expected to report a qualification hold**, not a full PASS. It checks selected document links and layout conventions. It cannot authenticate owner approval, verify Shadow events cryptographically, replace Qortara's native lifecycle, or prove runtime behavior.
+
+When a qualified local Qortara CLI is actually available, the intended governance checks are `qortara check repository-documents`, `qortara check architecture-index`, and `qortara check all`. Their results must be recorded for the **exact revision**. The hosted Qortara evaluator is not a substitute for a repository-local runtime.
+
+**No `skill-mason build` command is currently implemented.** The code block above tests documentation scaffolding only.
+
+## Governance and learning
+
+Skill Mason follows Qortara Logic's **one-owner-per-claim** model:
+
+- Root [architecture index](ARCHITECTURE_INDEX.md) routes to the one [owner register](docs/README.md). Proposed ADRs are proposals, not authenticated approval or implementation.
+- [`GOVERNANCE.md`](GOVERNANCE.md) describes the owner-controlled decision and adversarial review process. Permissions, reviews, merges, and releases require the real host/repository authority.
+- [`.qortara/shadow.jsonl`](.qortara/shadow.jsonl) is the **single canonical Shadow Genome event file**. Its initial empty state is a scaffold, not proof of a flawless history.
+- `.qortara/ledger.jsonl`, gate iterations, intent locks, and provenance sidecars are recorded **only by the canonical runtime as relevant events actually happen**. They have not been invented to populate this repository.
+- Shadow findings can drive governed remediation, but learning events cannot rewrite policies, close defects, or approve a build by themselves. Proper closure requires an applicable enforcer and actual audit evidence.
+
+Read the [evidence and learning guide](docs/technical/governed-evidence.md) before touching `.qortara/`. Do not manually edit structured events, create a second `SHADOW_GENOME.md` authority, or commit session keys and transient state.
+
+## Frequently asked questions
+
+**Is Skill Mason a replacement for skillz?**  
+No. `skillz` remains the passive discovery and evaluation source. Skill Mason is a proposed **active, separate** builder and output collection. Neither project automatically changes the other's accepted evidence.
+
+**Does zero-token mean a generated skill costs no tokens to use?**  
+No. It means the **deterministic generation transaction** uses no model inference. A consuming agent may still spend tokens reading and applying the instructions.
+
+**Can it generate a skill for any possible task?**  
+That is the long-term coverage aspiration, **not a present guarantee**. If an essential procedure is missing, unqualified, or legally unavailable for reuse, the correct outcome is a refusal plus a recorded gap.
+
+**Does Prism verify that a skill is safe and effective?**  
+Not by itself. Prism is a **candidate** for checking formal decision properties, and its integration is unproven here. Real task effectiveness and host permissions require separate evidence.
+
+**Can I install Skill Mason today?**  
+No released generator or installer exists. The repository presently contains product/architecture contracts and a narrow supplemental documentation checker.
+
+**Why is the governance CI job not passing?**  
+The initial nine tests passed, but the qualification step intentionally reported an unresolved owner-specific security reporting policy. See [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Hiding that failure would make the dashboard prettier and the evidence worse.
+
+## Contributions and licensing
+
+This is currently an **internal** project maintained under [GOVERNANCE.md](GOVERNANCE.md). Its contribution policy has **not** been established as open or invited. Access or a submitted patch does not authorize adoption, changes to architecture, or redistribution of source material.
+
+**No repository-wide license has been adopted here.** Do not assume the project code or generated artifacts are MIT-licensed because some upstream dependencies or catalog sources use MIT. Every incorporated method and bundled asset retains its own verified rights constraints.
+
+For scoped development work, start with [`AGENTS.md`](AGENTS.md), the [architecture owner register](docs/README.md), the [acceptance matrix](docs/ACCEPTANCE.md), and the relevant live issue. Keep changes in a reviewable branch; document actual checks and unresolved risks. Only publish or distribute artifacts with separately established authority and licensing.
+
+---
+
+**Project principle:** A skill is ready only when the requested outcome, source rights, authority, build evidence, and actual host behavior support that claim. Until then, the most valuable output may be a precise refusal.
