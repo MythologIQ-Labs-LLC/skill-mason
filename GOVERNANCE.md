@@ -1,6 +1,6 @@
-# Skill Mason Governance
+# Qortara Skills Governance (repository `skill-mason`)
 
-**Status:** Proposed repository-specific governance baseline, pending owner acceptance in [PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2). This file does not authenticate an approval, relax GitHub permissions, or prove that the Qortara native host gates ran.
+**Status:** Source baseline published in [merged PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) under a bounded documentation-only exception. Confidential security handling and native Qortara qualification remain on HOLD ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)). This file does not authenticate an approval, relax GitHub permissions, or prove that the Qortara native host gates ran.
 
 ## Owner, roles and intent
 
