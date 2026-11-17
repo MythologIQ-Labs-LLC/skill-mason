@@ -61,7 +61,7 @@ class PrismClaudeSkillTests(unittest.TestCase):
     def test_no_staged_prism_app_claim(self):
         register = (ROOT / ".claude" / "PRISM_SOURCES.md").read_text()
         self.assertIn("not runtime-qualified", register)
-        self.assertIn("not the full application template", register.lower())
+        self.assertIn("not the full application template", register.lower().replace("**", ""))
 
 
 if __name__ == "__main__":
