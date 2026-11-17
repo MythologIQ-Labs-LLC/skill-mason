@@ -1,6 +1,6 @@
 # Skill Mason: Claude Code project-only development entrypoint
 
-These instructions prepare Claude to **develop Skill Mason**. The project-local `.claude/skills/` files are **not** entries in `Knapp-Kevin/skillz`, Skill Mason-generated output, or a substitute for verified UOR tools.
+These instructions prepare Claude to **develop Skill Mason**. The project-local `.claude/skills/` files are **not catalog entries** in `Knapp-Kevin/skillz`, Skill Mason-generated output, or a substitute for verified UOR tools.
 
 ## Phase 0, mandatory, before product implementation
 
