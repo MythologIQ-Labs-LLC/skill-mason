@@ -207,6 +207,18 @@ The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues
 
 There are **no** runtime packages, installation instructions, host connectors, or downloadable skill artifacts to document yet. Links to those will be added only when the corresponding code and evidence exist.
 
+## Claude Code developer skills
+
+Before attempting Prism-based product implementation, Claude Code should use three **repository-local development skills**:
+
+- [`prism-source-gate`](.claude/skills/prism-source-gate/SKILL.md): exact-version upstream API, command, feature and proof-claim source checks.
+- [`prism-model-first`](.claude/skills/prism-model-first/SKILL.md): build a genuine LexLean-modelled, PrismPM-built application with registered claims, scenarios and failing tests.
+- [`prism-proof-audit`](.claude/skills/prism-proof-audit/SKILL.md): verify the adopted full acceptance gate, generated holo, formal-scope limits and independently replayed receipts.
+
+Read the [Claude project entrypoint](CLAUDE.md) and [pinned upstream source register](.claude/PRISM_SOURCES.md) first. These are **skills to guide Claude's development of Skill Mason**, never additions to the `skillz` catalog or artifacts of the future compiler. Their presence has not been exercised in Claude Code, and does not mean a Prism application or its toolchain is already installed.
+
+**Strict Prism requirement:** importing the `uor-prism` Rust library does not by itself meet the proposed LexLean/PrismPM application contract. [RFC-0001](docs/RFC-0001-prism-feasibility.md) governs how the complete UOR template contract can be evaluated and adopted without overriding Qortara repository governance.
+
 ## Develop and validate
 
 The repository is currently **internal**. Clone access requires actual GitHub permissions.

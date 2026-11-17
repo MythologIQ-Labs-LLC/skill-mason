@@ -2,6 +2,13 @@
 
 Start with `README.md`, then the **mandatory root** `ARCHITECTURE_INDEX.md` and its **one canonical** `docs/README.md` architecture-owner register. Read `GOVERNANCE.md`, `SECURITY.md`, `docs/technical/governed-evidence.md`, the accepted owning ADR (if any), the acceptance matrix in `docs/ACCEPTANCE.md`, and the open Prism feasibility RFC. Do not mistake proposed docs for accepted decisions.
 
+## Claude-only Prism development skills
+- Before implementing any claimed Prism application functionality, use the **project-only** `CLAUDE.md` and `.claude/skills/prism-source-gate/SKILL.md` backed by exact upstream pins in `.claude/PRISM_SOURCES.md`.
+- For application model changes, follow `.claude/skills/prism-model-first/SKILL.md`; for proofs, artifacts and readiness claims use `.claude/skills/prism-proof-audit/SKILL.md`. These skills are **Claude Code developer procedures**, never skillz corpus material or Skill Mason generated output.
+- Owner direction requires a genuine **LexLean-modelled, PrismPM-built and verified Prism application**, not a handwritten Rust application that happens to import `uor-prism`. Preserve UOR template's R1–R6, locked SDK, model IDs, scenarios, tests and full `just vv` acceptance gate if and when legitimately adopted.
+- Do not invent CLI flags, LexLean syntax, verification receipts, proof claims or SDK capabilities. If exact-source support or a compatible environment is missing, refuse the Prism-dependent step and document the blocker. See `docs/RFC-0001-prism-feasibility.md` for the scoped adoption decision.
+- Do not silently paste UOR template files into this pre-existing Qortara-governed repository or assert `uor/template-contract/1` conformance until all universal requirements have actually been preserved and validated.
+
 ## Product and authority
 - Skill Mason is an **active** generator in its own repository. `Knapp-Kevin/skillz` is an **external passive** discovery and evidence source. The latter MUST NOT be mutated or used as an output folder by ordinary generation.
 - The project owner is the accountable human authority, subject to actual repository/host controls. Solo-owner adversarial review is permitted when owner-authorized; record exact-revision findings and do not invent a second mandatory human or a signed approval.

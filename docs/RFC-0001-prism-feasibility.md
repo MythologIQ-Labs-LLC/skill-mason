@@ -15,6 +15,16 @@ A capability, source-evidence and output-template selection problem can be repre
 
 These are **source-repository descriptions**, not a successful Skill Mason build or a qualification of those upstream tools.
 
+## Owner direction: legitimate Prism application (2026-11-17)
+
+Skill Mason is required to be a **genuine Prism-built application**, not merely an external program using the Prism name or Rust façade library. The source-pinned [UOR application template](https://github.com/UOR-Foundation/template) describes the concrete candidate acceptance standard: LexLean `.lex.tex` owns application semantics, PrismPM builds a holo, Lean verifies named claims, and a digest-pinned SDK runs the template's full `just vv` gate. PrismPM's normative `SPEC.md` distinguishes `check`, `build` and `verify`. Source descriptions alone do not prove this project has implemented or qualified that chain.
+
+**Build the Claude developer skills first:** `CLAUDE.md`, `.claude/PRISM_SOURCES.md`, and the three project-only skills under `.claude/skills/` establish source-audit, model-first and proof-qualification procedures. They are not skills for ingestion into `skillz` or user-facing generated output. Their presence does not execute/verify Prism. Verify their actual Claude host discovery before relying on them.
+
+**Architecture correction:** the native Rust `uor-prism` path below may be useful for an explicitly authorized supporting computation library; by itself it **cannot satisfy** the application acceptance target. First evaluate an adoption/migration of the complete verified-app template contract into the existing Skill Mason repository, preserving Qortara's `GOVERNANCE.md`, `SECURITY.md`, one architecture owner register, Shadow/ledger writer custody, Git history and owner decisions. No partial copy may be called template-conformant.
+
+The template SDK/locks and PrismPM v0.4.0 candidate must be independently verified at exact pins; the production SDK is not established as accepted by Skill Mason. If its language cannot represent the intended compiler semantics, record the limitation rather than writing hidden fallback application behavior.
+
 ## Two integration paths to qualify, not conflate
 
 **Path A, native Rust route:** Use `uor-prism`, `prism_model!` and `uor-prism-verify` to execute and replay a bounded typed decision. This requires the pinned Rust/dependency toolchain and concrete source API conformance tests.
