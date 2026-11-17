@@ -1,6 +1,6 @@
 # Prism eligibility candidate (overlay)
 
-**Status: candidate, not adopted.** This directory is the project-owned part of a Prism application: the files Skill Mason authored, plus one patch. It is **not** a template instance, and its presence does not make Skill Mason Prism-built. Adoption is the owner's decision in [ADR-0003](../docs/adr/0003-prism-application-adoption.md).
+**Status: candidate, not adopted.** This directory is the project-owned part of a Prism application: the files Skill Mason authored, plus one patch. It is **not** a template instance, and its presence does not make Skill Mason Prism-built. The owner has accepted a nested `prism/` instance as the architecture direction in [ADR-0003](../docs/adr/0003-prism-application-adoption.md); installing it is a separate, qualified change that has not happened.
 
 It exists so that the first eligibility decision can be rebuilt and re-verified from pinned inputs without copying the upstream template into this repository.
 

@@ -24,7 +24,8 @@ These instructions prepare Claude to **develop Skill Mason**. The project-local 
 - **Route:** route A is selected and its upstream reference application passed the complete gate here. See [`.claude/PRISM_COMPATIBILITY.md`](.claude/PRISM_COMPATIBILITY.md).
 - **Evidence:** [`docs/evidence/prism-phase0-20261117/README.md`](docs/evidence/prism-phase0-20261117/README.md).
 - **Candidate:** one eligibility decision, `SM-01`, is carried in [`prism-overlay/`](prism-overlay/README.md) and passed the complete gate in a rebuilt instance. It is **not adopted**.
-- **Hold:** Skill Mason is not a Prism-built application. Adoption waits on owner acceptance of [ADR-0003](docs/adr/0003-prism-application-adoption.md). Do not install a template instance into this repository, replace root `AGENTS.md`, or extend the candidate into general skill generation before that.
+- **Decision:** the owner accepted the nested `prism/` location as architecture direction only ([ADR-0003](docs/adr/0003-prism-application-adoption.md)). That is a layout decision, not an installation.
+- **Hold:** Skill Mason is not a Prism-built application and nothing is installed. The installing commit is a separately qualified change: it needs the runner in issue #9, the remaining owner decisions listed in ADR-0003, and a complete gate run on the renamed application. Until then do not create `prism/`, replace root `AGENTS.md`, or extend the candidate into general skill generation.
 
 - **Runner hold:** do not run the SDK image in any session, workstation or runner that holds credentials, and do not delete or replace the cached image. The native gate waits on an isolated, credential-free runner ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9)). The wrapper refuses to start otherwise; treat a refusal as the answer, not an obstacle.
 

@@ -1,6 +1,6 @@
 # Prism qualification record, 2026-11-17
 
-**What this is:** the commands that were run, their unedited logs and receipts, and what they do and do not establish. It is evidence for a decision, not a decision. **Skill Mason is not a Prism-built application**: the eligibility decision below is a candidate carried as an overlay, pending [ADR-0003](../../adr/0003-prism-application-adoption.md).
+**What this is:** the commands that were run, their unedited logs and receipts, and what they do and do not establish. It is evidence for a decision, not a decision. **Skill Mason is not a Prism-built application**: the eligibility decision below is a candidate carried as an overlay. After this record was made the owner accepted the nested architecture direction in [ADR-0003](../../adr/0003-prism-application-adoption.md); nothing has been installed.
 
 **Subject revision:** Skill Mason `42d8e35e4d2f825964a8fa11cb7d1ca3825191bd` plus the change that adds this record.
 **Performed by:** Claude Code in a cloud container, `linux/amd64`, 4 CPUs, Docker 29.10.0. No human ran or observed these commands.

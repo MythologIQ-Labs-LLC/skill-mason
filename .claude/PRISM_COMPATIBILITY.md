@@ -50,7 +50,7 @@ Evidence states are defined in the [`prism-source-gate`](skills/prism-source-gat
 
 | Item | Result |
 | --- | --- |
-| Selected route | **A**, for development and evidence. Production use is blocked on upstream SDK acceptance and on ADR-0003 |
+| Selected route | **A**, for development and evidence. Production use is blocked on upstream SDK acceptance and on the remaining gates in ADR-0003 |
 | Authoritative application input | Authored `.lex.tex` modules listed in the project's `lexlean.toml` `entrypoints`; generated Lean, `.prism/` and `CONFORMANCE.md` are never authored |
 | Verified command contract | `just vv` = `fmt-check model template-check lint test deny app`, where `app` runs `prismpm --project app verify`; help for `prismpm` and `lexlean` captured from the image |
 | Toolchain identity | SDK image `sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3`, `linux/amd64`; `prismpm 0.4.0`, `lexlean 0.4.0`, Lean 4.32.1, Lake 5.0.0, Rust 1.97.1, `just 1.57.0`, `cargo-deny 0.20.2`; independent checker `prism-code 0.9.5` |
@@ -58,6 +58,6 @@ Evidence states are defined in the [`prism-source-gate`](skills/prism-source-gat
 | Modelability of first pilot | A bounded, total, fail-closed decision over fixed-width coded inputs with a decides-theorem and acceptance vectors has the same shape as the executed reference model. See [ADR-0003](../docs/adr/0003-prism-application-adoption.md) for what was and was not built |
 | Proof and output claims | Proved: the theorems in the model, with exactly their declared axioms. Replayed: every acceptance vector, in the build and again by `prism-code`. Not established: truth of inputs, source authenticity, licence determinations, host behaviour, independent proof-level verification |
 | Required tests | Positive, each refusal dimension, malformed lengths, planted defects per gate, clean-tree repeat, offline application stage, no hosted service used |
-| Blocking items | ADR-0003 owner acceptance; upstream SDK is a candidate; the gate's network dependence; the shrink-only ratchet; P0 independent assurance level; native Qortara checks still `NOT_RUN` ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)) |
+| Blocking items | An isolated, credential-free runner ([issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9)); the remaining owner decisions in ADR-0003 (SDK trust root, input authorities, network hosts); upstream SDK is a candidate; the gate's network dependence; the shrink-only ratchet; P0 independent assurance level; native Qortara checks still `NOT_RUN` ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)) |
 
-**Skill Mason is not a Prism-built application at this checkpoint.** It becomes one only when a Skill Mason model passes the selected route's complete gate inside an owner-accepted adoption.
+**Skill Mason is not a Prism-built application at this checkpoint.** The owner has accepted where one will live; none is installed. It becomes one only when a Skill Mason model passes the selected route's complete gate in an installed instance that meets ADR-0003's conditions.
