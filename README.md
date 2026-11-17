@@ -99,7 +99,7 @@ Skill Mason will not silently copy an entire third-party corpus, treat a popular
                             optional, separate behavioral test
 ```
 
-**Prism feasibility remains open.** The project is comparing a native Rust/Prism decision route with a verified-application route using [Prism-DevRel](https://github.com/afflom/prism-devrel) and the [UOR template](https://github.com/UOR-Foundation/template). Neither route has been proven in Skill Mason. See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+**Prism feasibility remains open, with first evidence.** The verified-application route using the [UOR template](https://github.com/UOR-Foundation/template) was executed on 2026-11-17: its reference application passed the complete gate, and one candidate eligibility decision was built and verified in a rebuilt instance ([evidence](docs/evidence/prism-phase0-20261117/README.md)). Nothing is adopted: Skill Mason is not a Prism-built application until the owner accepts [ADR-0003](docs/adr/0003-prism-application-adoption.md). See [RFC-0001](docs/RFC-0001-prism-feasibility.md) and [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
 
 ## The zero-inference-token contract
 
@@ -215,7 +215,7 @@ Before attempting Prism-based product implementation, Claude Code should use thr
 - [`prism-model-first`](.claude/skills/prism-model-first/SKILL.md): build a genuine LexLean-modelled, PrismPM-built application with registered claims, scenarios and failing tests.
 - [`prism-proof-audit`](.claude/skills/prism-proof-audit/SKILL.md): verify the adopted full acceptance gate, generated holo, formal-scope limits and independently replayed receipts.
 
-Read the [Claude project entrypoint](CLAUDE.md) and [pinned upstream source register](.claude/PRISM_SOURCES.md) first. These are **skills to guide Claude's development of Skill Mason**, never additions to the `skillz` catalog or artifacts of the future compiler. Their presence has not been exercised in Claude Code, and does not mean a Prism application or its toolchain is already installed.
+Read the [Claude project entrypoint](CLAUDE.md) and [pinned upstream source register](.claude/PRISM_SOURCES.md) first. These are **skills to guide Claude's development of Skill Mason**, never additions to the `skillz` catalog or artifacts of the future compiler. They were discovered and invoked by a Claude Code host on 2026-11-17, after an initial discovery failure recorded in the [evidence](docs/evidence/prism-phase0-20261117/README.md). Their presence does not mean a Prism application is adopted.
 
 **Strict Prism requirement:** importing the `uor-prism` Rust library does not by itself make Skill Mason a Prism-built application. The [application-version compatibility guide](.claude/PRISM_COMPATIBILITY.md) documents the incompatibility between older LexLean/template instructions and newer `prism/spec.json`/1.0-beta CLI guides, linked to [upstream PrismPM issue #718](https://github.com/UOR-Foundation/PrismPM/issues/718). [RFC-0001](docs/RFC-0001-prism-feasibility.md) controls the evidence-backed selection of one supported application route without overriding Qortara governance.
 

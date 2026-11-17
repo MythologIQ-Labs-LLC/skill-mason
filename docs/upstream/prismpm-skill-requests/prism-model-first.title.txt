@@ -1,0 +1,1 @@
+[feature] Agent skill: prism-model-first, author a template-route model in the order R3 requires

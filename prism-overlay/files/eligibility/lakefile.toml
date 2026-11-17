@@ -1,0 +1,6 @@
+name = "SkillMasonEligibility"
+version = "0.1.0"
+defaultTargets = ["SkillMasonEligibility"]
+
+[[lean_lib]]
+name = "SkillMasonEligibility"

@@ -1,0 +1,2 @@
+PP5401: SDK platform inventory or index binding is invalid
+GATE_EXIT=4 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=1s cmd=prismpm template check

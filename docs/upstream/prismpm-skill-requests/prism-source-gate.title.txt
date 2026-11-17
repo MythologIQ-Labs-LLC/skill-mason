@@ -1,0 +1,1 @@
+[feature] Agent skill: prism-source-gate, verify commands and claims against pinned source before building

@@ -18,4 +18,12 @@ These instructions prepare Claude to **develop Skill Mason**. The project-local 
 4. Never hand-author proofs, conformance results, shadow/ledger JSONL events, gate receipts, operator approvals or license rights.
 5. Work in reviewable branches, retain issues #1/#3/#4, and stop at unresolved owner decisions; do not fake a second approver.
 
-**Qualification status:** Three Claude-only development skills are present and statically checked; no Claude host discovery, compatible Prism SDK installation, built holo, replay or full toolchain acceptance has been demonstrated for Skill Mason.
+## Qualification status (2026-11-17)
+
+- **Skills:** all three were discovered and invoked by a Claude Code host, after an initial `Unknown skill` failure. A session that starts on a branch without `.claude/skills/` does not see them, and a checkout that adds them is not usable until the host refreshes its listing. Confirm each skill appears in the session's skill listing before relying on it.
+- **Route:** route A is selected and its upstream reference application passed the complete gate here. See [`.claude/PRISM_COMPATIBILITY.md`](.claude/PRISM_COMPATIBILITY.md).
+- **Evidence:** [`docs/evidence/prism-phase0-20261117/README.md`](docs/evidence/prism-phase0-20261117/README.md).
+- **Candidate:** one eligibility decision, `SM-01`, is carried in [`prism-overlay/`](prism-overlay/README.md) and passed the complete gate in a rebuilt instance. It is **not adopted**.
+- **Hold:** Skill Mason is not a Prism-built application. Adoption waits on owner acceptance of [ADR-0003](docs/adr/0003-prism-application-adoption.md). Do not install a template instance into this repository, replace root `AGENTS.md`, or extend the candidate into general skill generation before that.
+
+Useful entry points: `scripts/prism_instance.sh` rebuilds an instance from the pinned template plus the overlay, and `scripts/prism_reference_gate.sh` runs a checkout's own gate inside the SDK image its lock selects.

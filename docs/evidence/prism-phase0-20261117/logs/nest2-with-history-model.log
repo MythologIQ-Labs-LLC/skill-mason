@@ -1,0 +1,9 @@
+cargo run -q --locked -p xtask -- validate
+check-model: CONFORMANCE.md equals the model, 6 ids (CM-01)
+audit-limits: every error type a shipped crate names is declared with a negative test (0 declared) (R5)
+audit-deferral: nothing is deferred (R4)
+audit-dependency-updates: SDK ownership and ordinary maintenance are preserved
+audit-bootstrap: SDK and workflow trust roots are immutable and separated
+audit-prism: installed here; the parent ran no ratchet, so this commit sets the ceiling: 13420 lines in 77 files
+validate: every gate passed
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=6s cmd=just model

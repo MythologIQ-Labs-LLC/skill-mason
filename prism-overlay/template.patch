@@ -1,0 +1,59 @@
+diff --git a/CONFORMANCE.md b/CONFORMANCE.md
+index 8d44c62..aa18e98 100644
+--- a/CONFORMANCE.md
++++ b/CONFORMANCE.md
+@@ -24,6 +24,12 @@ model does not sanction.
+ | --- | --- | --- |
+ | `TC-01` | `build` | The checker answers conformant exactly when every universal policy file's observed digest equals its locked digest |
+ 
++## eligibility
++
++| ID | Level | Statement |
++| --- | --- | --- |
++| `SM-01` | `build` | The decision answers eligible exactly when the evidence, rights, authority and coverage codes are each the single admitted code |
++
+ ## frame
+ 
+ | ID | Level | Statement |
+diff --git a/Justfile b/Justfile
+index c19e2b0..022ab0c 100644
+--- a/Justfile
++++ b/Justfile
+@@ -8,7 +8,7 @@
+ default: vv
+ 
+ # The whole gate.
+-vv: fmt-check model template-check lint test deny app
++vv: fmt-check model template-check lint test deny app eligibility
+     @echo "vv: the acceptance gate passed"
+ 
+ fmt-check:
+@@ -76,6 +76,14 @@ app:
+     rm -f .prism-proof.log
+     cargo run -q --locked -p xtask -- proof-keep "$attestation"
+ 
++# Skill Mason's eligibility decision (`SM-01`). The model must be canonical and
++# locked, then `prismpm verify` builds its holo, replays its acceptance vectors
++# and has Lean and leanchecker check `eligible_decides`. It always proves in
++# full: no kept proof is reused for this project.
++eligibility:
++    (cd eligibility && lexlean fmt --check && lexlean lock --check)
++    prismpm --project eligibility verify
++
+ # Only the meta-gate, while iterating on a scenario. `test` already runs it.
+ bdd:
+     cargo test --locked -p repo-conformance
+diff --git a/model/ids.toml b/model/ids.toml
+index 88083c0..1e61cfa 100644
+--- a/model/ids.toml
++++ b/model/ids.toml
+@@ -66,3 +66,9 @@ id = "FR-05"
+ level = "build"
+ suite = "frame"
+ statement = "An app's pages on every device of one Prism ID meet on a relay topic only those devices derive, per app, with every message sealed to the ID, and a removed device is left behind"
++
++[[id]]
++id = "SM-01"
++level = "build"
++suite = "eligibility"
++statement = "The decision answers eligible exactly when the evidence, rights, authority and coverage codes are each the single admitted code"

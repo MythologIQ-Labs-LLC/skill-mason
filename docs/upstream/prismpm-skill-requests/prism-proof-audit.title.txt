@@ -1,0 +1,1 @@
+[feature] Agent skill: prism-proof-audit, say exactly what a passing gate proved and what it did not

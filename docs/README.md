@@ -18,10 +18,14 @@ Use **Proposed**, **Accepted**, **Implemented**, **Qualified**, **Historical**, 
 | Qortara repository document baseline, single architecture register, runtime evidence/Shadow boundary | [ADR-0002](adr/0002-qortara-governance-adoption.md) | Proposed adoption based on verified upstream ADRs |
 | Skill assembly architecture, components, source trust and output contract | [Skill Mason Pipeline v0](architecture/skill-mason-pipeline-v0.md) | Proposed; **direct registration 1/1** under docs/architecture |
 | Requirements, stakeholder journeys and feature acceptance | [PRD](PRD.md) | Proposed; no compiled executable |
-| Prism implementation feasibility and formal evidence limitations | [RFC-0001](RFC-0001-prism-feasibility.md) | OPEN research; implementation unverified |
+| Prism implementation feasibility and formal evidence limitations | [RFC-0001](RFC-0001-prism-feasibility.md) | OPEN research; route A reference gate executed, see evidence |
+| Where and how a Prism application is adopted beside Qortara governance | [ADR-0003](adr/0003-prism-application-adoption.md) | Proposed; owner decision pending; nothing adopted |
+| Prism qualification evidence: commands, logs, receipts and limits | [Qualification record 2026-11-17](evidence/prism-phase0-20261117/README.md) | Executed evidence at exact pins; proposed evidence location; not an approval |
+| Candidate eligibility decision `SM-01` (model, scenario, test, patch) | [prism-overlay](../prism-overlay/README.md) | Candidate; verified in a rebuilt instance; not adopted |
+| Skills prepared for upstream submission, project-agnostic | [PrismPM skill requests](upstream/prismpm-skill-requests/README.md) | Prepared, not filed; no architectural authority |
 | Recipe v0 syntax | [Recipe JSON Schema](../schemas/recipe.v0.schema.json) | Draft; parseable schema is not an authority or eligibility verdict |
 | Canonical repository-local lifecycle / Shadow event ownership and custody | [Qortara evidence and Shadow guide](technical/governed-evidence.md), upstream Qortara Logic ADR-0009/0011/0017 | Local reference guide; actual artifacts only by runtime |
-| Claude Code Prism development procedures (not product skills) | [CLAUDE.md](../CLAUDE.md), [source register](../.claude/PRISM_SOURCES.md), [version compatibility / decision record](../.claude/PRISM_COMPATIBILITY.md) -> three [project-only skills](../.claude/skills/prism-source-gate/SKILL.md) | Developer instructions; no architectural authority or Prism execution claim |
+| Claude Code Prism development procedures (not product skills) | [CLAUDE.md](../CLAUDE.md), [source register](../.claude/PRISM_SOURCES.md), [version compatibility / decision record](../.claude/PRISM_COMPATIBILITY.md) -> three [project-only skills](../.claude/skills/prism-source-gate/SKILL.md) | Developer instructions; no architectural authority. Execution claims live only in the qualification record |
 | Required tests and proof scope | [Acceptance matrix](ACCEPTANCE.md) | Planned; not actual executed acceptance |
 | Work in progress and unclosed dependencies | [Epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/1), [Prism spike #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) | Work tracking, not canonical accepted architecture |
 

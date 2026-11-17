@@ -1,0 +1,99 @@
+# ADR-0003: Adopting a verified Prism application without replacing Qortara governance
+
+**Status:** Proposed. Awaiting owner acceptance. Nothing here is adopted, and Skill Mason is not a Prism-built application.
+**Date:** 2026-11-17
+**Decision owner:** project owner, per [GOVERNANCE.md](../../GOVERNANCE.md)
+**Evidence:** [Phase 0 and Phase 1 qualification record](../evidence/prism-phase0-20261117/README.md)
+**Related:** [RFC-0001](../RFC-0001-prism-feasibility.md), [route decision record](../../.claude/PRISM_COMPATIBILITY.md), [ADR-0002](0002-qortara-governance-adoption.md), issues [#3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) and [#4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)
+
+## Context
+
+The owner requires Skill Mason to be a genuine Prism-built application. Phase 0 selected route A: the UOR template, LexLean and PrismPM, in the SDK image the template's `prismpm.lock` pins. Its reference application passed the complete `just vv` gate here.
+
+Route A's application contract, `uor/template-contract/1`, and Skill Mason's Qortara governance both claim files at a repository root. Seven template files are universal policy, byte-bound by `template.lock`:
+
+`.devcontainer/devcontainer.json`, `.github/workflows/bootstrap.yml`, `AGENTS.md`, `VERIFICATION.md`, `prismpm.lock`, `template-contract.json`, `template.lock`.
+
+Skill Mason already owns a root `AGENTS.md`. The two cannot coexist at one path:
+
+| File | SHA-256 |
+| --- | --- |
+| Template `AGENTS.md`, as bound by `template.lock` | `9a1fe3f73ab2963812c35976909c331292e1ca39ce47c0711ec1aafe8b869d87` |
+| Skill Mason `AGENTS.md` at `42d8e35` | `b2487038dd55bde3061868e980a067da6d541be4545e5b089c0daf2d26e73650` |
+
+Adding one line to the template's `AGENTS.md` made `prismpm template check` exit 2 with `PP1101: template policy path changed: AGENTS.md`. So adopting the contract at the root means replacing a Skill Mason governance file, which the owner has ruled out.
+
+## What was established by execution
+
+1. **A nested instance satisfies the file-level contract.** A template instance in a `prism/` subdirectory of a repository whose root holds Skill Mason's `AGENTS.md`, `GOVERNANCE.md`, `SECURITY.md` and `ARCHITECTURE_INDEX.md` passed `prismpm template check`, `prismpm lock check` and `just model`.
+2. **It can be added to a repository that already has history.** `audit-prism` forbids new hand-written non-Prism files and any net growth in such lines against the parent commit. For the commit that first installs the instance it reported `installed here; the parent ran no ratchet, so this commit sets the ceiling`, and passed.
+3. **After installation, hand-written code may only shrink.** A later commit that added the `SM-01` conformance test was refused: `1 new non-Prism file(s)` and `grew by 81 lines`. That file is what the template's own `just new-capability` scaffolds. A capability added after installation must pay for its test by deleting other hand-written code, or carry its claim binding some other way.
+4. **A bounded eligibility decision is modelable.** See the candidate below.
+
+## Options
+
+| | A. Nested instance | B. Separate repository | C. Root adoption |
+| --- | --- | --- | --- |
+| Shape | Template instance at `prism/` inside this repository | A new repository created from the template; Skill Mason consumes its released `.holo` by digest | Template files at this repository's root |
+| Skill Mason `AGENTS.md`, `GOVERNANCE.md`, `SECURITY.md`, `docs/README.md`, `.qortara/` | Untouched | Untouched | `AGENTS.md` replaced by the template's bytes; its content moved elsewhere |
+| File-level template contract | Passes in the subdirectory (executed) | Passes (this is upstream's own layout) | Passes only after the replacement |
+| Template's CI trust root | `prism/.github/workflows/bootstrap.yml` is byte-correct but inert: GitHub runs only root workflows. A Skill Mason-owned root workflow must run the same gate in `prism/` | Works as upstream designed | Works as upstream designed |
+| Honest conformance statement | "The directory `prism/` is a byte-conformant instance; its gate is run by a project workflow, not by the template's bootstrap" | "`<repo>` conforms to `uor/template-contract/1`" | "This repository conforms" |
+| One PR can change a decision and its consumer | Yes | No: two repositories, release then repin | Yes |
+| Cost | Roughly 8 MB of template files in this repository, including a browser frame Skill Mason may not want; shrink-only ratchet applies under `prism/` | Second repository to govern, secure and release; Qortara baseline needed there too | Violates the stated boundary |
+
+## Proposed decision
+
+**Adopt option A, nested at `prism/`, as the first step, and do not claim repository-level template conformance.** Reasons:
+
+- It is the only option that preserves every Qortara file, keeps the work in one reviewable repository, and has been executed end to end.
+- It is reversible: the instance is one directory, and moving it to its own repository later (option B) keeps the same project-owned content.
+- Its one deviation, the inert bootstrap workflow, is visible and can be stated exactly.
+
+Reject option C while the owner's boundary stands. Keep option B as the path if the owner wants the template's own CI trust root to be authoritative, or wants the decision application released independently.
+
+### Conditions that must hold if A is accepted
+
+1. The installing commit contains the complete instance at the pinned template revision and every Skill Mason capability intended for the first slice, because that commit sets the ratchet's ceiling.
+2. No universal policy file under `prism/` is ever edited. Template changes arrive only through upstream's reviewable update flow and a governed pin change here.
+3. A root workflow runs the unreduced `just vv` in `prism/` inside the image `prism/prismpm.lock` selects. It may add checks; it may not skip or reorder the template's.
+4. `docs/README.md` registers the instance, its model and its evidence under one owner. `ARCHITECTURE_INDEX.md` stays a routing entrypoint.
+5. Skill Mason code outside `prism/` may carry bytes to and from the application and may refuse on its own grounds. It may not decide eligibility.
+6. Qortara's native checks ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)) are run on the resulting tree. Whether they accept a second `AGENTS.md` under `prism/` is `NOT_RUN`.
+
+## The candidate first slice
+
+Carried as [`prism-overlay/`](../../prism-overlay/README.md): Skill Mason-authored files plus one patch, applied to a pinned template checkout by `scripts/prism_instance.sh`. The repository therefore holds project-owned content only, not a copy of the template.
+
+**Capability `SM-01` (level `build`):** the decision answers `eligible` exactly when the evidence, rights, authority and coverage codes are each the single admitted code.
+
+| Aspect | Model |
+| --- | --- |
+| Request | Exactly four bytes: evidence, rights, authority, coverage. Any other length answers `invalid request` |
+| Admission | One code, `1`, per fact. Every other value, defined or not, refuses |
+| Response | `eligible`, or `refused:` followed by each failing fact's reason: `EVIDENCE_UNQUALIFIED`, `RIGHTS_UNRESOLVED`, `AUTHORITY_EXCEEDED`, `OUTCOME_UNCOVERED` |
+| Theorem | `eligible_decides`: `(eligible request) = true <-> Eligible request`, for every request, on `propext` only |
+| Vectors | 12: the admitted case, each single refusal, prohibited rights, all four, an undefined code, three malformed lengths, and the allocation boundary |
+| Limits | request 4 B, response 256 B, guest allocation 512 B, no capabilities |
+
+What the proof covers: the decision over those four bytes. What it does not cover: whether the evidence is real or current, whether a licence determination is right, who asserted each code, the generated skill's bytes, or any consuming host's behaviour. Those remain Skill Mason's and the owner's responsibility, and each code needs a named asserting party before this slice is used for anything.
+
+The acceptance matrix cases this slice addresses in model form are A5, A6, A7 and A11. It does not address A1 to A4, A8 to A10 or A12 to A18.
+
+## Consequences
+
+- Route A's SDK is a candidate by upstream's own statement. Accepting this ADR accepts a development dependency, not a production one.
+- The complete gate depends on a mutable external input, the RustSec advisory database, through `just deny`. A pass is reproducible only together with that database's state.
+- The emitted `.holo` grades `P0 unverified` under `prism-code check`, because it carries no embedded proof statement. Independent proof-level verification of the artifact is not available at these versions.
+- The SDK image is published under `ghcr.io/afflom/prismpm-sdk-patched`. The owner should decide whether that trust root is acceptable.
+- Every later capability meets the shrink-only ratchet. Budget for it in the design, not at merge time.
+
+## Owner decisions requested
+
+1. Accept, amend or reject option A and its six conditions.
+2. Accept or reject `ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f72…` as a development toolchain trust root.
+3. Decide whether the template's browser frame (`site/`, `frame/`, `identity/`, the `FR-` claims) belongs in a Skill Mason instance. Removing it is allowed by the ratchet and is a product decision.
+4. Name the party that asserts each of the four input codes, and the evidence each must hold.
+5. Confirm the network hosts a gate run may contact: `ghcr.io`, `pkg-containers.githubusercontent.com`, `static.crates.io`, `index.crates.io`, `github.com`.
+
+Until 1 is decided, the candidate stays an overlay and no Prism claim is made about Skill Mason.

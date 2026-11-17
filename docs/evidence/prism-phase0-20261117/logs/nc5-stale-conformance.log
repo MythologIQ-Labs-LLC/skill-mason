@@ -1,0 +1,5 @@
+cargo run -q --locked -p xtask -- validate
+gate failed: /tmp/claude-0/-home-user-skill-mason/d49803a1-97a7-5e68-b12f-70e6557a3ccb/scratchpad/run/ref/CONFORMANCE.md is stale: it disagrees with model/ids.toml.
+R2: a claim cannot exist in the documentation without a ledger row. Run `cargo xtask check-model --write`.
+error: recipe `model` failed on line 21 with exit code 1
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=1s cmd=just model

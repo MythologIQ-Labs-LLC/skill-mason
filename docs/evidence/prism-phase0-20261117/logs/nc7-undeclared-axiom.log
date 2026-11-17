@@ -1,0 +1,3 @@
+LEXLEAN ERROR: LexLean verification failed: LexLeanError { class: Language, diagnostics: [Diagnostic { code: DiagnosticCode("LLV7005"), message: "`PrismTemplateContract.Contract.conformant_decides` violates its none axiom policy: observed [propext]", primary: Some(Span { path: "lexlean.toml", byte_start: 0, byte_end: 0, line_start: 1, column_start: 1, line_end: 1, column_end: 1 }), labels: [], notes: [], help: [], causes: [], detail: None }], source: None }
+PP5001: LexLean verification failed
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=host elapsed=89s cmd=prismpm --project app verify
