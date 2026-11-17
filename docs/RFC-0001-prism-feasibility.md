@@ -15,6 +15,14 @@ A capability, source-evidence and output-template selection problem can be repre
 
 These are **source-repository descriptions**, not a successful Skill Mason build or a qualification of those upstream tools.
 
+## Two integration paths to qualify, not conflate
+
+**Path A, native Rust route:** Use `uor-prism`, `prism_model!` and `uor-prism-verify` to execute and replay a bounded typed decision. This requires the pinned Rust/dependency toolchain and concrete source API conformance tests.
+
+**Path B, verified application route:** [UOR-Foundation/template](https://github.com/UOR-Foundation/template) describes a LexLean model, Lean 4 proof, PrismPM build and content-addressed holo independently verified via `prism-code`. [Prism-DevRel](https://github.com/afflom/prism-devrel) exposes a structured-prompt builder for rules/state machines. This may be a better fit for generating a **verified decision application**, while ordinary skill-package text remains separate compiler output.
+
+The feasibility spike must compare these routes against proof scope, toolchain burden, actual byte-level output validation, offline reproducibility, scaling and maintainability. A successful example from either route cannot automatically be generalized to arbitrary agent skills. Track this in [issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3).
+
 ## Proposed first Prism model
 
 Define a bounded decision pattern:
