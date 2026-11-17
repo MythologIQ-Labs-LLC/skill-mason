@@ -106,30 +106,27 @@ class PrismClaudeSkillTests(unittest.TestCase):
         self.assertIn("**route B**", model)
         self.assertIn("HOLD", model)
         self.assertIn("not selected and not executed", model)
-        compat = (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text()
-        self.assertIn("no installed Prism application", compat)
-        self.assertIn("accepted direction only", compat)
+        compatibility = (ROOT / ".claude" / "PRISM_COMPATIBILITY.md").read_text()
+        self.assertIn("nested location", compatibility)
+        self.assertIn("no installed Prism application", compatibility)
         self.assertIn("ADR-0003", entry)
         self.assertIn("not a Prism-built application", entry)
 
-    def test_adoption_decision_accepts_a_direction_and_claims_no_installation(self):
+    def test_nested_architecture_accepted_but_application_uninstalled(self):
         adr = (ROOT / "docs" / "adr" / "0003-prism-application-adoption.md").read_text()
-        status = next(line for line in adr.splitlines() if line.startswith("**Status:**"))
-        # The owner accepted where a Prism application will live. That is a layout
-        # decision. The record must keep saying nothing is installed or qualified.
-        self.assertIn("Accepted, architecture direction only (option A)", status)
-        self.assertIn("Implementation NOT_INSTALLED", status)
-        self.assertIn("qualification NOT_RUN", status)
-        self.assertIn("no SDK trust-root acceptance", status)
-        self.assertNotRegex(adr, r"(?i)\*\*Status:\*\* \**(accepted|adopted|implemented|qualified)\**\.?\s*$")
+        self.assertIn("**Status:** **Accepted, architecture direction only (option A)**", adr)
+        self.assertIn("nested `prism/`", adr)
+        self.assertIn("Implementation NOT_INSTALLED", adr)
+        self.assertIn("Prism application qualification NOT_RUN", adr)
         self.assertIn("9a1fe3f73ab2963812c35976909c331292e1ca39ce47c0711ec1aafe8b869d87", adr)
         self.assertIn("Remaining owner decisions and evidence gates", adr)
-        self.assertIn("issues/9", adr)
+        self.assertIn("P0 unverified", adr)
+        self.assertIn("issue #9", adr)
         register = (ROOT / "docs" / "README.md").read_text()
         self.assertEqual(register.count("](adr/0003-prism-application-adoption.md)"), 1)
-        row = next(line for line in register.splitlines() if "](adr/0003-prism-application-adoption.md)" in line)
-        self.assertIn("no installing commit", row)
-        self.assertFalse((ROOT / "prism").exists(), "an accepted direction is not an installed instance")
+        self.assertIn("Accepted architecture direction", register)
+        self.assertIn("no installing commit", register)
+        self.assertFalse((ROOT / "prism").exists(), "acceptance is not an installed application")
 
     def test_skills_use_one_evidence_vocabulary_and_observed_diagnostics(self):
         source = (ROOT / ".claude" / "skills" / "prism-source-gate" / "SKILL.md").read_text()
