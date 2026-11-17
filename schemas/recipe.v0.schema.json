@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MythologIQ-Labs-LLC/skill-mason/blob/main/schemas/recipe.v0.schema.json",
+  "title": "Skill Mason recipe v0 (draft, not implemented)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "skill_id",
+    "title",
+    "description",
+    "target_host",
+    "required_outcomes",
+    "source_snapshot",
+    "components",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "skill-mason.recipe.v0"
+    },
+    "skill_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{2,79}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "description": {
+      "type": "string",
+      "minLength": 3
+    },
+    "target_host": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must additionally be supported by implementation; schema does not confer host compatibility"
+    },
+    "required_outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "source_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit",
+        "sha256"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method_id",
+          "package_id",
+          "package_sha256"
+        ],
+        "properties": {
+          "method_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "package_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "package_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "number",
+                "boolean"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network",
+        "secrets",
+        "execution"
+      ],
+      "properties": {
+        "network": {
+          "type": "boolean",
+          "const": false
+        },
+        "secrets": {
+          "type": "boolean",
+          "const": false
+        },
+        "execution": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    }
+  }
+}
