@@ -19,7 +19,7 @@ Use **Proposed**, **Accepted**, **Implemented**, **Qualified**, **Historical**, 
 | Skill assembly architecture, components, source trust and output contract | [Skill Mason Pipeline v0](architecture/skill-mason-pipeline-v0.md) | Proposed; **direct registration 1/1** under docs/architecture |
 | Requirements, stakeholder journeys and feature acceptance | [PRD](PRD.md) | Proposed; no compiled executable |
 | Prism implementation feasibility and formal evidence limitations | [RFC-0001](RFC-0001-prism-feasibility.md) | OPEN research; route A reference gate executed, see evidence |
-| Where and how a Prism application is adopted beside Qortara governance | [ADR-0003](adr/0003-prism-application-adoption.md) | Proposed; owner decision pending; nothing adopted |
+| Where and how a Prism application is adopted beside Qortara governance | [ADR-0003](adr/0003-prism-application-adoption.md) | **Accepted architecture direction:** nested `prism/` by owner (2026-11-17); no installing commit, SDK trust, native checks or runtime qualification yet |
 | Prism qualification evidence: commands, logs, receipts and limits | [Qualification record 2026-11-17](evidence/prism-phase0-20261117/README.md) | Executed evidence at exact pins; proposed evidence location; not an approval |
 | Candidate eligibility decision `SM-01` (model, scenario, test, patch) | [prism-overlay](../prism-overlay/README.md) | Candidate; verified in a rebuilt instance; not adopted |
 | Skills submitted upstream, project-agnostic | [PrismPM skill requests](upstream/prismpm-skill-requests/README.md) | Filed 2026-11-17 as PrismPM #720, #721, #722; awaiting upstream triage; no architectural authority |

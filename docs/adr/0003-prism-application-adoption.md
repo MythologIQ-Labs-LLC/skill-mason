@@ -1,6 +1,6 @@
 # ADR-0003: Adopting a verified Prism application without replacing Qortara governance
 
-**Status:** Proposed. Awaiting owner acceptance. Nothing here is adopted, and Skill Mason is not a Prism-built application.
+**Status:** **Accepted, architecture direction only (option A)** by project owner in conversation on 2026-11-17. The accepted location is a nested `prism/` application preserving root Qortara governance. **Implementation NOT_INSTALLED; Prism application qualification NOT_RUN in this repository; no SDK trust-root acceptance, security exception or production approval is implied.** This records the owner-directed decision, not a cryptographic signature or native Qortara audit.
 **Date:** 2026-11-17
 **Decision owner:** project owner, per [GOVERNANCE.md](../../GOVERNANCE.md)
 **Evidence:** [Phase 0 and Phase 1 qualification record](../evidence/prism-phase0-20261117/README.md)
@@ -42,9 +42,9 @@ Adding one line to the template's `AGENTS.md` made `prismpm template check` exit
 | One PR can change a decision and its consumer | Yes | No: two repositories, release then repin | Yes |
 | Cost | Roughly 8 MB of template files in this repository, including a browser frame Skill Mason may not want; shrink-only ratchet applies under `prism/` | Second repository to govern, secure and release; Qortara baseline needed there too | Violates the stated boundary |
 
-## Proposed decision
+## Accepted architecture decision: option A
 
-**Adopt option A, nested at `prism/`, as the first step, and do not claim repository-level template conformance.** Reasons:
+**Owner accepted option A: install the full pinned Prism template as a nested application at `prism/`, not at repository root; do not claim repository-level template conformance.** The installation itself remains a separately qualified change. Reasons:
 
 - It is the only option that preserves every Qortara file, keeps the work in one reviewable repository, and has been executed end to end.
 - It is reversible: the instance is one directory, and moving it to its own repository later (option B) keeps the same project-owned content.
@@ -52,7 +52,7 @@ Adding one line to the template's `AGENTS.md` made `prismpm template check` exit
 
 Reject option C while the owner's boundary stands. Keep option B as the path if the owner wants the template's own CI trust root to be authoritative, or wants the decision application released independently.
 
-### Conditions that must hold if A is accepted
+### Conditions required for a qualified implementation of accepted option A
 
 1. The installing commit contains the complete instance at the pinned template revision and every Skill Mason capability intended for the first slice, because that commit sets the ratchet's ceiling.
 2. No universal policy file under `prism/` is ever edited. Template changes arrive only through upstream's reviewable update flow and a governed pin change here.
@@ -88,9 +88,9 @@ The acceptance matrix cases this slice addresses in model form are A5, A6, A7 an
 - The SDK image is published under `ghcr.io/afflom/prismpm-sdk-patched`. The owner should decide whether that trust root is acceptable.
 - Every later capability meets the shrink-only ratchet. Budget for it in the design, not at merge time.
 
-## Review recommendation (not an owner decision)
+## Implementation guidance (not approval of remaining dependencies)
 
-**Recommendation date:** 2026-11-17. **Status:** Proposed amendment only; ADR-0003 remains **Proposed** and does not authorize installation, trust-root acceptance, running the SDK on a developer workstation, or a product release.
+**Recommendation date:** 2026-11-17. **Status:** Owner has accepted the nested architecture, not every implementation choice below. These recommendations do not authorize an unqualified install, SDK trust-root acceptance, running the SDK on a developer workstation, or a product release.
 
 1. **Prefer nested option A**, subject to all six proposed conditions and an additional enforced runner-isolation prerequisite in [issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9). Root governance files remain authoritative. The nested template is an instance, not the repository-level trust root.
 2. **First application name:** `Qortara Skills Eligibility`. The existing candidate's `Skill Mason eligibility` name is not silently renamed: naming changes require rebuilt holos, fresh hashes/receipts and a complete gate run before installing.
@@ -100,14 +100,14 @@ The acceptance matrix cases this slice addresses in model form are A5, A6, A7 an
 6. **SDK trust and network:** hold production approval. The pinned personal-registry image is a **development candidate only**. The existing wrapper recursively `chown`s its checkout and exposes the host Docker socket to that image. Do not run it on a workstation or privileged shared runner. [Issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9) requires a disposable, credential-free, isolated build runner, a verified trust root, recorded network dependencies, and negative controls. Do not delete or upgrade the existing 21 GB image without separate explicit authorization.
 7. **P0-to-P2 assurance:** do not treat an in-toto signature or `prism-code attest` invocation alone as proof-level qualification. The pinned PrismPM guide calls its attestation section experimental and notes its Rust reader refuses that added section until the wire model changes. Maintain `P0 unverified` for the independently checked holos until an exactly pinned compatible build, embedded statements, trusted signer and verification policy all pass.
 
-**Decision boundary:** These are review recommendations and conditions. The owner must accept or amend this ADR explicitly before the installing commit. Even after acceptance, native Qortara governance, reporting intake and P2 assurance remain separate, honestly reported gates.
+**Decision boundary:** Option A is now owner-accepted as the application architecture. The first installing commit must independently satisfy or explicitly govern its remaining dependencies, including isolation, SDK trust and exact-head checks. Native Qortara governance, reporting intake and P2 assurance remain separate, honestly reported gates. Do not convert owner acceptance of a layout into a verified runtime.
 
-## Owner decisions requested
+## Remaining owner decisions and evidence gates
 
-1. Accept, amend or reject option A and its six conditions.
+1. **Resolved:** option A nested at `prism/` accepted. Record the installation revision and verify the six implementation conditions before calling it adopted in code.
 2. Accept or reject `ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f72…` as a development toolchain trust root.
 3. Decide whether the template's browser frame (`site/`, `frame/`, `identity/`, the `FR-` claims) belongs in a Skill Mason instance. Removing it is allowed by the ratchet and is a product decision.
 4. Name the party that asserts each of the four input codes, and the evidence each must hold.
 5. Confirm the network hosts a gate run may contact: `ghcr.io`, `pkg-containers.githubusercontent.com`, `static.crates.io`, `index.crates.io`, `github.com`.
 
-Until 1 is decided, the candidate stays an overlay and no Prism claim is made about Skill Mason.
+Until an installing revision has been built and fully qualified under the accepted conditions, `SM-01` stays in `prism-overlay/`; neither this decision nor the route A reference evidence makes Qortara Skills a Prism-built application. Its eventual design must demonstrate Prism as the **decision substrate**: the model governs eligibility, while host glue only transports bounded inputs/outputs, authenticates authorities and can refuse independently, never substitute a competing eligibility algorithm.

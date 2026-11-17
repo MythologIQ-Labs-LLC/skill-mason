@@ -1,6 +1,6 @@
 # Prism application version compatibility and authoring decision
 
-**Status:** Route A selected for development, **reference gate EXECUTED** on 2026-11-17 at the pins below. Skill Mason itself has **no Prism application adopted**: where one lives in this repository is an open owner decision ([ADR-0003](../docs/adr/0003-prism-application-adoption.md), Proposed).
+**Status:** Route A selected for development, **reference gate EXECUTED** on 2026-11-17 at the pins below. Qortara Skills has **accepted option A's nested location (`prism/`) as architecture**, but has **no installed Prism application**: the implementation and its safety/trust qualification remain open ([ADR-0003](../docs/adr/0003-prism-application-adoption.md), accepted direction only).
 **Authoritative work item:** [Skill Mason issue #3](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/3) and [RFC-0001](../docs/RFC-0001-prism-feasibility.md).
 **Evidence:** [Phase 0 qualification record](../docs/evidence/prism-phase0-20261117/README.md), with unedited logs and receipts.
 **Upstream docs issue and source-locked proposed correction:** [PrismPM #718](https://github.com/UOR-Foundation/PrismPM/issues/718), open, no maintainer response and no linked PR when read on 2026-11-17.
