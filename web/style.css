@@ -93,7 +93,8 @@ button.secondary,.dev-panel button{border:1px solid #55718e;background:#1b3551;c
 :root{color:#edf5ff;background:#061526}
 body{background:radial-gradient(ellipse 68% 50% at 78% -9%,#214b72 0%,#0b223d 48%,transparent 92%),linear-gradient(155deg,#061526 0%,#091b31 66%,#061425 100%)}
 .topbar{padding:15px 26px 17px;gap:24px;border-bottom-color:#36516b75}
-.brand{gap:12px;font-size:21px;font-weight:670;letter-spacing:-.65px;white-space:nowrap}
+.brand{gap:0;font-size:21px;font-weight:670;letter-spacing:-.65px;white-space:nowrap}
+.brand>span{display:inline-flex;align-items:baseline;gap:10px;margin-left:-1px}
 .brand img{width:45px;height:45px;border:1px solid #7895b352;border-radius:12px;box-shadow:0 8px 23px #0006}
 .brand strong{font-weight:800;color:#d6ebff}
 .pill{background:#112a45;border-color:#3d6080;color:#bcd5ed;font-size:10px;letter-spacing:.075em;text-transform:uppercase;padding:7px 13px}
@@ -166,7 +167,8 @@ button.primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY
 }
 @media(max-width:690px){
   .topbar{padding:12px 17px;gap:11px}
-  .brand{font-size:19px;gap:9px}
+  .brand{font-size:19px;gap:0}
+  .brand>span{gap:9px;margin-left:-1px}
   .brand img{width:40px;height:40px}
   .container{padding:0 15px}
   .intro{grid-template-columns:1fr;gap:5px;padding:22px 20px;margin:16px 0;min-height:0}
