@@ -70,6 +70,8 @@ jobs:
               independentDiskSealedReplayWithRealSignatureVerifiers:true,
               tamperedDiskReceiptRefused:true,
               tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
               missingSourceApprovalStoppedBeforeGuest:true,
               positiveFactsAreFixturesOnly:true,
               prismGuestIsMock:true,
@@ -185,6 +187,8 @@ jobs:
               independentlySignedFourFactProofReplayedByActualAdapter:true,
               independentDiskSealedReplayWithRealSignatureVerifiers:true,
               tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
               missingSourceApprovalStoppedBeforeGuest:true,
               positiveFactsAreFixturesOnly:true,
               signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
@@ -222,6 +226,8 @@ jobs:
               signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
               independentDiskSealedReplayWithRealSignatureVerifiers:true,
               tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
               productionEligible:false,hostValidated:false,sourceRightsEstablished:false
             }))if(r[k]!==v)throw Error("first-party strict P0 scope or provenance mismatch "+k);
             console.log("ORIGINAL IMMUTABLE FIRST-PARTY METHOD + STRICT TWO SIGNATURES + FOUR REAL P0 GUEST DECISIONS; AUTHORITY UNQUALIFIED");
