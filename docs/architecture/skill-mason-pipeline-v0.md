@@ -48,6 +48,10 @@ The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produc
 
 The [deterministic candidate comparison receipt](../technical/candidate-comparison-v1.md) lists exact recognized evidence links, name-only review hints and bounded lexical raw observations separately, with no eligibility or chosen method. Rights, dependencies and host authority are unassessed; a comparison is not an automatic recommendation or Prism input.
 
+## Source-bound Prism input preflight (proposed C4/C5 refusal boundary)
+
+The [Prism input preflight](../technical/prism-input-preflight-v1.md) deterministically binds one exact reviewed source, its source snapshot/tree and byte-inspection receipt to a recognized capability route and requested host. It prepares only the **unsigned negative development vector 00000000** because static review and source byte matching do not establish independent signed evidence, rights, host authority or qualified outcome coverage. It does not run a Prism guest, sign claims, install or generate a skill, or introduce a substitute selection engine. The signed-assertion verifier and actual P0 guest in the separate pilot PR #28 remain the consumer interface for future properly qualified facts.
+
 ## External third-party exact-source package byte verification (proposed C3 follow-on)
 
 The separately pinned [external package inspector](../technical/external-package-inspection-v1.md) verifies a governed third-party candidate's complete Git subtree and actual files against its original exact source revision and recorded package tree/blob, without downloading on invocation, running code, granting rights or declaring host fitness. A Git object consistency receipt is only source-byte evidence. Independent publisher, asset licenses, dependency closure, modification/redistribution rights and actual agent-host acceptance remain explicit holds.
