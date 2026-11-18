@@ -200,6 +200,7 @@ test('trusted source signature and independent signed-fact delegate are both req
  const result=await gated({subjectSha256:SUBJECT});
  assert.equal(calls,1);
  assert.equal(result.sourceAcceptanceProofSha256,sha(canonicalSourceJSON(receipt)));
+ assert.equal(result.sourceBindingSha256,x.preflight.binding_sha256);
  assert.equal(result.rights,false);
  assert.equal(result.authority,false);
 });
@@ -217,6 +218,7 @@ test('mutation after trusted gate construction cannot change pinned scope',async
  t.publicKeySha256='0'.repeat(64);
  const v=await gated({subjectSha256:SUBJECT});
  assert.equal(v.sourceAcceptanceProofSha256,sha(canonicalSourceJSON(signed())));
+ assert.equal(v.sourceBindingSha256,x.preflight.binding_sha256);
  assert.equal(calls,1);
 });
 test('untrusted assertion delegate malformed subject cannot bypass composer',async()=>{
