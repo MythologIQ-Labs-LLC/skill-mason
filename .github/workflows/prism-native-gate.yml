@@ -19,6 +19,10 @@ on:
     paths:
       - '.github/workflows/prism-native-gate.yml'
       - 'prism-overlay/**'
+      # No prism/ exists yet. Listed now so that the change that installs it, and
+      # every later change to it, starts this workflow. Until that change wires
+      # the gate for an installed instance, the driver refuses such a revision.
+      - 'prism/**'
       - 'scripts/prism_instance.sh'
       - 'scripts/prism_reference_gate.sh'
       - 'scripts/prism_native_gate.sh'

@@ -155,24 +155,45 @@ class NativeGateWorkflowTests(unittest.TestCase):
         ratchet = (ROOT / "scripts" / "prism_nested_ratchet.sh").read_text()
         self.assertIn("audit_cmd=(cargo run -q --locked -p xtask -- audit-prism)", self.driver)
         self.assertIn('sdk "$label" "$projection" allowlist "$seed" "${audit_cmd[@]}"', self.driver)
-        cases = dict(re.findall(r"(?m)^ratchet ([a-z-]+) (pass|refuse) ", self.driver))
+        cases = {label: (baseline, want) for label, baseline, want in
+                 re.findall(r'(?m)^ratchet ([a-z-]+) "\$(\w+)" (pass|refuse|observe) ', self.driver)}
         self.assertEqual(cases, {
-            "ratchet-installing-commit": "pass",
-            "ratchet-engaged-uncounted-change": "pass",
-            "nc-nested-ratchet-new-file": "refuse",
-            "nc-nested-ratchet-growth": "refuse",
-            "nc-nested-ratchet-ignores-justfile": "refuse",
+            "ratchet-installing-commit": ("root_commit", "pass"),
+            "ratchet-engaged-uncounted-change": ("install", "pass"),
+            "nc-nested-ratchet-new-file": ("install", "refuse"),
+            "nc-nested-ratchet-growth": ("install", "refuse"),
+            "obs-first-parent-comparison-misses-the-launder": ("launder_a", "observe"),
+            "nc-nested-ratchet-two-commit-launder": ("install", "refuse"),
+            "obs-first-parent-comparison-resets-the-ceiling": ("reset_a", "observe"),
+            "nc-nested-ratchet-move-then-restore": ("install", "refuse"),
+            "nc-nested-ratchet-ignores-justfile": ("install", "refuse"),
+            "nc-nested-ratchet-ignores-tampered-root-gate": ("install", "refuse"),
         })
-        self.assertEqual(re.findall(r"(?m)^ratchet_refusal ([a-z-]+) ", self.driver),
-                         ["refuse-ratchet-instance-moved", "refuse-ratchet-audit-altered"])
+        self.assertEqual(
+            re.findall(r'(?m)^ratchet_refusal ([a-z-]+) "\$(\w+)" ', self.driver),
+            [("refuse-ratchet-instance-moved", "install"), ("refuse-ratchet-audit-altered", "install"),
+             ("refuse-ratchet-audit-dependency-altered", "install"), ("refuse-ratchet-build-script-added", "install"),
+             ("refuse-ratchet-baseline-not-ancestor", "launder_a")])
         # The defects are planted under prism/, the accepted nested location, not in a root-level copy.
         for planted in ('"$repo/prism/crates/conformance/tests/added_later.rs"',
                         '"$repo/prism/crates/conformance/tests/eligibility.rs"'):
             self.assertIn(planted, self.driver)
+        # Every judged case names its baseline, and the companion that runs is the trusted checkout's.
+        self.assertNotIn('"$repo/scripts/prism_nested_ratchet.sh" "$repo"', self.driver)
+        self.assertEqual(self.driver.count('"$sm/scripts/prism_nested_ratchet.sh" "$repo" "$baseline" "$(git -C "$repo" rev-parse HEAD)"'), 2)
         # The companion measures with upstream's code: it holds no counting rules of its own.
-        for own_rule in ("wc -l", "LANGUAGES", ".rs)", "lines in"):
-            self.assertNotIn(own_rule, ratchet.split("set -uo pipefail", 1)[1])
+        code = [line for line in ratchet.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+        for own_rule in ("wc -l", "LANGUAGES", "lines in"):
+            self.assertFalse([line for line in code if own_rule in line], own_rule)
         self.assertIn("scripts/prism_nested_ratchet.sh", self.text)
+
+    def test_a_change_under_prism_starts_the_workflow_and_an_installed_instance_is_not_silently_passed(self):
+        paths = self.text.split("pull_request:", 1)[1].split("permissions:", 1)[0]
+        self.assertIn("- 'prism/**'", paths)
+        self.assertIn("- 'scripts/prism_nested_ratchet.sh'", paths)
+        # Until the installing change wires the gate for an installed prism/, such a revision must fail, not pass.
+        self.assertIn('if [[ -e $repo/prism ]]; then', self.driver)
+        self.assertRegex(self.driver, r'already contains prism/[^\n]*\n\s*exit 70')
 
     def test_tool_owned_files_come_from_the_tools(self):
         self.assertIn("lexlean lock; lexlean fmt; lexlean lock; lexlean fmt --check; lexlean lock --check", self.driver)

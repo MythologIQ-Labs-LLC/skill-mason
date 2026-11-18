@@ -142,20 +142,33 @@ class NativeGateEvidenceTests(unittest.TestCase):
                 self.assertTrue(all(row["result"] == "PASS" for row in rows(run / phase / "out" / "summary.tsv")))
 
     def test_the_nested_ratchet_engaged_and_refused_the_defects_planted_under_prism(self):
+        """Every committed run must show the template's own audit refusing defects planted under prism/.
+
+        Runs made after the comparison was anchored to a named baseline carry more cases:
+        two-commit laundering, move-then-restore, a gutted root gate, the audit's build
+        closure and a non-ancestor baseline. A run is held to the set its own driver planted.
+        """
         for run in self.each_run():
             results = {row["label"]: row for row in rows(run / "nested" / "out" / "summary.tsv")}
             logs = run / "nested" / "logs"
             read = lambda name: (logs / name).read_text(encoding="utf-8", errors="replace")
+            install = re.search(r"staged_install_commit=([0-9a-f]{40})", (run / "nested" / "out" / "identities.txt").read_text()).group(1)
+            anchored = "nc-nested-ratchet-two-commit-launder" in results
             # The installing commit passes and sets the ceiling.
             self.assertEqual((results["ratchet-installing-commit"]["exit"], results["ratchet-installing-commit"]["result"]), ("0", "PASS"))
             self.assertRegex(read("ratchet-installing-commit.log"), r"audit-prism: a root commit; non-Prism implementation is \d+ lines in \d+ files")
-            # A later commit is compared with its parent: the ratchet is engaged.
+            # A later commit is compared with the commit before it: the ratchet is engaged.
             self.assertEqual(results["ratchet-engaged-uncounted-change"]["result"], "PASS")
             self.assertRegex(read("ratchet-engaged-uncounted-change.log"), r"files in the parent\); it only shrinks")
             # The actual nested defects are refused by the template's own audit.
-            for label, words in (("nc-nested-ratchet-new-file", "new non-Prism file"),
-                                 ("nc-nested-ratchet-growth", "non-Prism implementation grew by"),
-                                 ("nc-nested-ratchet-ignores-justfile", "new non-Prism file")):
+            refused = [("nc-nested-ratchet-new-file", "new non-Prism file"),
+                       ("nc-nested-ratchet-growth", "non-Prism implementation grew by"),
+                       ("nc-nested-ratchet-ignores-justfile", "new non-Prism file")]
+            if anchored:
+                refused += [("nc-nested-ratchet-two-commit-launder", "new non-Prism file"),
+                            ("nc-nested-ratchet-move-then-restore", "new non-Prism file"),
+                            ("nc-nested-ratchet-ignores-tampered-root-gate", "new non-Prism file")]
+            for label, words in refused:
                 self.assertEqual(results[label]["result"], "PASS", label)
                 self.assertNotEqual(results[label]["exit"], "0", label)
                 text = read(f"{label}.log")
@@ -165,15 +178,44 @@ class NativeGateEvidenceTests(unittest.TestCase):
                 state = (logs / "ratchet" / f"{label}.txt").read_text()
                 self.assertIn("RATCHET_STATE=engaged", state, label)
                 self.assertIn("instance=prism ", state, label)
+                # Each was measured against the installing commit: named as the baseline in
+                # anchored runs, and the first parent of a single planted commit before that.
+                self.assertIn(f"{'baseline' if anchored else 'parent'}={install} ", state, label)
             # Moving the instance or changing the audit is refused before any audit runs.
-            for label, words in (("refuse-ratchet-instance-moved", "moved or removed"),
-                                 ("refuse-ratchet-audit-altered", "prism/xtask/src/audit.rs differs from the template pin")):
+            pre_audit = [("refuse-ratchet-instance-moved", "moved or removed"),
+                         ("refuse-ratchet-audit-altered", "prism/xtask/src/audit.rs differs from the template pin")]
+            if anchored:
+                pre_audit += [("refuse-ratchet-audit-dependency-altered", "prism/crates/model/src/lib.rs differs from the template pin"),
+                              ("refuse-ratchet-build-script-added", "holds files the template pin does not"),
+                              ("refuse-ratchet-baseline-not-ancestor", "is not an ancestor of the candidate")]
+            for label, words in pre_audit:
                 self.assertEqual((results[label]["exit"], results[label]["result"]), ("77", "PASS"), label)
                 self.assertIn(words, (logs / "ratchet" / f"{label}.txt").read_text(), label)
                 self.assertFalse((logs / f"{label}.log").exists(), "a refusal must not have reached the SDK")
             # What upstream's own gate does in each layout, recorded beside it.
             self.assertEqual(results["nc-ratchet-root-layout"]["result"], "PASS")
             self.assertEqual(results["obs-nested-test-added-after-install"]["result"], "OBSERVED")
+            self.assertIn("installed here; the parent ran no ratchet", read("obs-nested-test-added-after-install.log"))
+            if anchored:
+                # The same final commits, judged against a first parent, are recorded as what they are.
+                launder = (logs / "ratchet" / "nc-nested-ratchet-two-commit-launder.txt").read_text()
+                first_parent = (logs / "ratchet" / "obs-first-parent-comparison-misses-the-launder.txt").read_text()
+                candidate = re.search(r"candidate=([0-9a-f]{40})", launder).group(1)
+                self.assertIn(f"candidate={candidate} ", first_parent, "both judgements are of the same final commit")
+                self.assertNotIn(f"baseline={install} ", first_parent)
+                self.assertEqual(results["obs-first-parent-comparison-misses-the-launder"]["result"], "OBSERVED")
+                self.assertEqual(results["obs-first-parent-comparison-resets-the-ceiling"]["result"], "OBSERVED")
+                self.assertIn("RATCHET_STATE=installing", (logs / "ratchet" / "obs-first-parent-comparison-resets-the-ceiling.txt").read_text())
+
+    @unittest.skipUnless(RECORD.is_file(), "the authored record is not written yet")
+    def test_the_record_names_which_runs_carry_the_baseline_anchored_ratchet_controls(self):
+        record = RECORD.read_text(encoding="utf-8")
+        for run in run_directories():
+            labels = {row["label"] for row in rows(run / "nested" / "out" / "summary.tsv")}
+            anchored = "nc-nested-ratchet-two-commit-launder" in labels
+            self.assertIn(run.name, record, "every committed run is accounted for in the record")
+            marker = f"`{run.name}`: baseline-anchored ratchet controls {'present' if anchored else 'absent'}"
+            self.assertIn(marker, record)
 
     def test_every_wrapper_refusal_fired_on_the_runner_without_starting_a_container(self):
         for run in self.each_run():

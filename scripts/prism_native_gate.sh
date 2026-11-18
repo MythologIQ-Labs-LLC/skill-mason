@@ -495,40 +495,46 @@ observe obs-root-file-added-after-install just model
 
 # --- the companion ratchet: upstream's audit, made to engage for prism/ --------
 # scripts/prism_nested_ratchet.sh projects the nested instance to a repository
-# root, parent commit then child, and the template's own unmodified
-# `audit-prism` judges that. Here it must pass the installing commit, pass a
-# later commit that adds no hand-written code, refuse a later commit that adds
-# or grows hand-written code under prism/, and refuse, before any audit, a
-# commit that moves the instance or changes the audit.
+# root, accepted baseline then candidate, and the template's own unmodified
+# `audit-prism` judges that. The baseline is named, never inferred: here it is
+# the installing commit, standing in for the protected branch a pull request
+# targets. The companion is run from the trusted checkout ($sm), never from the
+# repository under test.
 mkdir -p "$base/logs/ratchet"
 audit_cmd=(cargo run -q --locked -p xtask -- audit-prism)
+root_commit=$(git -C "$repo" rev-parse "$install^1")
 
-ratchet() { # <label> <pass|refuse> <words-regex>   judges HEAD of the staged repository
-  local label=$1 want=$2 words=$3 rc=0 result=PASS
+ratchet() { # <label> <baseline> <pass|refuse|observe> <words-regex>   judges HEAD of the staged repository
+  local label=$1 baseline=$2 want=$3 words=$4 rc=0 result=PASS
   local projection=$base/work/$label.projection
-  if ! "$sm/scripts/prism_nested_ratchet.sh" "$repo" "$(git -C "$repo" rev-parse HEAD)" "$template" "$projection" \
+  if ! "$sm/scripts/prism_nested_ratchet.sh" "$repo" "$baseline" "$(git -C "$repo" rev-parse HEAD)" "$template" "$projection" \
     >"$base/logs/ratchet/$label.txt" 2>&1; then
     record "$label" allowlist "$want: $words" - "FAIL(projection refused)" "${audit_cmd[@]}"
   else
     sdk "$label" "$projection" allowlist "$seed" "${audit_cmd[@]}" || rc=$?
-    if [[ $want == pass && $rc -ne 0 ]]; then
-      result="FAIL(refused)"
-    elif [[ $want == refuse && $rc -eq 0 ]]; then
-      result="FAIL(accepted)"
-    elif ! grep -Eq -- "$words" "$base/logs/$label.log"; then
-      result="FAIL(wrong diagnostic)"
+    if [[ $want == observe ]]; then
+      printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$label" allowlist "recorded, not judged" "$rc" OBSERVED "${audit_cmd[*]}" >>"$summary"
+      note "observation $label: exit=$rc; $(grep -F 'audit-prism' "$base/logs/$label.log" | tail -1)"
+    else
+      if [[ $want == pass && $rc -ne 0 ]]; then
+        result="FAIL(refused)"
+      elif [[ $want == refuse && $rc -eq 0 ]]; then
+        result="FAIL(accepted)"
+      elif ! grep -Eq -- "$words" "$base/logs/$label.log"; then
+        result="FAIL(wrong diagnostic)"
+      fi
+      record "$label" allowlist "$([[ $want == pass ]] && echo exit 0 || echo refusal): $words" "$rc" "$result" "${audit_cmd[@]}"
     fi
-    record "$label" allowlist "$([[ $want == pass ]] && echo exit 0 || echo refusal): $words" "$rc" "$result" "${audit_cmd[@]}"
-    note "ratchet $label: $(cat "$base/logs/ratchet/$label.txt" | tail -1)"
+    note "ratchet $label: $(tail -1 "$base/logs/ratchet/$label.txt")"
   fi
   rm -rf "$base/work/$label" "$projection"
   git -C "$repo" checkout --quiet --force main
 }
 
-ratchet_refusal() { # <label> <reason-words>   the projection itself must refuse HEAD
-  local label=$1 words=$2 rc=0 result=PASS
+ratchet_refusal() { # <label> <baseline> <reason-words>   the projection itself must refuse HEAD
+  local label=$1 baseline=$2 words=$3 rc=0 result=PASS
   local projection=$base/work/$label.projection out=$base/logs/ratchet/$label.txt
-  "$sm/scripts/prism_nested_ratchet.sh" "$repo" "$(git -C "$repo" rev-parse HEAD)" "$template" "$projection" >"$out" 2>&1 || rc=$?
+  "$sm/scripts/prism_nested_ratchet.sh" "$repo" "$baseline" "$(git -C "$repo" rev-parse HEAD)" "$template" "$projection" >"$out" 2>&1 || rc=$?
   if [[ $rc -ne 77 ]]; then
     result="FAIL(exit $rc)"
   elif ! grep -qF -- "REFUSED before any audit runs" "$out" || ! grep -qF -- "$words" "$out"; then
@@ -536,7 +542,7 @@ ratchet_refusal() { # <label> <reason-words>   the projection itself must refuse
   elif [[ -e $projection ]]; then
     result="FAIL(a projection was written)"
   fi
-  record "$label" - "exit 77: $words" "$rc" "$result" "prism_nested_ratchet.sh <repo> HEAD <template> <dir>"
+  record "$label" - "exit 77: $words" "$rc" "$result" "prism_nested_ratchet.sh <repo> <baseline> HEAD <template> <dir>"
   rm -rf "$projection"
   git -C "$repo" checkout --quiet --force main
 }
@@ -545,45 +551,109 @@ commit_planted() {
   git -C "$repo" add -A
   git -C "$repo" commit --quiet -m "planted: $1"
 }
+added_test='#[test]\nfn added_after_installation() {}\n'
 
-# The installing commit itself: no parent holds an instance, so it sets the ceiling.
-ratchet ratchet-installing-commit pass 'audit-prism: a root commit; non-Prism implementation is [0-9]+ lines in [0-9]+ files'
+# The installing commit, measured against the commit before it: no baseline
+# instance, so it sets the ceiling.
+ratchet ratchet-installing-commit "$root_commit" pass 'audit-prism: a root commit; non-Prism implementation is [0-9]+ lines in [0-9]+ files'
 
 # A later commit that changes only what the ratchet does not count. It must pass,
-# and its message shows the ratchet is engaged, comparing against the parent.
+# and its message shows the ratchet is engaged, comparing against the baseline.
 plant ratchet-engaged-uncounted-change
 printf '\nA line of documentation added after installation.\n' >>"$repo/prism/README.md"
 commit_planted "documentation only, after installation"
-ratchet ratchet-engaged-uncounted-change pass 'files in the parent\); it only shrinks'
+ratchet ratchet-engaged-uncounted-change "$install" pass 'files in the parent\); it only shrinks'
 
 plant nc-nested-ratchet-new-file
-printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism/crates/conformance/tests/added_later.rs"
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
 commit_planted "hand-written test added under prism/ after installation"
-ratchet nc-nested-ratchet-new-file refuse 'new non-Prism file'
+ratchet nc-nested-ratchet-new-file "$install" refuse 'new non-Prism file'
 
 plant nc-nested-ratchet-growth
 printf '\n#[test]\nfn grown_after_installation() {\n    assert_eq!(1 + 1, 2);\n}\n' >>"$repo/prism/crates/conformance/tests/eligibility.rs"
 commit_planted "existing hand-written test grown under prism/ after installation"
-ratchet nc-nested-ratchet-growth refuse 'non-Prism implementation grew by'
+ratchet nc-nested-ratchet-growth "$install" refuse 'non-Prism implementation grew by'
+
+# Two commits. A adds a hand-written file. B keeps it and deletes far more
+# hand-written lines than A added. Against B's first parent the file is not new;
+# against the accepted baseline it is. The first is recorded to show why a
+# first-parent comparison is not enough; the second is the control.
+plant nc-nested-ratchet-two-commit-launder
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
+commit_planted "A: hand-written test added under prism/"
+launder_a=$(git -C "$repo" rev-parse HEAD)
+git -C "$repo" rm --quiet prism/bootstrap/render.sh
+commit_planted "B: the added test kept, an unrelated hand-written script deleted"
+launder_b=$(git -C "$repo" rev-parse HEAD)
+ratchet obs-first-parent-comparison-misses-the-launder "$launder_a" observe '-'
+git -C "$repo" checkout --quiet "$launder_b"
+ratchet nc-nested-ratchet-two-commit-launder "$install" refuse 'new non-Prism file'
+
+# Two commits again, resetting instead of laundering. A moves the instance away.
+# B moves it back and adds hand-written code. B's first parent holds no
+# instance, so a first-parent comparison calls B an installing commit and gives
+# it a fresh ceiling. Against the accepted baseline B is an ordinary later
+# commit with a new file.
+plant nc-nested-ratchet-move-then-restore
+git -C "$repo" mv prism prism-away
+commit_planted "A: instance moved away"
+reset_a=$(git -C "$repo" rev-parse HEAD)
+git -C "$repo" mv prism-away prism
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
+commit_planted "B: instance restored with a hand-written test added"
+reset_b=$(git -C "$repo" rev-parse HEAD)
+ratchet obs-first-parent-comparison-resets-the-ceiling "$reset_a" observe '-'
+git -C "$repo" checkout --quiet "$reset_b"
+ratchet nc-nested-ratchet-move-then-restore "$install" refuse 'new non-Prism file'
 
 # The companion does not go through the instance's Justfile, so dropping `model`
 # from `vv` there cannot switch it off.
 plant nc-nested-ratchet-ignores-justfile
 edit prism/Justfile 'vv: fmt-check model template-check lint test deny app eligibility' 'vv: fmt-check template-check lint test deny app eligibility' || exit 70
-printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism/crates/conformance/tests/added_later.rs"
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
 commit_planted "model dropped from vv and a hand-written test added"
-ratchet nc-nested-ratchet-ignores-justfile refuse 'new non-Prism file'
+ratchet nc-nested-ratchet-ignores-justfile "$install" refuse 'new non-Prism file'
+
+# The judge is not taken from the tree being judged. A candidate that guts this
+# repository's own copies of the companion, the driver and the workflow, and
+# adds a hand-written file, is still refused, because the companion that runs is
+# the trusted checkout's.
+plant nc-nested-ratchet-ignores-tampered-root-gate
+printf '#!/usr/bin/env bash\necho RATCHET_STATE=absent\nexit 0\n' >"$repo/scripts/prism_nested_ratchet.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$repo/scripts/prism_native_gate.sh"
+printf 'name: disabled\non: workflow_dispatch\njobs: {}\n' >"$repo/.github/workflows/prism-native-gate.yml"
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
+commit_planted "root gate files gutted and a hand-written test added"
+ratchet nc-nested-ratchet-ignores-tampered-root-gate "$install" refuse 'new non-Prism file'
 
 plant refuse-ratchet-instance-moved
 git -C "$repo" mv prism prism-moved
-printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism-moved/crates/conformance/tests/added_later.rs"
+printf "$added_test" >"$repo/prism-moved/crates/conformance/tests/added_later.rs"
 commit_planted "instance moved out from under the ratchet, then grown"
-ratchet_refusal refuse-ratchet-instance-moved 'moved or removed'
+ratchet_refusal refuse-ratchet-instance-moved "$install" 'moved or removed'
 
 plant refuse-ratchet-audit-altered
 edit prism/xtask/src/audit.rs 'const GATE: &[u8] = b"pub mod prism {";' 'const GATE: &[u8] = b"pub mod prism_never {";' || exit 70
 commit_planted "the ratchet's own gate marker changed"
-ratchet_refusal refuse-ratchet-audit-altered 'prism/xtask/src/audit.rs differs from the template pin'
+ratchet_refusal refuse-ratchet-audit-altered "$install" 'prism/xtask/src/audit.rs differs from the template pin'
+
+# The audit binary links crates/model. A candidate that changes it could make
+# the audit say anything, so it is refused before it is compiled.
+plant refuse-ratchet-audit-dependency-altered
+printf '\n// changed after installation\n' >>"$repo/prism/crates/model/src/lib.rs"
+commit_planted "a crate the audit is built from changed"
+ratchet_refusal refuse-ratchet-audit-dependency-altered "$install" 'prism/crates/model/src/lib.rs differs from the template pin'
+
+plant refuse-ratchet-build-script-added
+printf 'fn main() {}\n' >"$repo/prism/crates/model/build.rs"
+commit_planted "a build script added to a crate the audit is built from"
+ratchet_refusal refuse-ratchet-build-script-added "$install" 'holds files the template pin does not'
+
+# A baseline that is not in the candidate's history measures nothing.
+plant refuse-ratchet-baseline-not-ancestor
+printf "$added_test" >"$repo/prism/crates/conformance/tests/added_later.rs"
+commit_planted "candidate judged against a sibling commit"
+ratchet_refusal refuse-ratchet-baseline-not-ancestor "$launder_a" 'is not an ancestor of the candidate'
 
 # One weakened decision per fact: the function stops checking it, the
 # proposition still requires it, so eligible_decides is false and Lean says so.
