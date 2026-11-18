@@ -151,6 +151,29 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertNotIn("PASS", body)
         self.assertNotIn("failures", body)
 
+    def test_the_nested_ratchet_is_enforced_through_the_templates_own_audit(self):
+        ratchet = (ROOT / "scripts" / "prism_nested_ratchet.sh").read_text()
+        self.assertIn("audit_cmd=(cargo run -q --locked -p xtask -- audit-prism)", self.driver)
+        self.assertIn('sdk "$label" "$projection" allowlist "$seed" "${audit_cmd[@]}"', self.driver)
+        cases = dict(re.findall(r"(?m)^ratchet ([a-z-]+) (pass|refuse) ", self.driver))
+        self.assertEqual(cases, {
+            "ratchet-installing-commit": "pass",
+            "ratchet-engaged-uncounted-change": "pass",
+            "nc-nested-ratchet-new-file": "refuse",
+            "nc-nested-ratchet-growth": "refuse",
+            "nc-nested-ratchet-ignores-justfile": "refuse",
+        })
+        self.assertEqual(re.findall(r"(?m)^ratchet_refusal ([a-z-]+) ", self.driver),
+                         ["refuse-ratchet-instance-moved", "refuse-ratchet-audit-altered"])
+        # The defects are planted under prism/, the accepted nested location, not in a root-level copy.
+        for planted in ('"$repo/prism/crates/conformance/tests/added_later.rs"',
+                        '"$repo/prism/crates/conformance/tests/eligibility.rs"'):
+            self.assertIn(planted, self.driver)
+        # The companion measures with upstream's code: it holds no counting rules of its own.
+        for own_rule in ("wc -l", "LANGUAGES", ".rs)", "lines in"):
+            self.assertNotIn(own_rule, ratchet.split("set -uo pipefail", 1)[1])
+        self.assertIn("scripts/prism_nested_ratchet.sh", self.text)
+
     def test_tool_owned_files_come_from_the_tools(self):
         self.assertIn("lexlean lock; lexlean fmt; lexlean lock; lexlean fmt --check; lexlean lock --check", self.driver)
         self.assertIn("-----BEGIN LEXLEAN LOCK-----", self.jobs["sdk"])

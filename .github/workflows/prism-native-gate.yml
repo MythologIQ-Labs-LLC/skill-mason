@@ -22,6 +22,7 @@ on:
       - 'scripts/prism_instance.sh'
       - 'scripts/prism_reference_gate.sh'
       - 'scripts/prism_native_gate.sh'
+      - 'scripts/prism_nested_ratchet.sh'
       - 'scripts/prism_egress_proxy.py'
       - 'scripts/sm01_real_holo_acceptance.sh'
       - 'scripts/sm01_probe.mjs'
@@ -204,7 +205,7 @@ jobs:
             echo "::endgroup::"
           fi
           # A failing step's own words, so the reason is in the job log.
-          for refusal in "$out"/logs/refusals/*.txt; do
+          for refusal in "$out"/logs/refusals/*.txt "$out"/logs/ratchet/*.txt; do
             [[ -f $refusal ]] || continue
             label=$(basename "$refusal" .txt)
             result=$(awk -F'\t' -v l="$label" '$1 == l {print $5}' "$out/out/summary.tsv" 2>/dev/null)

@@ -141,6 +141,52 @@ class NativeGateEvidenceTests(unittest.TestCase):
             for phase in ("reference", "author"):
                 self.assertTrue(all(row["result"] == "PASS" for row in rows(run / phase / "out" / "summary.tsv")))
 
+    def test_the_nested_ratchet_engaged_and_refused_the_defects_planted_under_prism(self):
+        for run in self.each_run():
+            results = {row["label"]: row for row in rows(run / "nested" / "out" / "summary.tsv")}
+            logs = run / "nested" / "logs"
+            read = lambda name: (logs / name).read_text(encoding="utf-8", errors="replace")
+            # The installing commit passes and sets the ceiling.
+            self.assertEqual((results["ratchet-installing-commit"]["exit"], results["ratchet-installing-commit"]["result"]), ("0", "PASS"))
+            self.assertRegex(read("ratchet-installing-commit.log"), r"audit-prism: a root commit; non-Prism implementation is \d+ lines in \d+ files")
+            # A later commit is compared with its parent: the ratchet is engaged.
+            self.assertEqual(results["ratchet-engaged-uncounted-change"]["result"], "PASS")
+            self.assertRegex(read("ratchet-engaged-uncounted-change.log"), r"files in the parent\); it only shrinks")
+            # The actual nested defects are refused by the template's own audit.
+            for label, words in (("nc-nested-ratchet-new-file", "new non-Prism file"),
+                                 ("nc-nested-ratchet-growth", "non-Prism implementation grew by"),
+                                 ("nc-nested-ratchet-ignores-justfile", "new non-Prism file")):
+                self.assertEqual(results[label]["result"], "PASS", label)
+                self.assertNotEqual(results[label]["exit"], "0", label)
+                text = read(f"{label}.log")
+                self.assertIn(words, text, label)
+                self.assertIn("audit-prism: only Prism may be implemented here", text, label)
+                self.assertRegex(text, r"cmd=cargo run -q --locked -p xtask -- audit-prism\s*$", label)
+                state = (logs / "ratchet" / f"{label}.txt").read_text()
+                self.assertIn("RATCHET_STATE=engaged", state, label)
+                self.assertIn("instance=prism ", state, label)
+            # Moving the instance or changing the audit is refused before any audit runs.
+            for label, words in (("refuse-ratchet-instance-moved", "moved or removed"),
+                                 ("refuse-ratchet-audit-altered", "prism/xtask/src/audit.rs differs from the template pin")):
+                self.assertEqual((results[label]["exit"], results[label]["result"]), ("77", "PASS"), label)
+                self.assertIn(words, (logs / "ratchet" / f"{label}.txt").read_text(), label)
+                self.assertFalse((logs / f"{label}.log").exists(), "a refusal must not have reached the SDK")
+            # What upstream's own gate does in each layout, recorded beside it.
+            self.assertEqual(results["nc-ratchet-root-layout"]["result"], "PASS")
+            self.assertEqual(results["obs-nested-test-added-after-install"]["result"], "OBSERVED")
+
+    def test_every_wrapper_refusal_fired_on_the_runner_without_starting_a_container(self):
+        for run in self.each_run():
+            results = {row["label"]: row for row in rows(run / "nested" / "out" / "summary.tsv")}
+            refusals = [label for label in results if label.startswith("refuse-") and "ratchet" not in label]
+            self.assertGreaterEqual(len(refusals), 12)
+            for label in refusals:
+                self.assertEqual((results[label]["exit"], results[label]["result"]), ("77", "PASS"), label)
+                text = (run / "nested" / "logs" / "refusals" / f"{label}.txt").read_text()
+                self.assertIn("REFUSED before starting a container", text, label)
+            self.assertEqual(results["refusals-left-the-source-untouched"]["result"], "PASS")
+            self.assertNotIn("placeholder", (run / "nested" / "logs" / "refusals" / "refuse-credential-variable.txt").read_text())
+
     def test_receipts_bind_the_renamed_application_and_the_built_holo(self):
         for run in self.each_run():
             folder = run / "nested" / "out" / "receipts" / "eligibility"
