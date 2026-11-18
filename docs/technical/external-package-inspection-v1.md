@@ -48,6 +48,24 @@ python3 -m scripts.external_package_resolver \
 
 \`tests/test_external_package_resolver.py\` constructs fresh, local synthetic Git objects to exercise positive and negative checks for real byte drift, Git tree drift, wrong checkout pin/origin, untracked files, invalid external source, symlinked parents, unsafe paths and rights non-promotion.
 
+## Executed source-to-capability comparison
+
+The same isolated CI job also invokes `scripts.candidate_comparison` with a specific reviewed external source ID, the exact repository tree and the pre-provisioned checkout. It refuses any source that is not an exact evidence-linked governed review for the requested route. It runs the actual Git inspector, never trusts an uploaded JSON receipt, and propagates pin/byte failures before reporting comparison success.
+
+For `software-engineering/frontend`, the review graph contains two evidence-linked methods. The `anthropic-skills/frontend-design` review gets the verified two-file source byte receipt while the other remains uninspected. Both are explicitly blocked for rights/host qualification. No best-method rank, host operation or Prism invocation is returned.
+
+~~~sh
+python3 -m scripts.candidate_comparison \
+  --handoff /path/to/skillz-published/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-original \
+  --route software-engineering/frontend --host ChatGPT --no-lexical \
+  --external-record governed:anthropic-skills/frontend-design \
+  --external-checkout /path/to/anthropics-skills-at-exact-commit \
+  --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e
+~~~
+
+The combined comparison remains a **discovery and byte-provenance receipt**, not source-use eligibility.
+
 ## Missing for actual skill consumption
 
 The next gate is **independent exact-package rights and dependencies**: check original publisher/terms and each asset/NOTICE/license separately, confirm the intended use (read-only reference, unchanged-use, adaptation, redistribution), understand linked references and scripts, and bind target-host permissions. That must be recorded as exact source/host evidence and reviewed by the governing owner. Static grades, Git signatures, hashes and this byte receipt are not substitutes.
