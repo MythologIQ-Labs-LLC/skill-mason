@@ -58,6 +58,16 @@ class PrismInputPreflightTests(unittest.TestCase):
             "package_git_tree_sha1": "a"*40,
             "entrypoint_git_blob_sha1": "b"*40,
             "historical_export_identity_gap_requires_upstream_correction": False,
+            "complete_package_reference_and_asset_review_queue": {
+                "schema": "qortara/package-reference-inventory/1",
+                "state": "VERIFIED_SOURCE_BYTES_REFERENCE_LEADS_ONLY",
+                "file_count": 2,
+                "each_asset_rights_cleared": False,
+                "dependency_closure_proven": False,
+                "source_license_and_notice_obligations_assessed": False,
+                "target_host_approved": False,
+                "composition_eligible": False,
+                "frontmatter_license_pointer": {"matched": ["LICENSE.txt"]}}
         }
 
     def preflight(self, rid="governed:first/example", **kwargs):
@@ -134,6 +144,15 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertEqual(refusal["codes"][0], "SOURCE_PACKAGE_BYTES_UNVERIFIED")
         self.assertFalse(refusal["not_a_host_success_or_failure"] is False)
         self.assertTrue(refusal["no_method_composed"])
+
+    def test_external_asset_review_digest_is_bound_without_rights_promotion(self):
+        selection = {"record_id": "governed:external/other",
+                     "checkout": "/fixed/source", "repo_tree": "e"*40}
+        report = self.preflight("governed:external/other", external_selection=selection)
+        self.assertRegex(report["binding"]["package_inspection_sha256"], r"^[0-9a-f]{64}$")
+        self.assertTrue(report["source_package_bytes_verified"])
+        self.assertFalse(report["operator_accepted_rights"])
+        self.assertFalse(report["composition_eligible"])
 
     def test_source_content_mutation_changes_exact_selection_binding(self):
         old = self.preflight()["binding_sha256"]
