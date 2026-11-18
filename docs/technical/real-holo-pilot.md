@@ -4,6 +4,8 @@
 
 **Observed result:** [GitHub Actions run #44249035051](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44249035051) completed **SUCCESS** in both isolated jobs. The actual guest returned `eligible` for the positive fixtures and `refused: RIGHTS_UNRESOLVED` for the signed denial; all three guest calls completed. The report recorded `BYTE_IDENTICAL_WITHIN_RUN`, `INTEGRITY_VERIFIED` disk read-back, and manifest SHA-256 `bbb7b6a4b8d43d42f38496a7c72d4cc8f4eac5c91867fcbca1ddfb68ce5ef432`. This is explicit **P0** development evidence using synthetic rights, not a qualified user skill. Report artifact: `real-prism-p0-candidate-pilot` (ID `14402857673`).
 
+**Two first-party candidates now accepted in isolated development execution:** [run #44333394001](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44333394001) completed **SUCCESS** on both jobs at subject `6a67a9da44377af1502eb7227799a517cacef86b`. The actual P0 guest executed **five** calls: the original two eligible / one rights-denied fixture vectors plus one positive request each for [CI failure triage](../../pilots/first-party/ci-failure-triage/procedure.json) and [governance drift review](../../pilots/first-party/governance-drift-review/procedure.json). Both original first-party procedures produced substantive Agent Skills-format, sealed candidate directories. Their reported candidate manifest SHA-256 values were `bc82353c81ecc8355f348773ad47d4d650c68bdd27556ec08468131875a4cc41` and `797d73377422a5e95a1dd9e0c57a524c19b3bb73f9420c8433796605870cdc74` respectively. The complete artifact including hidden `.qortara-complete` seals is `real-prism-p0-candidate-pilot`, **artifact ID `14438994926`**, with ZIP digest `sha256:099bae0715c04add74eb144748f479095a9bd18f6be5c5863d355cc4f8b1d383`. An independent post-download byte/hash replay checked both manifest, receipt, SKILL, SOURCES, seal and folder naming. **The signer remains an ephemeral fixture and neither candidate is production-approved or host-behaviorally validated.**
+
 **Integration test:** [`tests/real_holo_candidate_acceptance.mjs`](../../tests/real_holo_candidate_acceptance.mjs). **Workflow:** [`real-holo-candidate.yml`](../../.github/workflows/real-holo-candidate.yml). **Source model:** [candidate composer](../../src/backend/compose.mjs), [public recipe adapter](../../src/backend/recipe-adapter.mjs), [Ed25519 claims](../../src/backend/signed-assertions.mjs), and the existing [Prism CLI consumer](../../bin/qortara-skills.mjs).
 
 ## Exact independent input pins
@@ -19,7 +21,9 @@ These were rechecked against the downloaded **actual** native artifact, not infe
 
 The artifact retrieval job alone has `actions:read`. The guest runner requests **no repository token permissions**, uses a checkout with no persisted Git credentials, and invokes the real Prism guest inside a separate network namespace after its runtime dependencies are installed. No external source skill code, package setup scripts, browser uploads, or model inference is performed by the test.
 
-The test then follows:
+The test follows the initial synthetic fixture flow **and** repeats the actual guest admission for each original first-party text-only procedure via the local [first-party pilot CLI](../../bin/first-party-pilot.mjs). That command checks the historical Git blob source identities, renders actionable steps, then independently reads back the sealed candidate without installing it. The first-party procedures do not change the legal-rights hold.
+
+The initial test then follows:
 
 1. One public `recipe.v0` selects an exact, hash-pinned **original test-owned fixture package** containing the actual method text. The fixture source snapshot has no rights-authority claim.
 2. A fresh ephemeral Ed25519 key signs four artificial **test facts**: evidence, rights, authority and coverage. Actual byte digests match the test-owned evidence bytes. No real source license is asserted.
@@ -39,6 +43,8 @@ The test then follows:
 - This integration test does not install the generated skill into a host, grant a tool, or measure inference tokens during a consumer's subsequent task. Complete production acceptance remains gated under [generator issue #17](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/17).
 
 The workflow is **intentionally scoped** as an independent, credential-free P0 development test. A passing run does not authorize an installer, publication, SDK re-pin, production tier or removal of a governance hold.
+
+The earlier P0 test uploaded only the candidate report. The current acceptance artifact additionally includes two original first-party generated `SKILL.md` files, receipts, source pins and hidden completion seals. CI initially omitted hidden seal files by default; that defect was corrected with `include-hidden-files: true` and the successful run above confirms a complete downloadable bundle. Neither result implies actual agent-host execution.
 
 ## Durable CI and artifact-retention policy
 
