@@ -1,0 +1,1 @@
+prism_nested_ratchet: REFUSED before any audit runs: the baseline fe6bb9852290 is not an ancestor of the candidate e786b9f912c5. A baseline outside the candidate's history measures nothing.

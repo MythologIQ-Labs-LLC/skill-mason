@@ -1,0 +1,13 @@
+GATE_SOURCE repo=/opt/prism-gate/run/rootrepo commit=e269ab6407298eaf62667608b70fc51296a60657 tree=9ba5f47211f24efbd9cb4f636444ba521f29e167 subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-ratchet-root-layout
+cargo run -q --locked -p xtask -- validate
+check-model: CONFORMANCE.md equals the model, 7 ids (CM-01)
+audit-limits: every error type a shipped crate names is declared with a negative test (0 declared) (R5)
+audit-deferral: nothing is deferred (R4)
+audit-dependency-updates: SDK ownership and ordinary maintenance are preserved
+audit-bootstrap: SDK and workflow trust roots are immutable and separated
+gate failed: audit-prism: only Prism may be implemented here, measured against 7d2c7eb04259:
+  - 1 new non-Prism file(s): crates/conformance/tests/added_later.rs. Author the behavior in LexLean (`*.lex.tex`) so PrismPM builds it.
+  - non-Prism implementation grew by 2 lines (13501 to 13503); grown: crates/conformance/tests/added_later.rs +2. It may only shrink: move the logic into the Prism model, or delete as much as you add.
+error: recipe `model` failed on line 21 with exit code 1
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=11s cmd=just model

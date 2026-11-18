@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: prismpm.lock selects ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3, not the expected ghcr.io/afflom/prismpm-sdk-patched@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa. A different SDK is a governed pin change, not a default.

@@ -1,0 +1,92 @@
+\begin{lexlean}{Eligibility}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Bytes}
+\importmodule{Foundation.View.Text.V1.Model}
+\title{Text application model}
+\begin{semanticmodule}
+structure{
+  name: Request,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: evidence, type: Nat},
+    {name: rights, type: Nat},
+    {name: authority, type: Nat},
+    {name: coverage, type: Nat}
+  ]
+}
+
+definition{name: admitted, parameters: [code : Nat], result: Bool, body: (code =? 1)}
+
+definition{
+  name: eligible,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((admitted (project request evidence)) && ((admitted (project request rights)) && ((admitted (project request authority)) && (admitted (project request coverage)))))
+}
+
+definition{
+  name: Eligible,
+  parameters: [request : Request],
+  result: Prop,
+  body: (((project request evidence) = 1) /\ (((project request rights) = 1) /\ (((project request authority) = 1) /\ ((project request coverage) = 1))))
+}
+
+theorem{
+  name: eligible_decides,
+  parameters: [request : Request],
+  statement: (((eligible request) = true) <-> (Eligible request)),
+  proof: simplify{definitions: [Bool.and_eq_true, Eligible, Nat.beq_eq, admitted, eligible]},
+  axioms: [propext]
+}
+
+definition{
+  name: codeAt,
+  parameters: [value : Bytes, offset : Nat],
+  result: Nat,
+  body: (match (Foundation.Bytes::byteAt value offset)
+    | Option.none => 0
+    | Option.some byte => (prim to_nat byte : Nat)),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: observe,
+  parameters: [value : Bytes],
+  result: Request,
+  body: (record Request {evidence := (codeAt value 0), rights := (codeAt value 1), authority := (codeAt value 2), coverage := (codeAt value 3)}),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: refusalEntry,
+  parameters: [code : Nat, reason : Bytes],
+  result: Bytes,
+  body: (if (admitted code) then 0x else reason)
+}
+
+definition{
+  name: refusals,
+  parameters: [request : Request],
+  result: Bytes,
+  body: (prim append (refusalEntry (project request evidence) (prim utf8_encode " EVIDENCE_UNQUALIFIED" : Bytes)) (prim append (refusalEntry (project request rights) (prim utf8_encode " RIGHTS_UNRESOLVED" : Bytes)) (prim append (refusalEntry (project request authority) (prim utf8_encode " AUTHORITY_EXCEEDED" : Bytes)) (refusalEntry (project request coverage) (prim utf8_encode " OUTCOME_UNCOVERED" : Bytes)) : Bytes) : Bytes) : Bytes)
+}
+
+definition{
+  name: dispatch,
+  parameters: [value : Bytes],
+  result: Bytes,
+  body: (if ((Foundation.Bytes::byteLength value) =? 4) then (if (eligible (observe value)) then (prim utf8_encode "eligible" : Bytes) else (prim append (prim utf8_encode "refused:" : Bytes) (refusals (observe value)) : Bytes)) else (prim utf8_encode "invalid request" : Bytes)),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: application,
+  parameters: [],
+  result: Foundation.View.Text.V1.Model::TextApplication,
+  body: (record Foundation.View.Text.V1.Model::TextApplication {profile := "prismpm/text-application/1", name := "Qortara Skills Eligibility", cargoName := "qortara-skills-eligibility", cargoVersion := "0.1.0", cargoDescription := "Decides whether one pinned source method is eligible, from four coded facts, and names every refusal.", cargoRepository := "https://github.com/MythologIQ-Labs-LLC/skill-mason", cargoHomepage := "https://github.com/MythologIQ-Labs-LLC/skill-mason", libraryRoots := (cons "QortaraSkillsEligibility.Eligibility.dispatch" (nil String)), acceptanceVectors := (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x01010101, response := 0x656c696769626c65}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x00010101, response := 0x726566757365643a2045564944454e43455f554e5155414c4946494544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x01000101, response := 0x726566757365643a205249474854535f554e5245534f4c564544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x01020101, response := 0x726566757365643a205249474854535f554e5245534f4c564544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x01010001, response := 0x726566757365643a20415554484f524954595f4558434545444544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x01010100, response := 0x726566757365643a204f5554434f4d455f554e434f5645524544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x00000000, response := 0x726566757365643a2045564944454e43455f554e5155414c4946494544205249474854535f554e5245534f4c56454420415554484f524954595f4558434545444544204f5554434f4d455f554e434f5645524544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0xff010101, response := 0x726566757365643a2045564944454e43455f554e5155414c4946494544}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x010101, response := 0x696e76616c69642072657175657374}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x0101010101, response := 0x696e76616c69642072657175657374}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x, response := 0x696e76616c69642072657175657374}) (cons (record Foundation.View.Text.V1.Model::AcceptanceVector {request := 0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, response := 0x696e76616c69642072657175657374}) (nil Foundation.View.Text.V1.Model::AcceptanceVector))))))))))))), entryRoot := "QortaraSkillsEligibility.Eligibility.dispatch", coreContract := "hologram:guest/core-wasm@1", requestMaximum := (4 : UInt32), responseMaximum := (256 : UInt32), guestAllocationMaximum := (512 : UInt32), capabilitiesEmpty := true, fatArchive := true, primaryLayer := (0 : UInt8), viewLayer := (1 : UInt8), view := (record Foundation.View.Text.V1.Model::TextView {title := "Qortara Skills Eligibility", heading := "Qortara Skills Eligibility", inputLabel := "Evidence, rights, authority and coverage codes", submitLabel := "Decide", outputLabel := "Decision", inputError := "Invalid request", responseError := "Invalid response"})})
+}
+\end{semanticmodule}
+\end{lexlean}
