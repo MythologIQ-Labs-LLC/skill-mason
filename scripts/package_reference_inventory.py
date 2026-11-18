@@ -82,7 +82,8 @@ def _license_pointer(skill_text, known):
     declared = candidates[0].strip().strip("\"'")
     # Tokenize conservatively. Retain ../, absolute paths and URL schemes so
     # a remote or parent LICENSE.txt cannot masquerade as the in-package file.
-    tokens = (x.strip(" ,;()`<>\\\"'") for x in re.split(r"\\s+", declared))
+    tokens = (x.strip(" ,;()<>`").strip(chr(34)).strip(chr(39))
+              for x in declared.split())
     matched, unresolved = set(), set()
     for token in tokens:
         if not LICENSE_FILE.search(token):
