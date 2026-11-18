@@ -45,6 +45,8 @@ python3 -m scripts.catalog_index \
   artifact registry/capability-outcome-register.json
 ~~~
 
+A separate references search covers every declared discovery, evidence, first-party, maintenance and taxonomy pointer family by source path, with exact SHA-256 and source-byte counts. For example: use references "capability" --kind taxonomy --limit 20. Reference hits are source documents and leads, not additional method or skill identities.
+
 Search is case-folded, lexical lead retrieval over all original record fields. It reports full match count, sample limit, truncation, and the source pointers for later review. It is deliberately **not** a capability-aware method ranking. Record lookup exposes original nested metadata. Artifact lookup returns the exact source pointer, SHA-256 and byte count without turning the referenced file into an instruction or a permission.
 
 Refusals occur before a partial index could be returned. All results retain false rights, Prism, behavior and composition claims. Missing or unreviewed material is not called rejected. Unmapped material is not called absent.
