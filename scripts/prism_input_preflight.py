@@ -88,6 +88,10 @@ def prepare_preflight(graph, route, host, governed_id, *,
     elif selected["disposition"] == "BLOCKED_REVIEW_UNKNOWN":
         blockers.insert(0, {"fact": None, "code": "STATIC_REVIEW_UNKNOWN",
                             "reason": "governed review has no verified static status"})
+    if not package_verified:
+        blockers.insert(0, {
+            "fact": None, "code": "SOURCE_PACKAGE_BYTES_UNVERIFIED",
+            "reason": "complete selected package source bytes have not been established"})
     binding = {
         "snapshot_commit": source["commit"],
         "snapshot_tree": source["git_tree_sha1"],
@@ -102,6 +106,18 @@ def prepare_preflight(graph, route, host, governed_id, *,
     }
     return {
         "schema": SCHEMA, "state": "UNSIGNED_P0_DENIAL_VECTOR_NOT_READY_FOR_COMPOSITION",
+        "typed_generation_refusal": {
+            "schema": "qortara/skill-generation-refusal/1",
+            "state": "REFUSED_PRE_ADMISSION",
+            "stage": "source-method-qualification",
+            "source_record_id": selected_id,
+            "capability_route": comparison["route"],
+            "codes": [blocker["code"] for blocker in blockers],
+            "original_source_bytes_proven": package_verified,
+            "no_method_composed": True,
+            "not_a_prism_guest_verdict": True,
+            "not_a_host_success_or_failure": True,
+        },
         "binding": binding, "binding_sha256": sha256(canonical(binding)),
         "source_package_bytes_verified": package_verified,
         "source_byte_verification_not_semantic_review": True,
