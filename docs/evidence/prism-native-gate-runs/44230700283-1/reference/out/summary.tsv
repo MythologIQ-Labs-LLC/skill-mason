@@ -1,0 +1,3 @@
+label	network	expected	exit	result	command
+tool-versions	none	exit 0	0	PASS	bash -c prismpm --version; lexlean --version; lean --version; lake --version; rustc --version; cargo --version; just --version; cargo deny --version; node --ver
+ref-vv	allowlist	exit 0	0	PASS	just vv
