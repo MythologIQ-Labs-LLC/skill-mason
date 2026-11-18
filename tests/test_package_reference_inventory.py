@@ -101,6 +101,23 @@ class ReferenceInventoryTests(unittest.TestCase):
         self.assertEqual(x["license_and_notice_files_observed_not_cleared"], [])
         self.assertFalse(x["source_license_and_notice_obligations_assessed"])
 
+    def test_parent_repository_license_pointer_is_not_package_license(self):
+        files = dict(self.payload)
+        files["SKILL.md"] = "---\nname: demo\nlicense: Complete terms in ../LICENSE.txt\n---\n"
+        x = self.scan(files)
+        self.assertEqual(x["frontmatter_license_pointer"]["matched"], [])
+        self.assertEqual(x["frontmatter_license_pointer"]["unresolved"], ["../LICENSE.txt"])
+        self.assertFalse(x["source_license_and_notice_obligations_assessed"])
+
+    def test_remote_license_url_cannot_impersonate_local_license(self):
+        files = dict(self.payload)
+        files["SKILL.md"] = "---\nname: demo\nlicense: https://example.invalid/LICENSE.txt\n---\n"
+        x = self.scan(files)
+        self.assertEqual(x["frontmatter_license_pointer"]["matched"], [])
+        self.assertEqual(x["frontmatter_license_pointer"]["unresolved"],
+                         ["https://example.invalid/LICENSE.txt"])
+        self.assertFalse(x["each_asset_rights_cleared"])
+
     def test_plain_spdx_string_is_not_perceived_as_file_or_permission(self):
         files = dict(self.payload)
         files["SKILL.md"] = "---\nname: demo\nlicense: Apache-2.0\n---\n# Demo\n"
