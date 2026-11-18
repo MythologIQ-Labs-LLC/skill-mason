@@ -183,8 +183,7 @@ export function createComposer({assertMethod,runPrism,holoSha256,sourceApprovalB
     if(!obj(sourceApprovalBindings)||Object.keys(sourceApprovalBindings).length<1||
        Object.keys(sourceApprovalBindings).length>16||
        Object.entries(sourceApprovalBindings).some(([id,d])=>
-         typeof id!=='string'||id.length<1||id.length>180||
-         id!==id.normalize('NFC')||/[\u0000-\u001f\u007f]/u.test(id)||
+         !/^[a-zA-Z][a-zA-Z0-9_.:/-]{2,159}$/.test(id)||
          ['__proto__','constructor','prototype'].includes(id)||!hex64.test(d)))
       refuse('SOURCE_ACCEPTANCE_CONFIG',
         'operator must pin a bounded exact binding SHA-256 for each method');
