@@ -216,6 +216,22 @@ class NativeGateEvidenceTests(unittest.TestCase):
             self.assertIn(run.name, record, "every committed run is accounted for in the record")
             marker = f"`{run.name}`: baseline-anchored ratchet controls {'present' if anchored else 'absent'}"
             self.assertIn(marker, record)
+            if f"`{run.name}`: baseline-anchored ratchet controls" in record and "the run this record's tables are copied from" in \
+                    next(line for line in record.splitlines() if line.startswith(f"- `{run.name}`:")):
+                self.assertTrue(anchored, "the record's tables must come from a run that carries the baseline-anchored controls")
+        primary = [line for line in record.splitlines() if "the run this record's tables are copied from" in line]
+        self.assertEqual(len(primary), 1, "exactly one committed run is the record's source")
+
+    def test_committed_runs_built_the_same_artifact(self):
+        runs = run_directories()
+        holos = {sha256(run / "nested" / "out" / "holo" / "eligibility.holo") for run in runs}
+        attestations = {sha256(run / "nested" / "out" / "receipts" / "eligibility" / "manifest.json") for run in runs}
+        self.assertEqual(len(holos), 1, "runs on separate runners at the same overlay built different holo bytes")
+        self.assertEqual(len(attestations), 1)
+        if len(runs) > 1 and RECORD.is_file():
+            subjects = {re.search(r"subject_sha=([0-9a-f]{40})", (run / "nested" / "run.txt").read_text()).group(1) for run in runs}
+            self.assertEqual(len(subjects), len(runs), "each committed run is of a different subject revision")
+            self.assertIn(f"{len(runs)} committed runs on separate runner virtual machines", RECORD.read_text(encoding="utf-8"))
 
     def test_every_wrapper_refusal_fired_on_the_runner_without_starting_a_container(self):
         for run in self.each_run():

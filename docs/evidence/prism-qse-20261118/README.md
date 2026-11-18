@@ -4,13 +4,16 @@
 
 **State it leaves:** the application passed the complete gate in a *staged* nested instance and produced a real holo that returns the modeled decisions. `prism/` is **NOT_INSTALLED** in this repository, the SDK image is not an accepted trust root, and the holo is `P0 unverified check_exit=1`.
 
-**Performed by:** Claude Code. It wrote the scripts and this record in a cloud session that holds credentials, so nothing was executed there: every SDK command and every real-holo run happened on GitHub-hosted runners through [`prism-native-gate.yml`](../../../.github/workflows/prism-native-gate.yml). No human ran or observed the commands. The owner reviewed the work on [PR #15](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/15) while it ran, and two of that review's findings changed it; they are recorded in section 6.
+**Performed by:** Claude Code. It wrote the scripts and this record in a cloud session that holds credentials, so nothing was executed there: every SDK command and every real-holo run happened on GitHub-hosted runners through [`prism-native-gate.yml`](../../../.github/workflows/prism-native-gate.yml). No human ran or observed the commands. The owner reviewed the work on [PR #15](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/15) while it ran, and that review's findings changed it; they are recorded in section 6.
+
+**The subject revision is not the revision this record is in.** A run's evidence can only be committed after the run, so this record sits one or more commits after the revision it describes. Those later commits add evidence files, this record and documentation, and merge `main`. The run for the head that contains this record is reported on the pull request, not here.
 
 **Unedited runner output:** [`../prism-native-gate-runs/`](../prism-native-gate-runs/), one directory per workflow run, committed by the workflow's own publish job with a `SHA256SUMS` over every file. Values in this record are copied from those files by script. [`tests/test_prism_native_gate_evidence.py`](../../../tests/test_prism_native_gate_evidence.py) checks the files against their checksums and each other, and checks this record against them.
 
 Committed runs:
 
-- `44223605441-1`: baseline-anchored ratchet controls absent. Subject revision `5fbd8ce30e17ade819d76eb7d29acc3cbb3a5f93`; the run this record's tables are copied from. [Files](../prism-native-gate-runs/44223605441-1/).
+- `44223605441-1`: baseline-anchored ratchet controls absent. Subject revision `5fbd8ce30e17ade819d76eb7d29acc3cbb3a5f93`; an earlier complete run, kept for comparison. [Files](../prism-native-gate-runs/44223605441-1/).
+- `44230700283-1`: baseline-anchored ratchet controls present. Subject revision `fa521f0e10807195f26db183d64ebf552eabeb60`; the run this record's tables are copied from. [Files](../prism-native-gate-runs/44230700283-1/).
 
 ## Result
 
@@ -21,7 +24,7 @@ Committed runs:
 | Qortara Skills Eligibility, complete unreduced `just vv` in a nested instance | **PASS**, exit 0, `vv: the acceptance gate passed` |
 | Offline repeat of the application stage | **PASS**: same holo, same attestation id |
 | Planted defects in the model, vectors, policy files and generated files | **All refused** by the gate that owns each claim, with the expected diagnostic |
-| Shrink-only ratchet for the nested instance | **Inert in the template when nested** (found here). **Enforced by a companion gate** that runs the template's own audit; the defects planted under `prism/` were refused. Controls for multi-commit bypasses were added after this run and no committed run shows them yet |
+| Shrink-only ratchet for the nested instance | **Inert in the template when nested** (found here). **Enforced by a companion gate** that runs the template's own audit; the defects planted under `prism/` were refused. Multi-commit bypasses (laundering, move-then-restore) are refused when measured against the accepted baseline |
 | Real holo through `prism-code`, the SM-01 probe and the local CLI | **PASS**: 12 of 12 fixtures returned the modeled response from the guest |
 | Independent proof-level verification of the artifact | **Not established: `P0 unverified check_exit=1`.** The SDK at this pin writes nothing that could be signed (section 8) |
 | `prism/` installed in this repository | **NOT_INSTALLED.** Blocked on the owner's remaining decisions in [ADR-0003](../../adr/0003-prism-application-adoption.md) |
@@ -32,8 +35,8 @@ Committed runs:
 
 | Item | Value | Source in the run |
 | --- | --- | --- |
-| Workflow run | `44223605441`, attempt `1`, event `pull_request` | `nested/run.txt` |
-| Subject revision | `5fbd8ce30e17ade819d76eb7d29acc3cbb3a5f93` | `nested/run.txt` |
+| Workflow run | `44230700283`, attempt `1`, event `pull_request` | `nested/run.txt` |
+| Subject revision | `fa521f0e10807195f26db183d64ebf552eabeb60` | `nested/run.txt` |
 | Runner | github-hosted Linux X64 image=ubuntu24 20261111.370.1; kernel `Linux 7.0.0-1017-azure arch=x86_64 cpus=4`; Docker `28.0.4` | `nested/run.txt`, `nested/out/identities.txt` |
 | Template | `UOR-Foundation/template@b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b` | anonymous clone on the runner |
 | SDK image | `ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3` | from the template's `prismpm.lock` |
@@ -50,8 +53,8 @@ Committed runs:
 | Tool in the image | `just 1.57.0` | `nested/logs/tool-versions.log` |
 | Tool in the image | `cargo-deny 0.20.2` | `nested/logs/tool-versions.log` |
 | Tool in the image | `v22.23.2` | `nested/logs/tool-versions.log` |
-| Staged root commit and tree | `bc28830043b501a5856697799f4a721e9e1e50d2`, `f943cc1732b40b9e4460f0c63d0de9da30abc7d7` (subject tree `f943cc1732b40b9e4460f0c63d0de9da30abc7d7`) | `nested/out/identities.txt` |
-| Staged installing commit and tree | `8ff4d3cfd76c4ee95a9ae46a32158fd4ebb725e4`, `c320acb5d3377d59287bcc6b6e3d3aca078ec80a` | same |
+| Staged root commit and tree | `c43cb44071b8c056071eb94749d2d5a11a3c6bf7`, `d98f0d383029c6bdd7050e1920a1ce523d4cf4f3` (subject tree `d98f0d383029c6bdd7050e1920a1ce523d4cf4f3`) | `nested/out/identities.txt` |
+| Staged installing commit and tree | `3698ae92ef7cc7b633b169b8ff2c89781d2bd005`, `240c7346592d06b444ac32738aed3f3b0115d432` | same |
 | Instance against the pin | template_files=201 identical_blobs=198 patched=['CONFORMANCE.md', 'Justfile', 'model/ids.toml'] added_by_overlay=32 | same |
 | Root and nested `AGENTS.md` SHA-256 | `b2487038dd55bde3061868e980a067da6d541be4545e5b089c0daf2d26e73650`, `9a1fe3f73ab2963812c35976909c331292e1ca39ce47c0711ec1aafe8b869d87` | same |
 
@@ -123,7 +126,7 @@ The throwaway repository's first commit is the whole subject revision of this re
 | Step | Network | Expected | Exit | Result | Seconds |
 | --- | --- | --- | --- | --- | --- |
 | `tool-versions` | none | exit 0 | 0 | **PASS** | 8 |
-| `pre-canonical` | none | exit 0 | 0 | **PASS** | 8 |
+| `pre-canonical` | none | exit 0 | 0 | **PASS** | 7 |
 | `refuse-credential-variable` | none | exit 77: credential-like variables are set (FAKE_SERVICE_API_TOKEN) | 77 | **PASS** |  |
 | `refuse-credential-store` | none | exit 77: credential store | 77 | **PASS** |  |
 | `refuse-symlinked-checkout` | none | exit 77: passes through a symlink | 77 | **PASS** |  |
@@ -138,44 +141,52 @@ The throwaway repository's first commit is the whole subject revision of this re
 | `refuse-workdir-inside-source` | none | exit 77: outside the source repository | 77 | **PASS** |  |
 | `refusals-left-the-source-untouched` | - | clean tree | 0 | **PASS** |  |
 | `egress-control` | allowlist | exit 0 | 0 | **PASS** | 13 |
-| `sm01-vv` | allowlist | exit 0 | 0 | **PASS** | 781 |
-| `sm01-eligibility-offline` | none | exit 0 | 0 | **PASS** | 365 |
+| `sm01-vv` | allowlist | exit 0 | 0 | **PASS** | 793 |
+| `sm01-eligibility-offline` | none | exit 0 | 0 | **PASS** | 364 |
 | `repeat-identical` | none | same holo and attestation | 0 | **PASS** |  |
 | `nc-policy-drift` | allowlist | refusal: PP1101: template policy path changed: AGENTS\.md | 2 | **PASS** | 4 |
-| `nc-lock-tamper` | allowlist | refusal: PP5401 | 4 | **PASS** | 4 |
-| `nc-stale-conformance` | allowlist | refusal: CONFORMANCE\.md is stale | 1 | **PASS** | 11 |
+| `nc-lock-tamper` | allowlist | refusal: PP5401 | 4 | **PASS** | 5 |
+| `nc-stale-conformance` | allowlist | refusal: CONFORMANCE\.md is stale | 1 | **PASS** | 12 |
 | `nc-ratchet-root-layout` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 12 |
 | `obs-nested-test-added-after-install` | allowlist | recorded, not judged | 0 | **OBSERVED** | 11 |
-| `obs-root-file-added-after-install` | allowlist | recorded, not judged | 0 | **OBSERVED** | 12 |
+| `obs-root-file-added-after-install` | allowlist | recorded, not judged | 0 | **OBSERVED** | 11 |
 | `ratchet-installing-commit` | allowlist | exit 0: audit-prism: a root commit; non-Prism implementation is [0-9]+ lines in [0-9]+ files | 0 | **PASS** | 11 |
 | `ratchet-engaged-uncounted-change` | allowlist | exit 0: files in the parent\); it only shrinks | 0 | **PASS** | 11 |
 | `nc-nested-ratchet-new-file` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 11 |
 | `nc-nested-ratchet-growth` | allowlist | refusal: non-Prism implementation grew by | 1 | **PASS** | 11 |
-| `nc-nested-ratchet-ignores-justfile` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 11 |
+| `obs-first-parent-comparison-misses-the-launder` | allowlist | recorded, not judged | 0 | **OBSERVED** | 11 |
+| `nc-nested-ratchet-two-commit-launder` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 11 |
+| `obs-first-parent-comparison-resets-the-ceiling` | allowlist | recorded, not judged | 0 | **OBSERVED** | 12 |
+| `nc-nested-ratchet-move-then-restore` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 12 |
+| `nc-nested-ratchet-ignores-justfile` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 12 |
+| `nc-nested-ratchet-ignores-tampered-root-gate` | allowlist | refusal: new non-Prism file | 1 | **PASS** | 12 |
 | `refuse-ratchet-instance-moved` | - | exit 77: moved or removed | 77 | **PASS** |  |
 | `refuse-ratchet-audit-altered` | - | exit 77: prism/xtask/src/audit.rs differs from the template pin | 77 | **PASS** |  |
+| `refuse-ratchet-audit-dependency-altered` | - | exit 77: prism/crates/model/src/lib.rs differs from the template pin | 77 | **PASS** |  |
+| `refuse-ratchet-build-script-added` | - | exit 77: holds files the template pin does not | 77 | **PASS** |  |
+| `refuse-ratchet-baseline-not-ancestor` | - | exit 77: is not an ancestor of the candidate | 77 | **PASS** |  |
 | `nc-evidence-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 13 |
-| `nc-rights-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 13 |
-| `nc-authority-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 13 |
+| `nc-rights-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 14 |
+| `nc-authority-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 14 |
 | `nc-coverage-check-dropped` | allowlist | refusal: PP5001\|unsolved goals | 1 | **PASS** | 14 |
 | `nc-admits-code-two` | allowlist | refusal: PP5001\|unsolved goals\|PP5301\|disagrees with a modeled vector | 1 | **PASS** | 14 |
-| `nc-vector-prohibited-rights-eligible` | allowlist | refusal: PP5301\|disagrees with a modeled vector | 1 | **PASS** | 273 |
-| `nc-five-byte-request-accepted` | allowlist | refusal: PP5301\|disagrees with a modeled vector | 1 | **PASS** | 271 |
-| `nc-undeclared-axiom` | allowlist | refusal: LLV7005 | 1 | **PASS** | 99 |
+| `nc-vector-prohibited-rights-eligible` | allowlist | refusal: PP5301\|disagrees with a modeled vector | 1 | **PASS** | 281 |
+| `nc-five-byte-request-accepted` | allowlist | refusal: PP5301\|disagrees with a modeled vector | 1 | **PASS** | 280 |
+| `nc-undeclared-axiom` | allowlist | refusal: LLV7005 | 1 | **PASS** | 101 |
 | `nc-reason-renamed` | allowlist | refusal: must be named RIGHTS_UNRESOLVED | 101 | **PASS** | 10 |
 
 Phase `reference`:
 
 | Step | Network | Exit | Result | Seconds |
 | --- | --- | --- | --- | --- |
-| `tool-versions` | none | 0 | **PASS** | 10 |
-| `ref-vv` | allowlist | 0 | **PASS** | 356 |
+| `tool-versions` | none | 0 | **PASS** | 6 |
+| `ref-vv` | allowlist | 0 | **PASS** | 408 |
 
 Phase `author`:
 
 | Step | Network | Exit | Result | Seconds |
 | --- | --- | --- | --- | --- |
-| `author-regenerate` | none | 0 | **PASS** | 13 |
+| `author-regenerate` | none | 0 | **PASS** | 11 |
 
 `audit-prism` in the complete gate printed `installed here; the parent ran no ratchet, so this commit sets the ceiling: 13501 lines in 78 files`, the same count as on 2026-11-17.
 
@@ -191,7 +202,10 @@ Each defect is one commit on its own branch from the installing commit, run agai
 | `nc-ratchet-root-layout` | `just model` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here`, `grew by` |
 | `nc-nested-ratchet-new-file` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here`, `grew by` |
 | `nc-nested-ratchet-growth` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `non-Prism implementation grew by`, `audit-prism: only Prism may be implemented here`, `grew by` |
+| `nc-nested-ratchet-two-commit-launder` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here` |
+| `nc-nested-ratchet-move-then-restore` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here`, `grew by` |
 | `nc-nested-ratchet-ignores-justfile` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here`, `grew by` |
+| `nc-nested-ratchet-ignores-tampered-root-gate` | `cargo run -q --locked -p xtask -- audit-prism` | 1 | `new non-Prism file`, `audit-prism: only Prism may be implemented here`, `grew by` |
 | `nc-evidence-check-dropped` | `prismpm --project eligibility verify` | 1 | `PP5001`, `unsolved goals` |
 | `nc-rights-check-dropped` | `prismpm --project eligibility verify` | 1 | `PP5001`, `unsolved goals` |
 | `nc-authority-check-dropped` | `prismpm --project eligibility verify` | 1 | `PP5001`, `unsolved goals` |
@@ -214,6 +228,8 @@ The cause is in the template at the pin, `xtask/src/audit.rs`, function `audit`:
 - `repeat offline: holo_sha256 and attestation id identical (9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e, cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518)`
 - `observation obs-nested-test-added-after-install: just model exit=0; audit-prism: installed here; the parent ran no ratchet, so this commit sets the ceiling: 13503 lines in 79 files`
 - `observation obs-root-file-added-after-install: just model exit=0; audit-prism: installed here; the parent ran no ratchet, so this commit sets the ceiling: 13501 lines in 78 files`
+- `observation obs-first-parent-comparison-misses-the-launder: exit=0; GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=11s cmd=cargo run -q --locked -p xtask -- audit-prism`
+- `observation obs-first-parent-comparison-resets-the-ceiling: exit=0; GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=12s cmd=cargo run -q --locked -p xtask -- audit-prism`
 
 The owner ruled on PR #15 that recording the gap was not enough: the ratchet has to be enforced for the nested instance itself. [`scripts/prism_nested_ratchet.sh`](../../../scripts/prism_nested_ratchet.sh) does that without reimplementing the measure. It projects the nested instance to a repository root and runs the template's own unmodified `audit-prism` there. In this run, the audit:
 
@@ -225,7 +241,17 @@ The owner ruled on PR #15 that recording the gap was not enough: the ratchet has
 
 The companion refused, before any audit ran, an instance moved to another directory and an edit to the audit's own gate marker.
 
-**Added after this run, and not yet shown by a committed run.** The owner's second review found that comparing a commit only with its first parent can be defeated with two commits: the first adds a hand-written file and the second keeps it while deleting something else, or the first moves the instance away and the second moves it back with new code, which makes the second look like an installing commit with a fresh ceiling. The companion now takes a named, accepted baseline instead of a first parent, refuses a baseline that is not an ancestor, and pins everything the audit binary is built from, not only `xtask`. Controls for both two-commit cases, for a gutted copy of the root gate, for a changed audit dependency and for an added build script are in the driver. In this run, every case was a single commit measured against the installing commit, so none of those newer controls is evidenced here.
+**Measured against a named baseline, not a first parent.** The owner's second review found that comparing a commit only with its first parent can be defeated with two commits. The companion therefore takes an accepted baseline from its caller, refuses one that is not an ancestor, and pins everything the audit binary is built from, not only `xtask`. In this run, with the installing commit as the baseline, the template's audit gave these answers for the same final commits:
+
+| Two-commit case | Against the commit's first parent (recorded, not judged) | Against the accepted baseline (the control) |
+| --- | --- | --- |
+| **Laundering.** A adds a hand-written test; B keeps it and deletes an unrelated hand-written script | **Accepted**, exit 0: `non-Prism implementation is 13388 lines in 78 files (13503 lines, 79 files in the parent); it only shrinks` | **Refused**, exit 1: `1 new non-Prism file(s): crates/conformance/tests/added_later.rs` |
+| **Move, then restore.** A moves the instance away; B moves it back with a new hand-written test | **Accepted**, exit 0, as a fresh install: `RATCHET_STATE=installing`, `audit-prism: a root commit; non-Prism implementation is 13503 lines in 79 files` | **Refused**, exit 1: `1 new non-Prism file(s)` and `grew by 2 lines (13501 to 13503)` |
+
+So both bypasses are real against a first-parent comparison and both are closed against a named baseline. Also in this run:
+
+- **A gutted root gate.** A candidate that overwrote this repository's own copies of the companion, the driver and the workflow, and added a file, was still refused, because the companion that ran came from the trusted checkout and not from the tree under test.
+- Refused before any audit ran, exit 77: a change to `crates/model`, which the audit links (`prism/crates/model/src/lib.rs differs from the template pin`); a build script added beside it (`holds files the template pin does not: crates/model/build.rs`); and a baseline that is not an ancestor of the candidate.
 
 **What this does not show.** It is a rehearsal on a staged repository. It shows the mechanism. It does not show that this repository enforces it, because this repository has no `prism/`. Running the companion on every `prism/**` change, from a revision the candidate cannot edit and behind a required check, is an obligation of the installing change and partly a matter of repository settings only the owner can make ([ADR-0003](../../adr/0003-prism-application-adoption.md)).
 
@@ -311,7 +337,7 @@ A correct decision over inputs nobody has vouched for is not a qualified eligibi
 ## 9. Repeatability
 
 - Within the run: the application stage was repeated from a fresh staged copy with the network off, seeded only with the first run's crate cache. Same holo SHA-256, same attestation id.
-- Across runs and machines: run 44217491838 at `021011a`, on other runner virtual machines and an earlier revision with the same overlay, printed the same holo SHA-256 and the same attestation id in its job log. That run is not committed here, so this is a statement about a log, not about files in this repository. The runners share one image and one set of paths; this is not evidence about a differently configured machine.
+- Across runs and machines: 2 committed runs on separate runner virtual machines, at different subject revisions with the same overlay, built the same holo bytes and the same attestation id: `44223605441-1` holo `9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e` attestation `cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518`; `44230700283-1` holo `9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e` attestation `cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518`. Run 44217491838 at `021011a` printed the same two values in its job log.
 - The reference application's holo is byte-identical to the 2026-11-17 build on a different machine (section 3).
 - Not shown: another architecture. `linux/arm64` was not run.
 
@@ -345,6 +371,7 @@ No hosted verifier was used; `mcp.uor.foundation` is not on the allowlist and no
 | [44215627807](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44215627807) | `c31e8fd` | Failed before any image was pulled: the gate user could not read the job's working directory |
 | [44216086799](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44216086799) | `c5d95e5` | `author` wrote the lock; `nested` refused the stale lock with `LLC0102`, as intended |
 | three runs at `595f455`, `1943435`, `375bdf9` | | Cancelled by the next push to the pull request, which restarts the workflow |
+| none at `4fc2910` | | GitHub starts no pull-request workflow while the pull request conflicts with its base. `main` had moved; the next head merged it |
 | [44217491838](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44217491838) | `021011a` | Gate passed; the nested ratchet control was accepted instead of refused (section 6). No real-holo job, no publication |
 
 A root `.gitignore` rule, `package-lock.json`, would have kept `prism/package-lock.json` out of an installing commit. Staging the whole repository as the root found it before any run. The rules are now anchored to the root and the driver refuses when any instance file is ignored.
