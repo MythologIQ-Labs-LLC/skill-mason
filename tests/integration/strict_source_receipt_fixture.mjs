@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join,isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createComposer,verifyPackage,writePackage,readPackage,canonicalJSON} from '../../src/backend/compose.mjs';
-import {replaySealedSourceReceipt} from '../../src/backend/source-proof-replay.mjs';
+import {replaySealedSourceReceipt,replaySealedSourceReceiptFromDisk} from '../../src/backend/source-proof-replay.mjs';
 import {createSignedAssertionAdapter} from '../../src/backend/signed-assertions.mjs';
 
 const SHA=x=>createHash('sha256').update(x).digest('hex');
@@ -154,7 +154,7 @@ async function main(args){
  assert.equal(verification.sourceAcceptanceProofRecorded,true);
  assert.equal(verification.sourceAcceptanceSignatureVerified,false);
  assert.equal(verification.signedFourFactAssertionReverified,false);
- const replay=await replaySealedSourceReceipt(pkg,{
+ const replayConfiguration={
   expectedSourceBindings:{'fixture-review-method':sourcePreflight.binding_sha256},
   expectedHoloSha256:HOLO,
   verifySourceAcceptance:async({subjectSha256,sourceBindingSha256,
@@ -168,7 +168,8 @@ async function main(args){
   },
   verifySignedMethod:async({subjectSha256})=>assertSignedMethod({subjectSha256}),
   runPrism:guest
- });
+ };
+ const replay=await replaySealedSourceReceipt(pkg,replayConfiguration);
  assert.equal(replay.state,'P0_DEVELOPMENT_RECEIPT_REPLAYED_BY_CONFIGURED_ADAPTERS');
  assert.equal(replay.receiptMethodCount,1);
  assert.equal(replay.methods[0].sourceApprovalProofSha256,proofSource);
@@ -181,10 +182,21 @@ async function main(args){
   const dest=join(root,'sealed-development-candidate');
   await writePackage(pkg,dest);
   assert.deepEqual(await readPackage(dest),pkg);
+  const diskReplay=await replaySealedSourceReceiptFromDisk(dest,replayConfiguration);
+  assert.equal(diskReplay.diskCompletionSealVerified,true);
+  assert.equal(diskReplay.verifiedDiskManifestSha256,
+   SHA(pkg.files['skill-mason.json']));
+  assert.equal(diskReplay.methods[0].sourceApprovalProofSha256,proofSource);
+  assert.equal(diskReplay.productionEligible,false);
+  assert.equal(guestCalls,3);assert.equal(factCalls,3);
   const changed=JSON.parse(await readFile(join(dest,'RECEIPT.json'),'utf8'));
   changed.assertions[0].sourceBindingSha256='9'.repeat(64);
   await writeFile(join(dest,'RECEIPT.json'),JSON.stringify(changed)+'\n');
   await assert.rejects(readPackage(dest),signal('PACKAGE_INTEGRITY'));
+  await assert.rejects(replaySealedSourceReceiptFromDisk(dest,replayConfiguration),
+   signal('PACKAGE_INTEGRITY'));
+  // A corrupted disk candidate must never reach even the source signer.
+  assert.equal(guestCalls,3);assert.equal(factCalls,3);
  }finally{await rm(root,{recursive:true,force:true});}
  let deniedGuest=0,deniedFacts=0;
  const noApproval=createSourceBoundAssertionGuard({
@@ -215,7 +227,9 @@ async function main(args){
   independentlySignedFourFactProofReplayedByActualAdapter:true,
   pinnedGuestReplayedUsingFixtureMock:true,
   exclusiveDiskSealVerified:true,
+  independentDiskSealedReplayWithRealSignatureVerifiers:true,
   tamperedDiskReceiptRefused:true,
+  tamperedDiskReplayRefusedBeforeVerifiers:true,
   missingSourceApprovalStoppedBeforeGuest:true,
   positiveFactsAreFixturesOnly:true,
   prismGuestIsMock:true,
