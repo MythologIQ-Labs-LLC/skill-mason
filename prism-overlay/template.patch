@@ -32,7 +32,7 @@ index c19e2b0..022ab0c 100644
      rm -f .prism-proof.log
      cargo run -q --locked -p xtask -- proof-keep "$attestation"
  
-+# Skill Mason's eligibility decision (`SM-01`). The model must be canonical and
++# Qortara Skills Eligibility's decision (`SM-01`). The model must be canonical and
 +# locked, then `prismpm verify` builds its holo, replays its acceptance vectors
 +# and has Lean and leanchecker check `eligible_decides`. It always proves in
 +# full: no kept proof is reused for this project.

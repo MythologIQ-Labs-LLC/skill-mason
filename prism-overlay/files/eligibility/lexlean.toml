@@ -1,7 +1,7 @@
 spec = "lexlean/project/1"
-name = "skill-mason-eligibility"
+name = "qortara-skills-eligibility"
 language = "1.2"
-module_prefix = "SkillMasonEligibility"
+module_prefix = "QortaraSkillsEligibility"
 source_roots = ["src"]
 entrypoints = ["src/Eligibility.lex.tex"]
 build_root = ".lexlean"

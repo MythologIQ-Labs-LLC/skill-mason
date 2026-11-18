@@ -25,6 +25,12 @@ REFUSED = 77
 SOCKET = Path("/var/run/docker.sock")
 
 STUB = """#!/usr/bin/env bash
+if [[ ${1:-} == network && ${2:-} == inspect ]]; then
+  # Answers only for the network named in STUB_NETWORK; any other is missing.
+  [[ ${5:-} == "${STUB_NETWORK:-}" ]] || exit 1
+  printf '%s\\n' "${STUB_INTERNAL:-false}"
+  exit 0
+fi
 printf '%s\\n' "$@" > "$STUB_OUT"
 echo "stub docker ran"
 exit "${STUB_RC:-0}"
@@ -127,6 +133,7 @@ class GateWrapperTests(unittest.TestCase):
         commit = subprocess.run(["git", "-C", str(self.repo), "rev-parse", "HEAD"], capture_output=True, text=True, env=self.env()).stdout.strip()
         self.assertIn(f"commit={commit}", log)
         self.assertIn("docker_socket=not-mounted", log)
+        self.assertIn("net=none egress_network=none egress_proxy=none", log)
         self.assertRegex(log, r"GATE_EXIT=0 image=\S+@sha256:[0-9a-f]{64} ")
 
     def test_docker_socket_is_not_mounted_unless_explicitly_requested(self):
@@ -165,6 +172,55 @@ class GateWrapperTests(unittest.TestCase):
         shutil.rmtree(self.work)
         self.assertEqual(self.run_gate(self.repo, "host", HTTPS_PROXY="http://proxy.invalid:1").returncode, 0)
         self.assertIn("HTTPS_PROXY", self.docker_args())
+
+    def test_allowlist_network_uses_the_internal_network_and_only_the_named_proxy(self):
+        result = self.run_gate(
+            self.repo, "allowlist",
+            PRISM_GATE_EGRESS_NETWORK="prism-gate-egress", PRISM_GATE_EGRESS_PROXY="http://172.30.99.1:3128",
+            STUB_NETWORK="prism-gate-egress", STUB_INTERNAL="true",
+            HTTPS_PROXY="http://ambient.invalid:1", PRISM_GATE_CA="/etc/hostname",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.docker_args()
+        self.assertEqual(args[:4], ["run", "--rm", "--network", "prism-gate-egress"])
+        self.assertIn("HTTPS_PROXY=http://172.30.99.1:3128", args)
+        self.assertIn("https_proxy=http://172.30.99.1:3128", args)
+        self.assertNotIn("HTTPS_PROXY", args, "the caller's ambient proxy variable was forwarded")
+        self.assertFalse(any("ambient.invalid" in a or "prism-gate-ca" in a for a in args))
+        self.assertFalse(any("docker.sock" in a for a in args))
+        log = self.log.read_text()
+        self.assertIn("net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128", log)
+
+    def test_allowlist_refuses_a_network_that_is_missing_or_not_internal(self):
+        common = dict(PRISM_GATE_EGRESS_NETWORK="prism-gate-egress", PRISM_GATE_EGRESS_PROXY="http://172.30.99.1:3128")
+        self.assert_refused(self.run_gate(self.repo, "allowlist", **common), "does not exist")
+        self.assertFalse(self.work.exists())
+        self.assert_refused(
+            self.run_gate(self.repo, "allowlist", STUB_NETWORK="prism-gate-egress", STUB_INTERNAL="false", **common),
+            "is not internal",
+        )
+        self.assertFalse(self.work.exists())
+        for shared in ("host", "bridge", "none"):
+            with self.subTest(network=shared):
+                self.assert_refused(
+                    self.run_gate(self.repo, "allowlist", PRISM_GATE_EGRESS_NETWORK=shared,
+                                  PRISM_GATE_EGRESS_PROXY="http://172.30.99.1:3128"),
+                    "dedicated internal network",
+                )
+
+    def test_allowlist_requires_a_network_name_and_a_literal_proxy_address(self):
+        for extra in (
+            {},
+            {"PRISM_GATE_EGRESS_NETWORK": "prism-gate-egress"},
+            {"PRISM_GATE_EGRESS_NETWORK": "prism-gate-egress", "PRISM_GATE_EGRESS_PROXY": "http://proxy.example:3128"},
+            {"PRISM_GATE_EGRESS_NETWORK": "prism-gate-egress", "PRISM_GATE_EGRESS_PROXY": "https://172.30.99.1:3128"},
+            {"PRISM_GATE_EGRESS_NETWORK": "--privileged", "PRISM_GATE_EGRESS_PROXY": "http://172.30.99.1:3128"},
+        ):
+            with self.subTest(extra=extra):
+                result = self.run_gate(self.repo, "allowlist", STUB_NETWORK="prism-gate-egress", STUB_INTERNAL="true", **extra)
+                self.assertEqual(result.returncode, 64, result.stderr)
+                self.assertFalse(self.stub_out.exists())
+                self.assertFalse(self.work.exists())
 
     def test_seed_cache_is_copied_in_and_never_shared(self):
         seed = self.tmp / "seed"
