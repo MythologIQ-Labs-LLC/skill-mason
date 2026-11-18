@@ -1,0 +1,106 @@
+name: Third-party selected package verification (pinned, non-admitting)
+on:
+  pull_request:
+    paths:
+      - 'scripts/external_package_resolver.py'
+      - 'tests/test_external_package_resolver.py'
+      - 'scripts/catalog_index.py'
+      - 'scripts/catalog_handoff.py'
+      - 'scripts/verify_catalog_source.py'
+      - 'scripts/package_resolver.py'
+      - '.github/workflows/external-package-probe.yml'
+      - 'docs/technical/external-package-inspection-v1.md'
+      - 'docs/architecture/skill-mason-pipeline-v0.md'
+      - 'docs/README.md'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/external_package_resolver.py'
+      - 'tests/test_external_package_resolver.py'
+      - '.github/workflows/external-package-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  external-byte-inspection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout Skill Mason without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check synthetic third-party Git-object and worktree refusals
+        run: python3 -m unittest discover -s tests -p 'test_external_package_resolver.py' -v
+      - name: Checkout exact immutable skillz handoff
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Materialize pinned original skillz source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse HEAD)" = 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Checkout exact third-party review source WITHOUT running its code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: anthropics/skills
+          ref: 8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4
+          path: external-source
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Cross-check complete external package against pinned governed review
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C external-source rev-parse HEAD)" = 8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4
+          test "$(git -C external-source rev-parse 'HEAD^{tree}')" = d482eba557f7b2035c8a83589809628b96f6f40e
+          python3 -m scripts.external_package_resolver \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --external-checkout external-source \
+            --expected-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+            governed:anthropic-skills/frontend-design > external-package-receipt.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('external-package-receipt.json').read_text())
+          assert r['governed_id'] == 'anthropic-skills/frontend-design'
+          assert r['repository_commit'] == '8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4'
+          assert r['package_git_tree_sha1'] == 'd79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6'
+          assert r['entrypoint_git_blob_sha1'] == 'a5333457c414d20d625f307df945842c0952ecc3'
+          assert r['complete_tracked_package_files_verified'] == 2
+          assert {x['relative_path'] for x in r['files']} == {'SKILL.md', 'LICENSE.txt'}
+          assert r['package_bytes_verified'] > 0
+          assert r['pinned_git_object_consistency_verified']
+          for key in ('publisher_identity_authenticated_independently',
+                      'legal_and_asset_rights_assessed',
+                      'modification_and_redistribution_cleared',
+                      'dependency_closure_proven',
+                      'target_host_approved',
+                      'execution_and_network_authority_approved',
+                      'behaviorally_qualified', 'composition_eligible'):
+              assert r[key] is False, key
+          print('PINNED EXTERNAL PACKAGE BYTES: PASS; rights, host, execution and composition unapproved')
+          print('Observed exact files:', [x['relative_path'] for x in r['files']])
+          PY
+      - name: Preserve bounded metadata-only evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: verified-external-package-meta-no-source-copy
+          path: external-package-receipt.json
+          retention-days: 14
+          if-no-files-found: error
