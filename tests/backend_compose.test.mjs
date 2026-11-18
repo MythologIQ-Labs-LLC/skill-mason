@@ -8,7 +8,7 @@ import {createComposer,verifyPackage,writePackage} from '../src/backend/compose.
 
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const PIN='c'.repeat(64),SOURCE='Review the exact change list and identify missing tests.';
-const recipe=()=>({schema:'qortara/skill-recipe/1',name:'pr-review',title:'Pull request review',
+const recipe=()=>({schema:'qortara/internal-composition-plan/1',name:'pr-review',title:'Pull request review',
  description:'Review changes with explicit test and risk checks.',targetHost:'offline-fixture',
  requiredOutcomes:['review changes'],network:false,secrets:false,execution:false});
 const source=()=>({id:'method-pr-review',origin:'https://example.org/approved-source',sourcePath:'docs/review.txt',
