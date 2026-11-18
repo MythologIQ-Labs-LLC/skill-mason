@@ -392,7 +392,7 @@ def compare_snapshots(old, candidate):
     version_changed = (
         old.manifest["source"]["commit"] != candidate["manifest"]["source"]["commit"] or
         old.manifest["source"]["git_tree_sha1"] != candidate["manifest"]["source"]["git_tree_sha1"] or
-        candidate["manifest_blob"] != old.inspection.get("manifest_git_blob_sha1"))
+        candidate["manifest_blob"] != git_blob(read_exact(old.handoff / "manifest.json", 4_000_000)))
     return {
         "schema": SCHEMA, "state": "PINNED_SNAPSHOT_DIFF_ONLY",
         "previous": {"source_commit": old.manifest["source"]["commit"],
