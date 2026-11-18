@@ -5,8 +5,9 @@
  * In-memory composition performs no network, model inference, or host actions.
  */
 import {createHash} from 'node:crypto';
-import {mkdir,open} from 'node:fs/promises';
-import {resolve,basename} from 'node:path';
+import {mkdir,open,lstat,readdir,rm} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {resolve,basename,dirname,parse,relative,join,sep} from 'node:path';
 
 export const PACKAGE_SCHEMA='qortara/skill-package-candidate/1';
 export class CompositionRefusal extends Error {
@@ -224,20 +225,102 @@ export function verifyPackage(packageValue){
   return {state:'INTEGRITY_VERIFIED',productionQualified:false,authorityVerified:false,
     packageSha256:SHA(utf8(files['skill-mason.json']))};
 }
-/** Explicit NEW directory only; never auto-installs, activates, or overwrites. */
-export async function writePackage(packageValue,destination){
-  verifyPackage(packageValue);
+const PACKAGE_FILES=Object.freeze(['SKILL.md','SOURCES.json','RECEIPT.json','skill-mason.json']);
+const DISK_SEAL='.qortara-complete';
+
+/** Refuse symlinked directory parents: no output redirection through link hops. */
+async function checkedDestination(destination){
   if(typeof destination!=='string'||!destination.trim()||destination.includes('\0'))
     refuse('DESTINATION','explicit destination path required');
-  const abs=resolve(destination);
-  if(abs===resolve('/')||basename(abs)==='.'||basename(abs)==='..')
+  const abs=resolve(destination),root=parse(abs).root;
+  if(abs===root||basename(abs)==='.'||basename(abs)==='..')
     refuse('DESTINATION','refusing root or ambiguous destination');
-  await mkdir(abs,{mode:0o700}); // exclusive: no existing dir/file/symlink
-  for(const name of ['SKILL.md','SOURCES.json','RECEIPT.json','skill-mason.json']){
-    const h=await open(resolve(abs,name),'wx',0o600);
-    try{await h.writeFile(packageValue.files[name],'utf8');}
-    finally{await h.close();}
+  let current=root;
+  for(const part of relative(root,dirname(abs)).split(sep).filter(Boolean)){
+    current=join(current,part);
+    let st;
+    try{st=await lstat(current);}catch{refuse('DESTINATION','output parent missing or inaccessible');}
+    if(!st.isDirectory()||st.isSymbolicLink())
+      refuse('DESTINATION','output parent is not a real directory');
   }
-  return {state:'WRITTEN_DEVELOPMENT_CANDIDATE',destination:abs,
-    files:['SKILL.md','SOURCES.json','RECEIPT.json','skill-mason.json']};
+  return abs;
+}
+function sealFor(packageValue){
+  return canonicalJSON({schema:'qortara/skill-package-disk-seal/1',
+    status:'DEVELOPMENT_CANDIDATE',manifestSha256:SHA(utf8(packageValue.files['skill-mason.json'])),
+    fileCount:PACKAGE_FILES.length});
+}
+/**
+ * Explicit NEW directory only. Files are fully written and fsynced before the
+ * completion seal is created last; consumers must use readPackage() rather
+ * than treating a visible directory as a completed candidate. No installation.
+ */
+export async function writePackage(packageValue,destination){
+  verifyPackage(packageValue);
+  const abs=await checkedDestination(destination);
+  let created=false;
+  try{
+    await mkdir(abs,{mode:0o700}); // exclusive: refuses any existing directory/symlink
+    created=true;
+    for(const name of PACKAGE_FILES){
+      const h=await open(resolve(abs,name),'wx',0o600);
+      try{await h.writeFile(packageValue.files[name],'utf8');await h.sync();}
+      finally{await h.close();}
+    }
+    const h=await open(resolve(abs,DISK_SEAL),'wx',0o600);
+    try{await h.writeFile(sealFor(packageValue),'utf8');await h.sync();}
+    finally{await h.close();}
+    return {state:'WRITTEN_DEVELOPMENT_CANDIDATE',destination:abs,
+      files:[...PACKAGE_FILES,DISK_SEAL]};
+  }catch(err){
+    // Only clean up a directory this call created. A crash may still leave an
+    // unsealed directory; readPackage() treats that state as incomplete.
+    if(created)await rm(abs,{recursive:true,force:true}).catch(()=>{});
+    throw err;
+  }
+}
+/** Read/verify only sealed packages, refusing symlinks, extra and missing files. */
+export async function readPackage(destination){
+  const abs=await checkedDestination(destination);
+  let st;
+  try{st=await lstat(abs);}catch{refuse('PACKAGE_INCOMPLETE','candidate directory missing');}
+  if(!st.isDirectory()||st.isSymbolicLink())
+    refuse('PACKAGE_INCOMPLETE','candidate directory is not a real directory');
+  const expected=[...PACKAGE_FILES,DISK_SEAL].sort();
+  let names;
+  try{names=(await readdir(abs)).sort();}
+  catch{refuse('PACKAGE_INCOMPLETE','unable to enumerate candidate files');}
+  if(names.join('|')!==expected.join('|'))
+    refuse('PACKAGE_INCOMPLETE','missing or unexpected candidate files or completion seal');
+  const read=async name=>{
+    const path=resolve(abs,name);
+    let h;
+    try{
+      const fst=await lstat(path);
+      if(!fst.isFile()||fst.isSymbolicLink()||fst.size>500_000)
+        refuse('PACKAGE_INCOMPLETE','invalid candidate file: '+name);
+      h=await open(path,constants.O_RDONLY|(constants.O_NOFOLLOW??0));
+      const st=await h.stat();
+      if(!st.isFile()||st.size>500_000)
+        refuse('PACKAGE_INCOMPLETE','invalid opened candidate file: '+name);
+      return await h.readFile('utf8');
+    }catch(err){
+      if(err instanceof CompositionRefusal)throw err;
+      refuse('PACKAGE_INCOMPLETE','cannot read candidate file: '+name);
+    }finally{if(h)await h.close();}
+  };
+  const files={};
+  for(const name of PACKAGE_FILES)files[name]=await read(name);
+  const packageValue={schema:PACKAGE_SCHEMA,status:'DEVELOPMENT_CANDIDATE',files};
+  const verification=verifyPackage(packageValue);
+  let seal;
+  try{seal=JSON.parse(await read(DISK_SEAL));}catch{
+    refuse('PACKAGE_INCOMPLETE','invalid or unreadable completion seal');
+  }
+  if(!obj(seal)||Object.keys(seal).sort().join('|')!=='fileCount|manifestSha256|schema|status'||
+     seal.schema!=='qortara/skill-package-disk-seal/1'||
+     seal.status!=='DEVELOPMENT_CANDIDATE'||seal.fileCount!==PACKAGE_FILES.length||
+     seal.manifestSha256!==verification.packageSha256)
+    refuse('PACKAGE_INTEGRITY','disk completion seal does not match candidate');
+  return packageValue;
 }
