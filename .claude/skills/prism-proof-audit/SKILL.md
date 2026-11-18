@@ -37,7 +37,9 @@ Run `prism-source-gate` and `prism-model-first`, and read `.claude/PRISM_COMPATI
    - The image's entrypoint runs as uid 1000 whatever `--user` says; the wrapper gives the staged copy to that uid.
    - A cold cache needs network: crates from `static.crates.io`, and the RustSec advisory database from `github.com` for `just deny`. To run a stage with `none`, pass an earlier run's `<workdir>/tmp` as `PRISM_GATE_SEED_TMP`; it is copied in, not shared.
    - Point the wrapper at a nested instance's directory and it stages the whole enclosing repository, so Git history is visible to the audits.
-   - The socket is not bound by default. The recorded runs all had it; whether the complete gate passes without it is `NOT_RUN`. If a stage needs it, record that as a finding. `PRISM_GATE_DOCKER_SOCKET=disposable-daemon` is the explicit opt-in.
+   - The socket is not bound by default, and the complete gate passes without it: `just vv` exited 0 for the reference application and for the nested instance on 2026-11-18 with `docker_socket=not-mounted`. `PRISM_GATE_DOCKER_SOCKET=disposable-daemon` remains an explicit opt-in that nothing here needs.
+   - Use the `allowlist` network: an internal Docker network whose only exit is `scripts/prism_egress_proxy.py`. `host` is refused unless `PRISM_GATE_HOST_NETWORK=unfiltered-egress-accepted`.
+   - The supported runner is the [isolated-runner workflow](../../../docs/technical/prism-native-gate.md). `scripts/prism_native_gate.sh` drives the refusals, the egress control, the gate, the offline repeat and the planted defects in one pass.
    - **Run one gate at a time per scratch directory.** Two runs sharing one `/tmp` corrupt each other; the symptom observed was `PP5008 … custody absent or changed after generation` on a run that passes alone. Separate work directories prevent it. Discard such a run; do not report it as a failure of the model.
 
    Keep upstream success separate from any Skill Mason model's success.
@@ -58,7 +60,9 @@ Run `prism-source-gate` and `prism-model-first`, and read `.claude/PRISM_COMPATI
    | An acceptance vector's response changed | `prismpm --project <dir> verify` | `PP5301`, execution disagrees with a modeled vector |
    | A declared axiom removed | `prismpm --project <dir> verify` | `LLV7005`, axiom policy violated |
    | One byte flipped in the `.holo` | `prism-code vectors <holo>` | `digest_mismatch`, the holo was altered |
-   | A conformance test added in a commit after installation | `just model` | `audit-prism`: `1 new non-Prism file(s)`, `grew by N lines` |
+   | A conformance test added in a commit after installation, **in an instance at a repository root** | `just model` | `audit-prism`: `1 new non-Prism file(s)`, `grew by N lines`. In a nested instance the template's own `just model` accepts the same change, because the ratchet's parent lookup is root-relative: record that as an observation, never as a passing control |
+| The same file added under `prism/` in a nested instance, measured against the accepted baseline | `scripts/prism_nested_ratchet.sh <repo> <baseline> <candidate> <template> <dir>`, then `cargo run -q --locked -p xtask -- audit-prism` in the projection it writes | `audit-prism: only Prism may be implemented here`, `1 new non-Prism file(s)`. A moved instance, a change to anything the audit is built from, or a baseline that is not an ancestor is refused by the script itself, exit 77, before any audit |
+| Two commits: the first adds the file, the second keeps it and deletes other hand-written lines | the same, with the installing commit as baseline | refused as above. Measured against the second commit's first parent it is accepted: record that as an observation |
 
    For a Skill Mason decision, add its own semantics: each refusal dimension, an out-of-range code, and each malformed length, as vectors and as planted defects.
 7. **Check the artifact with the separate implementation.** `prism-code` (npm) is a different program from `prismpm` (Rust). Run:

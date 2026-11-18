@@ -1,6 +1,6 @@
 # Running the native Prism gate on an isolated runner
 
-**Status:** implemented; the first complete run is pending and nothing on this page is a result. This page says how the SDK image is run and what the arrangement does and does not protect. It is not an approval of the SDK image as a trust root: that remains the owner's decision ([ADR-0003](../adr/0003-prism-application-adoption.md), remaining decision 2).
+**Status:** implemented and executed on GitHub-hosted runners. Results and limits are in the [qualification record](../evidence/prism-qse-20261118/README.md); this page states design, not results. This page says how the SDK image is run and what the arrangement does and does not protect. It is not an approval of the SDK image as a trust root: that remains the owner's decision ([ADR-0003](../adr/0003-prism-application-adoption.md), remaining decision 2).
 
 **Owner of the requirement:** [issue #9](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/9).
 
@@ -31,11 +31,36 @@ Allowed hosts: `static.crates.io`, `index.crates.io` (crates) and `github.com` (
 | --- | --- | --- |
 | `SDK / reference` | The upstream template's own application, pristine, through `just vv` | none |
 | `SDK / author` | `lexlean lock` and `lexlean fmt` on the overlay's model, and emits the files the tools wrote | none |
-| `SDK / nested` | The Qortara Skills Eligibility instance nested at `prism/` under the root governance files: preflight, egress control, complete `just vv`, offline repeat, planted defects | none |
+| `SDK / nested` | The Qortara Skills Eligibility instance nested at `prism/` under this whole repository: canonical-form preflight, the wrapper's refusals, egress control, complete `just vv`, offline repeat, the nested ratchet and its bypass attempts, planted defects | none |
 | `Real holo outputs` | The built holo through `prism-code@0.9.5`, [`sm01_probe.mjs`](../../scripts/sm01_probe.mjs) and the [local CLI](local-cli.md), on a second VM that never ran the SDK image | none |
 | `Publish … evidence` | Copies the uploaded files, byte for byte, to a new `evidence/prism-native-gate-<run>` branch. Runs only after every job above passed. It never starts the SDK image, the runtime or the holo | `contents: write` |
 
-The nested phase builds a throwaway repository on the runner: one commit of this repository's `AGENTS.md`, `GOVERNANCE.md`, `SECURITY.md`, `ARCHITECTURE_INDEX.md` and `docs/README.md`, then one commit that adds `prism/` from the pinned template and [`prism-overlay/`](../../prism-overlay/README.md). The second commit is the installing commit `audit-prism` measures. Author identity and dates are fixed, so the commit and tree hashes depend only on the two pinned inputs.
+The nested phase builds a throwaway repository on the runner: one commit that is the whole subject revision of this repository, then one commit that adds `prism/` from the pinned template and [`prism-overlay/`](../../prism-overlay/README.md). The first commit's tree equals the subject revision's tree, so the rehearsal meets the same root `.gitignore`, `.gitattributes` and hand-written code a real install would. The second commit is the installing commit. Before anything runs, the driver refuses if a root rule keeps any instance file out of that commit, or if any template file reaches it with a different blob from the pin, other than the three files the overlay patches. Author identity and dates are fixed, so the commit and tree hashes depend only on the two pinned inputs.
+
+## The nested ratchet
+
+The template's `audit-prism` refuses new hand-written files and net growth in hand-written lines. It finds its ceiling by reading `xtask/src/audit.rs` from the parent commit at that path from the repository root. Under `prism/` that lookup misses, so on its own the template's gate accepts anything. This was found by a planted control on the runner, not by reading: see [ADR-0003](../adr/0003-prism-application-adoption.md).
+
+[`prism_nested_ratchet.sh`](../../scripts/prism_nested_ratchet.sh) enforces it for `prism/` without reimplementing it:
+
+1. The caller names an **accepted baseline** and a candidate. The baseline must be an ancestor.
+2. The script refuses, before any container starts, a candidate that moved or removed the instance, or that changes anything the audit binary is built from, or a universal policy file.
+3. It writes a small repository whose root is the instance: one commit with the baseline's `prism/` tree, one with the candidate's.
+4. The template's unmodified `cargo run -q --locked -p xtask -- audit-prism` runs there, inside the SDK image, through the same wrapper as everything else.
+
+| Case on the runner | Required outcome |
+| --- | --- |
+| Installing commit against the commit before it | passes, reports its ceiling |
+| Later commit that adds no hand-written code | passes with `it only shrinks`, which the audit prints only when it compared against a gated baseline |
+| Hand-written file added under `prism/` | refused: `new non-Prism file` |
+| Existing hand-written file grown | refused: `non-Prism implementation grew by` |
+| Two commits: the first adds a file, the second keeps it and deletes more than was added | refused against the baseline. The same candidate against its first parent is recorded as an observation |
+| Two commits: the first moves the instance away, the second moves it back with a new file | refused against the baseline. Against its first parent the same candidate looks like an installing commit with a fresh ceiling; that is recorded as an observation |
+| `model` removed from the instance's `vv` recipe, plus a new file | refused: the companion never goes through the instance's `Justfile` |
+| The repository's own copies of the companion, the driver and the workflow gutted, plus a new file | refused: the companion that runs comes from the trusted checkout, not from the tree under test |
+| Instance moved; audit source changed; a crate the audit links changed; a build script added; baseline not an ancestor | each refused by the script, exit 77, before any audit |
+
+**Limit.** This is a rehearsal on a staged repository. It shows the mechanism works. It does not show that this repository enforces it, because this repository has no `prism/`. Wiring it for an installed instance, from a revision the candidate cannot edit and behind a required check, is an obligation of the installing change.
 
 ## What differs from the template's own bootstrap
 
@@ -57,7 +82,7 @@ So the honest statement is: *the directory `prism/` is a byte-conformant instanc
 
 ## Running it
 
-A pull request that changes the overlay, the wrapper, the driver, the proxy, the probe or the CLI starts the workflow. A pull request from a fork never starts the SDK image. `workflow_dispatch` runs it on demand once the workflow is on the default branch.
+A pull request that changes the overlay, the wrapper, the driver, the ratchet companion, the proxy, the probe, the CLI or anything under `prism/` starts the workflow, and every later push to that pull request restarts it. A revision that already contains `prism/` is refused by the driver until the installing change wires the gate for an installed instance, so it cannot pass by default. A pull request from a fork never starts the SDK image. `workflow_dispatch` runs it on demand once the workflow is on the default branch.
 
 To change the model, follow the `prism-model-first` skill: edit the authored files, let the `author` job run the tools, and commit the files exactly as it emitted them. `lexlean.lock` is never typed by hand.
 

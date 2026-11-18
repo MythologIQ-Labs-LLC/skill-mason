@@ -4,7 +4,7 @@
 
 It exists so that the first eligibility decision can be rebuilt and re-verified from pinned inputs without copying the upstream template into this repository.
 
-The application was first built under the name `Skill Mason eligibility`. A name is part of a holo's bytes, so the rename made a different artifact: the earlier digest `4092fea9…` and attestation `7bed00d0…` belong to the old name only and are not evidence for this one. The renamed application has no evidence of its own until its complete gate passes on the isolated runner; that run will be recorded under `docs/evidence/`.
+The application was first built under the name `Skill Mason eligibility`. A name is part of a holo's bytes, so the rename made a different artifact: the earlier digest `4092fea9…` and attestation `7bed00d0…` belong to the old name only and are not evidence for this one. The renamed application's own runs are in the [2026-11-18 qualification record](../docs/evidence/prism-qse-20261118/README.md): holo SHA-256 `9ebac1a3…ed3e`, attestation `cca7f46f…8518`.
 
 ## Contents
 
