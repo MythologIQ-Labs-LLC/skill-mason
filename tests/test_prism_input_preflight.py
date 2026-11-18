@@ -156,6 +156,27 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertFalse(report["operator_accepted_rights"])
         self.assertFalse(report["composition_eligible"])
 
+    def test_asset_license_review_change_alters_prism_selection_binding(self):
+        selection = {"record_id": "governed:external/other",
+                     "checkout": "/fixed/source", "repo_tree": "e"*40}
+        baseline = self.preflight("governed:external/other",
+                                  external_selection=selection)["binding_sha256"]
+
+        def missing_license(*args, **kwargs):
+            value = self.inspect_external(*args, **kwargs)
+            value["complete_package_reference_and_asset_review_queue"][
+                "frontmatter_license_pointer"]["matched"] = []
+            return value
+
+        altered = prepare_preflight(
+            self.graph, "software-engineering/frontend", "ChatGPT",
+            "governed:external/other", external_selection=selection,
+            package_inspector=self.inspect_first,
+            external_inspector=missing_license)
+        self.assertNotEqual(baseline, altered["binding_sha256"])
+        self.assertFalse(altered["composition_eligible"])
+        self.assertFalse(altered["operator_accepted_rights"])
+
     def test_source_content_mutation_changes_exact_selection_binding(self):
         old = self.preflight()["binding_sha256"]
         self.first["original_evidence"] = {"untrusted": "new note"}
