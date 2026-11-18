@@ -14,6 +14,7 @@ import {tmpdir} from 'node:os';
 import {join,isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createComposer,verifyPackage,writePackage,readPackage,canonicalJSON} from '../../src/backend/compose.mjs';
+import {replaySealedSourceReceipt} from '../../src/backend/source-proof-replay.mjs';
 import {createSignedAssertionAdapter} from '../../src/backend/signed-assertions.mjs';
 
 const SHA=x=>createHash('sha256').update(x).digest('hex');
@@ -153,6 +154,28 @@ async function main(args){
  assert.equal(verification.sourceAcceptanceProofRecorded,true);
  assert.equal(verification.sourceAcceptanceSignatureVerified,false);
  assert.equal(verification.signedFourFactAssertionReverified,false);
+ const replay=await replaySealedSourceReceipt(pkg,{
+  expectedSourceBindings:{'fixture-review-method':sourcePreflight.binding_sha256},
+  expectedHoloSha256:HOLO,
+  verifySourceAcceptance:async({subjectSha256,sourceBindingSha256,
+                                approvalProofSha256})=>{
+   const approval=await readApproval({subjectSha256,bindingSha256:sourceBindingSha256});
+   const verified=gate.verifySourceAcceptance({
+    preflight:sourcePreflight,trust:sourceTrust,
+    envelope:approval,subjectSha256,nowEpoch:()=>NOW});
+   assert.equal(verified.acceptanceProofSha256,approvalProofSha256);
+   return verified;
+  },
+  verifySignedMethod:async({subjectSha256})=>assertSignedMethod({subjectSha256}),
+  runPrism:guest
+ });
+ assert.equal(replay.state,'P0_DEVELOPMENT_RECEIPT_REPLAYED_BY_CONFIGURED_ADAPTERS');
+ assert.equal(replay.receiptMethodCount,1);
+ assert.equal(replay.methods[0].sourceApprovalProofSha256,proofSource);
+ assert.equal(replay.methods[0].signedFourFactProofSha256,proofFacts);
+ assert.equal(replay.productionEligible,false);
+ assert.equal(guestCalls,2);
+ assert.equal(factCalls,2);
  const root=await mkdtemp(join(tmpdir(),'qortara-strict-fixture-'));
  try{
   const dest=join(root,'sealed-development-candidate');
@@ -188,6 +211,9 @@ async function main(args){
   exactPinnedSourceGateImported:true,
   sourceApprovalRequiredByComposer:true,
   bothProofDigestsSealed:true,
+  sourceApprovalSignatureReplayedByActualGate:true,
+  independentlySignedFourFactProofReplayedByActualAdapter:true,
+  pinnedGuestReplayedUsingFixtureMock:true,
   exclusiveDiskSealVerified:true,
   tamperedDiskReceiptRefused:true,
   missingSourceApprovalStoppedBeforeGuest:true,
