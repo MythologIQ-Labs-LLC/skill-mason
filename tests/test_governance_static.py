@@ -1,4 +1,6 @@
 """Planted positive and negative controls for the supplemental static layout checker."""
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -91,6 +93,34 @@ class GovernanceStaticTests(unittest.TestCase):
         (self.root / "GOVERNANCE.md").symlink_to(self.root / "SECURITY.md")
         errors, _ = assess(self.root)
         self.assertTrue(any("GOVERNANCE.md" in x for x in errors))
+
+    def _run_checker(self, mode: str):
+        checker = Path(__file__).resolve().parents[1] / "scripts" / "check_governance_static.py"
+        return subprocess.run(
+            [sys.executable, str(checker), "--root", str(self.root), "--mode", mode],
+            capture_output=True, text=True, check=False,
+        )
+
+    def test_layout_mode_reports_hold_but_exits_success_when_structure_is_valid(self):
+        with (self.root / "SECURITY.md").open("a") as f:
+            f.write("\nNOT_ESTABLISHED\n")
+        layout = self._run_checker("layout")
+        self.assertEqual(layout.returncode, 0, layout.stdout + layout.stderr)
+        self.assertIn("QUALIFICATION_HOLD:", layout.stdout)
+        self.assertIn("STATIC_LAYOUT_PASS ONLY:", layout.stdout)
+        guard = self._run_checker("guard")
+        self.assertEqual(guard.returncode, 1)
+        self.assertIn("NOT_QUALIFIED:", guard.stdout)
+
+    def test_layout_mode_does_not_hide_broken_required_links(self):
+        with (self.root / "SECURITY.md").open("a") as f:
+            f.write("\nNOT_ESTABLISHED\n")
+        with (self.root / "README.md").open("a") as f:
+            f.write("\n[broken](docs/does-not-exist.md)\n")
+        layout = self._run_checker("layout")
+        self.assertEqual(layout.returncode, 1)
+        self.assertIn("STATIC_ERROR:", layout.stdout)
+        self.assertIn("QUALIFICATION_HOLD:", layout.stdout)
 
 
 if __name__ == "__main__":
