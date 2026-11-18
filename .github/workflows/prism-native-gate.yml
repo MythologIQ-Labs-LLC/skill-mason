@@ -76,8 +76,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup /usr/share/swift
           df -h /
+          # Only if the runner is short: the image needs about 25 GB with its scratch space.
+          if [[ $(df --output=avail -BG / | tail -1 | tr -dc 0-9) -lt 50 ]]; then
+            sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
 
       - name: Gate user (uid 1000) with an empty home and its own directory
         shell: bash
@@ -95,6 +99,8 @@ jobs:
           sudo install -d -m 0700 -o 1000 -g 1000 "$BASE/home"
           echo "GATE_USER=$user" >>"$GITHUB_ENV"
           echo "gate user: $user ($(id "$user"))"
+          # Recorded, not hidden: on a hosted runner uid 1000 is a pre-existing account.
+          sudo -l -U "$user" 2>/dev/null | grep -q NOPASSWD && echo "gate user $user has passwordless sudo on this runner (recorded)" || true
 
       - name: Anonymous clones of the two exact revisions
         shell: bash
@@ -105,6 +111,7 @@ jobs:
             BASE="$BASE" REPOSITORY="$GITHUB_REPOSITORY" SUBJECT_SHA="$SUBJECT_SHA" TEMPLATE_PIN="$TEMPLATE_PIN" \
             SDK_IMAGE_EXPECTED="$SDK_IMAGE" \
             bash -euo pipefail -c '
+              cd "$BASE"
               git init --quiet "$BASE/sm"
               git -C "$BASE/sm" remote add origin "https://github.com/$REPOSITORY"
               git -C "$BASE/sm" fetch --quiet --depth 1 origin "$SUBJECT_SHA"
@@ -154,7 +161,8 @@ jobs:
       - name: Run the phase as the gate user, in a scrubbed environment
         shell: bash
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
+          cd "$BASE"
           sudo -u "$GATE_USER" env -i PATH="$CLEAN_PATH" HOME="$BASE/home" LANG=C.UTF-8 \
             PRISM_GATE_EGRESS_NETWORK=prism-gate-egress PRISM_GATE_EGRESS_PROXY=http://172.30.99.1:3128 \
             bash "$BASE/sm/scripts/prism_native_gate.sh" "$PHASE" "$BASE/sm" "$SUBJECT_SHA" "$BASE/template" "$BASE/run"
@@ -166,7 +174,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
           out="$RUNNER_TEMP/evidence/$PHASE"
           mkdir -p "$out"
           sudo cp -r "$BASE/run/logs" "$BASE/run/out" "$out/" 2>/dev/null || echo "no run directory to collect"
@@ -266,7 +274,7 @@ jobs:
       - name: Run the real holo through the independent runtime, the probe and the CLI
         shell: bash
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
           cd "$RUNNER_TEMP/sm"
           bash scripts/sm01_real_holo_acceptance.sh \
             "$RUNNER_TEMP/gate/nested/out/holo/eligibility.holo" \
