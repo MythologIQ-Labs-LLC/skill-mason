@@ -41,7 +41,17 @@ class ExternalComparisonTests(unittest.TestCase):
             "complete_tracked_package_files_verified": 2,
             "package_git_tree_sha1": "b" * 40,
             "entrypoint_git_blob_sha1": "a" * 40,
-            "historical_export_identity_gap_requires_upstream_correction": True}
+            "historical_export_identity_gap_requires_upstream_correction": True,
+            "complete_package_reference_and_asset_review_queue": {
+                "schema": "qortara/package-reference-inventory/1",
+                "state": "VERIFIED_SOURCE_BYTES_REFERENCE_LEADS_ONLY",
+                "file_count": 2,
+                "each_asset_rights_cleared": False,
+                "dependency_closure_proven": False,
+                "source_license_and_notice_obligations_assessed": False,
+                "target_host_approved": False,
+                "composition_eligible": False,
+                "frontmatter_license_pointer": {"matched": ["LICENSE.txt"]}}}
 
     def compare(self, **kwargs):
         return compare(self.graph, "software-engineering/frontend", "ChatGPT",
@@ -52,6 +62,10 @@ class ExternalComparisonTests(unittest.TestCase):
         p = r["evidence_linked_reviews"][0]["package_bytes"]
         self.assertEqual(p["status"], "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED")
         self.assertEqual(p["package_files"], 2)
+        self.assertRegex(p["source_asset_rights_review_queue_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(p["asset_files_requiring_review"], 2)
+        self.assertTrue(p["source_license_pointer_evidence_present"])
+        self.assertTrue(p["source_asset_rights_and_dependencies_still_unqualified"])
         self.assertTrue(p["historical_export_identity_gap_requires_upstream_correction"])
         self.assertTrue(p["rights_and_host_still_unapproved"])
         self.assertEqual(r["externally_inspected_governed_id"], "governed:external/sample")
@@ -94,6 +108,28 @@ class ExternalComparisonTests(unittest.TestCase):
                     include_lexical=False, external_selection=self.selection,
                     external_inspector=reject)
         self.assertEqual(exc.exception.code, "EXTERNAL_BYTES")
+
+    def test_external_review_queue_missing_does_not_become_evidence(self):
+        def missing(*_args, **_kwargs):
+            r = self.fake(*_args, **_kwargs)
+            del r["complete_package_reference_and_asset_review_queue"]
+            return r
+        with self.assertRaises(Refusal) as exc:
+            compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                    include_lexical=False, external_selection=self.selection,
+                    external_inspector=missing)
+        self.assertEqual(exc.exception.code, "EXTERNAL_ASSET_REVIEW")
+
+    def test_unqualified_source_cannot_forge_rights_complete(self):
+        def forged(*_args, **_kwargs):
+            r = self.fake(*_args, **_kwargs)
+            r["complete_package_reference_and_asset_review_queue"]["each_asset_rights_cleared"] = True
+            return r
+        with self.assertRaises(Refusal) as exc:
+            compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                    include_lexical=False, external_selection=self.selection,
+                    external_inspector=forged)
+        self.assertEqual(exc.exception.code, "EXTERNAL_ASSET_REVIEW")
 
     def test_rejected_review_stays_rejected_after_external_hashes(self):
         self.raw["review"]["semantic_status"] = "rejected"
