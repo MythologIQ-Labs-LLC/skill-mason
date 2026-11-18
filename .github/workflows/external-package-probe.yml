@@ -9,6 +9,9 @@ on:
       - 'docs/technical/package-reference-inventory-v1.md'
       - 'scripts/candidate_comparison.py'
       - 'scripts/prism_input_preflight.py'
+      - 'scripts/source_acceptance_gate.mjs'
+      - 'tests/source_acceptance_gate.test.mjs'
+      - 'docs/technical/source-acceptance-gate-v1.md'
       - 'tests/test_prism_input_preflight.py'
       - 'docs/technical/prism-input-preflight-v1.md'
       - 'tests/test_external_comparison.py'
@@ -45,6 +48,8 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_external_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_package_reference_inventory.py' -v
           python3 -m unittest discover -s tests -p 'test_external_comparison.py' -v
+      - name: Verify independent signed source acceptance and replay refusals
+        run: node --test tests/source_acceptance_gate.test.mjs
       - name: Checkout exact immutable skillz handoff
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -185,6 +190,26 @@ jobs:
           print('REAL EXTERNAL-TO-PRISM PREFLIGHT: source bytes yes; signed facts no; unsigned 00000000 denial only')
 
           PY
+      - name: Prove real pinned source preflight does not self-authorize operator signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/source_acceptance_gate.mjs --preflight "$PWD/external-prism-denial-preflight.json" > source-acceptance-stdout.txt 2> source-acceptance-denial.json
+          status="$?"
+          set -e
+          test "$status" -eq 2
+          test ! -s source-acceptance-stdout.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          row=json.loads(Path('source-acceptance-denial.json').read_text())
+          assert row['state']=='REFUSED'
+          assert row['code']=='SOURCE_ACCEPTANCE_MISSING'
+          assert row['compositionEligible'] is False
+          assert row['prismInvoked'] is False
+          print('REAL CORPUS SOURCE SIGNATURE GATE: unsigned externally pinned source correctly refused')
+          PY
       - name: Preserve bounded metadata-only evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -193,5 +218,6 @@ jobs:
             external-package-receipt.json
             external-comparison-receipt.json
             external-prism-denial-preflight.json
+            source-acceptance-denial.json
           retention-days: 14
           if-no-files-found: error
