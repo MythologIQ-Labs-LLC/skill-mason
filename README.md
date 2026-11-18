@@ -24,6 +24,7 @@ Qortara Skills is a **proposed**, evidence-driven compiler for portable AI-agent
 - [Explore the repository](#explore-the-repository)
 - [Develop and validate](#develop-and-validate)
 - [Local development CLI](#local-development-cli)
+- [GitHub Pages web app](#github-pages-web-app)
 - [Repository governance](#repository-governance)
 - [Frequently asked questions](#frequently-asked-questions)
 - [Contributions and licensing](#contributions-and-licensing)
@@ -246,6 +247,12 @@ npm run test:cli
 ```
 
 See [local CLI usage and explicit P0 limits](docs/technical/local-cli.md). The local CLI and its stand-in tests are not proof of a Prism-built application or a zero-inference-token generator.
+
+## GitHub Pages web app
+
+A [static web prototype](web/) is available for local-file Prism output testing. The browser interface uses a version-pinned Prism SDK bundle, verifies the user's selected `.holo` against an independently recorded digest, then dispatches raw bytes to the real Prism guest. The site does **not** generate skills, upload files, keep accounts or host an MCP endpoint. No native holo has yet been accepted here.
+
+The [Pages build and deployment workflow](.github/workflows/pages.yml) attempts publishing after the branch merges to `main`; actual deployment and URL remain **NOT_VERIFIED** until GitHub confirms them. See [Pages design and limitations](docs/technical/pages-web.md). A local `stdio` MCP server is the *third* access priority, not a GitHub Pages feature.
 
 ## Repository governance
 

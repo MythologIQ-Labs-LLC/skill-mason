@@ -15,5 +15,7 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Local CLI and SM-01 probe stand-in guardrail tests (no holo)
         run: node --test tests/*.test.mjs
+      - name: Browser Prism client guardrail tests (stand-in only; no holo)
+        run: node --test web/tests/*.test.mjs
       - name: Verify static layout and surface policy holds
         run: python3 scripts/check_governance_static.py --root .
