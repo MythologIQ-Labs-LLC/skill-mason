@@ -47,9 +47,35 @@ function validateRecipe(recipe){
   if(new Set(out).size!==out.length)refuse('INVALID_RECIPE','duplicate outcome');
   if(recipe.network!==false||recipe.secrets!==false||recipe.execution!==false)
     refuse('AUTHORITY_EXCEEDED','first slice cannot request network, secrets or execution');
-  const allowed=new Set(['schema','name','title','description','targetHost','requiredOutcomes','network','secrets','execution']);
+  const allowed=new Set(['schema','name','title','description','targetHost','requiredOutcomes','network','secrets','execution','sourceSnapshot','packagePins']);
   if(Object.keys(recipe).some(k=>!allowed.has(k)))refuse('INVALID_RECIPE','unrecognized recipe field');
-  return Object.freeze({...recipe,requiredOutcomes:Object.freeze([...out].sort())});
+  if((recipe.sourceSnapshot===undefined)!==(recipe.packagePins===undefined))
+    refuse('SOURCE_PIN','snapshot and package pins must be declared together');
+  let sourceSnapshot,packagePins;
+  if(recipe.sourceSnapshot!==undefined){
+    const snap=recipe.sourceSnapshot;
+    if(!obj(snap)||Object.keys(snap).sort().join('|')!=='commit|repository|sha256'||
+       typeof snap.commit!=='string'||!commit.test(snap.commit)||
+       typeof snap.sha256!=='string'||!hex64.test(snap.sha256))
+      refuse('SOURCE_PIN','invalid source snapshot identity');
+    boundedString(snap.repository,'source snapshot repository',300);
+    sourceSnapshot=Object.freeze({...snap});
+    if(!Array.isArray(recipe.packagePins)||recipe.packagePins.length===0||recipe.packagePins.length>16)
+      refuse('SOURCE_PIN','bounded package pin set required');
+    const seen=new Set();
+    packagePins=Object.freeze(recipe.packagePins.map(p=>{
+      if(!obj(p)||Object.keys(p).sort().join('|')!=='methodId|packageId|sha256'||
+        typeof p.sha256!=='string'||!hex64.test(p.sha256))
+        refuse('SOURCE_PIN','invalid selected package pin');
+      boundedString(p.methodId,'source method id',160);
+      boundedString(p.packageId,'source package id',160);
+      if(seen.has(p.methodId))refuse('SOURCE_PIN','duplicate method pin');
+      seen.add(p.methodId);
+      return Object.freeze({...p});
+    }).sort((a,b)=>a.methodId<b.methodId?-1:a.methodId>b.methodId?1:0));
+  }
+  return Object.freeze({...recipe,requiredOutcomes:Object.freeze([...out].sort()),
+    ...(sourceSnapshot?{sourceSnapshot,packagePins}:{})});
 }
 function validateMethod(method){
   if(!obj(method))refuse('INVALID_METHOD','method must be an object');
@@ -134,6 +160,9 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
       refuse('METHOD_SET','method set must be bounded and nonempty');
     const methods=methodInputs.map(validateMethod).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
     if(new Set(methods.map(m=>m.id)).size!==methods.length)refuse('METHOD_SET','duplicate method identity');
+    if(recipe.packagePins && (recipe.packagePins.length!==methods.length||
+       recipe.packagePins.some((p,i)=>p.methodId!==methods[i].id)))
+      refuse('SOURCE_PIN','source package identities must bind every selected method');
     // Independent refusal for uncovered outcomes. This does not admit any source.
     const covered=new Set(methods.flatMap(m=>m.covers));
     if(recipe.requiredOutcomes.some(o=>!covered.has(o)))refuse('OUTCOME_UNCOVERED','essential outcome missing from declared method coverage');
@@ -156,7 +185,9 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
     }
     const markdown=render(recipe,methods),methodRefs=methods.map(({id,origin,sourcePath,commit,sha256,methodVersion,covers})=>
       ({id,origin,sourcePath,commit,sha256,methodVersion,covers}));
-    const sourceRecord={schema:'qortara/skill-sources/1',methods:methodRefs};
+    const sourceRecord={schema:'qortara/skill-sources/1',methods:methodRefs,
+      ...(recipe.sourceSnapshot?{sourceSnapshot:recipe.sourceSnapshot,
+        packagePins:recipe.packagePins}:{})};
     const sourceJson=canonicalJSON(sourceRecord);
     const files={'SKILL.md':markdown,'SOURCES.json':sourceJson};
     const digests=Object.fromEntries(Object.entries(files).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([name,data])=>[name,SHA(utf8(data))]));
