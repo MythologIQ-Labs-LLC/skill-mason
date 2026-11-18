@@ -1,14 +1,7 @@
 name: Real Prism candidate assembly (P0 development only)
-# Temporary exact-branch validation for two original first-party pilots.
-# Restore manual-only before main integration: upstream artifact expires.
+# Manual-only replay of a pinned, expiring native artifact; no recurring
+# PR check and no automatic deployment or installation.
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/real-holo-candidate.yml'
-      - 'tests/real_holo_candidate_acceptance.mjs'
-      - 'bin/first-party-pilot.mjs'
-      - 'src/backend/**'
-      - 'pilots/first-party/**'
   workflow_dispatch:
     inputs:
       native_run_id:
@@ -31,8 +24,6 @@ jobs:
   stage-pinned-development-holo:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
-    # Never stage for fork PRs; this temporary validation is internal only.
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/backend-recipe-v0-pinned-selection-20261118')
     permissions:
       actions: read
     steps:
