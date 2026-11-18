@@ -101,13 +101,21 @@ function render(recipe,methods){
 }
 function validateDecision(value,expectedHex,pin){
   if(!obj(value)||value.schema!=='qortara/local-eligibility-result/1'||
-    value.status!=='GUEST_COMPLETED'||value.response!=='eligible'||
-    value.responseHex!=='656c696769626c65'||value.application!=='Qortara Skills Eligibility'||
+    value.status!=='GUEST_COMPLETED'||value.application!=='Qortara Skills Eligibility'||
     value.requestHex!==expectedHex||value.engine!=='prism-code@0.9.5'||
     !obj(value.artifact)||value.artifact.sha256!==pin||!hex64.test(pin)||
-    value.productionEligible!==false||value.exitCode!==0)
-    refuse('PRISM_REFUSED','pinned Prism guest did not return exact eligible decision');
-  return {guestSha256:pin,requestHex:expectedHex,responseHex:'656c696769626c65',
+    value.productionEligible!==false||value.exitCode!==0||
+    typeof value.response!=='string'||typeof value.responseHex!=='string'||
+    Buffer.from(value.response,'utf8').toString('hex')!==value.responseHex)
+    refuse('PRISM_REFUSED','pinned Prism guest did not return a valid, bound decision');
+  if(expectedHex!=='01010101'){
+    if(!/^refused: (?:EVIDENCE_UNQUALIFIED|RIGHTS_UNRESOLVED|AUTHORITY_EXCEEDED|OUTCOME_UNCOVERED)(?: (?:EVIDENCE_UNQUALIFIED|RIGHTS_UNRESOLVED|AUTHORITY_EXCEEDED|OUTCOME_UNCOVERED))*$/.test(value.response))
+      refuse('PRISM_REFUSED','Prism guest failed to refuse a denied assertion');
+    refuse('PRISM_REFUSED',value.response);
+  }
+  if(value.response!=='eligible'||value.responseHex!=='656c696769626c65')
+    refuse('PRISM_REFUSED','Prism guest did not admit all four established facts');
+  return {guestSha256:pin,requestHex:expectedHex,responseHex:value.responseHex,
     assurance:'P0 unverified',engine:'prism-code@0.9.5'};
 }
 /**
@@ -136,13 +144,13 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
           sourcePath:method.sourcePath,commit:method.commit,sha256:method.sha256,
           methodVersion:method.methodVersion,covers:method.covers,containsAssets:false}});
       const x=await assertMethod({recipe,method,subjectSha256});
-      if(!obj(x)||x.evidence!==true||x.rights!==true||x.authority!==true||x.coverage!==true||
+      if(!obj(x)||[x.evidence,x.rights,x.authority,x.coverage].some(y=>typeof y!=='boolean')||
           typeof x.issuer!=='string'||!x.issuer||typeof x.proofDigest!=='string'||!hex64.test(x.proofDigest)||
           x.subjectSha256!==subjectSha256)
         refuse('UNTRUSTED_ASSERTION','source, rights, authority or coverage not independently asserted');
-      const hex='01010101';
-      // These are transport bytes only AFTER the trusted adapter establishes
-      // each fact. Never derive them from a user-provided eligibility flag.
+      const hex=[x.evidence,x.rights,x.authority,x.coverage].map(y=>y?'01':'00').join('');
+      // The four facts are derived ONLY from the trusted assertion adapter.
+      // Prism determines admission or refusal over those facts, not this module.
       const verdict=validateDecision(await runPrism({requestHex:hex,holoSha256}),hex,holoSha256);
       assertions.push({methodId:method.id,issuer:x.issuer,subjectSha256,proofDigest:x.proofDigest,verdict});
     }
