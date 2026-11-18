@@ -94,6 +94,12 @@ class ExternalPackageTests(unittest.TestCase):
         self.assertFalse(row["target_host_approved"])
         self.assertFalse(row["composition_eligible"])
 
+    def test_cli_style_string_checkout_resolves_identically(self):
+        receipt = self.inspect(checkout=str(self.external))
+        self.assertEqual(receipt["state"], "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED")
+        self.assertEqual(receipt["complete_tracked_package_files_verified"], 4)
+        self.assertFalse(receipt["composition_eligible"])
+
     def test_untracked_asset_refused_even_with_matching_recorded_tree(self):
         (self.external / "skills/frontend-design/another.md").write_text("ignored payload\n")
         self.refuse("EXTERNAL_WORKTREE_DRIFT")
