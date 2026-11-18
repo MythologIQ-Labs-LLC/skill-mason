@@ -1,3 +1,8 @@
 # Python bytecode caches written by running the tests and scripts.
 __pycache__/
 *.pyc
+
+# Local Node SDK and report outputs are not source artifacts.
+node_modules/
+package-lock.json
+*.tgz

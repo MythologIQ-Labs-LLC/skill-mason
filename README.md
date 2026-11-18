@@ -23,6 +23,7 @@ Qortara Skills is a **proposed**, evidence-driven compiler for portable AI-agent
 - [Project status and roadmap](#project-status-and-roadmap)
 - [Explore the repository](#explore-the-repository)
 - [Develop and validate](#develop-and-validate)
+- [Local development CLI](#local-development-cli)
 - [Repository governance](#repository-governance)
 - [Frequently asked questions](#frequently-asked-questions)
 - [Contributions and licensing](#contributions-and-licensing)
@@ -206,7 +207,7 @@ The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues
 | [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Internal governance evidence and audit-record procedures |
 | [`scripts/check_governance_static.py`](scripts/check_governance_static.py) · [tests](tests/test_governance_static.py) | Supplemental read-only layout lint and planted controls |
 
-There are **no** runtime packages, installation instructions, host connectors, or downloadable skill artifacts to document yet. Links to those will be added only when the corresponding code and evidence exist.
+There are **no released generator packages, deployed host connectors or generated skill artifacts**. A development-only local CLI is documented below. Links to those will be added only when the corresponding code and evidence exist.
 
 ## Develop and validate
 
@@ -233,6 +234,19 @@ That structural check **is expected to report a qualification hold**, not a full
 
 A [development-only SM-01 output probe](docs/technical/sm01-output-probe.md) is available for testing **actual compiled Prism `.holo` outputs**, once the nested application produces an artifact at a verified digest. Its local contract tests use a stand-in; no real holo has yet been run through the probe in this repository. It is not a skill builder or proof of P2 assurance.
 
+## Local development CLI
+
+A first **development-only CLI** is available under `bin/qortara-skills.mjs`. It offers `status`, `evaluate` (raw bytes to a real Prism holo), and `probe` (12 recorded SM-01 cases). It does not assemble, install, or publish skills. **No native holo has yet been accepted in this repository.**
+
+```sh
+npm link
+qortara-skills help
+qortara-skills status
+npm run test:cli
+```
+
+See [local CLI usage and explicit P0 limits](docs/technical/local-cli.md). The local CLI and its stand-in tests are not proof of a Prism-built application or a zero-inference-token generator.
+
 ## Repository governance
 
 Development governance is **not part of the Qortara Skills product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. The [PR #2 merge record](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) documents the bounded source-only exception; unresolved security and native-governance qualification remain tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
@@ -252,7 +266,7 @@ That is the long-term coverage aspiration, **not a present guarantee**. If an es
 Not by itself. Prism is a **candidate** for checking formal decision properties, and its integration is unproven here. Real task effectiveness and host permissions require separate evidence.
 
 **Can I install Qortara Skills today?**  
-No released generator or installer exists. The repository presently contains product/architecture contracts and a narrow supplemental documentation checker.
+No released skill generator or product installer exists. Developers can link the [local CLI](docs/technical/local-cli.md) to check prerequisites and test real Prism eligibility outputs once a verified native holo is available.
 
 **Why is the governance CI job not passing?**  
 All 20 supplemental tests passed on PR #2, but the qualification step intentionally reported an unresolved owner-specific security reporting policy. See [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Hiding that failure would make the dashboard prettier and the evidence worse.
