@@ -10,7 +10,7 @@ import json
 import re
 import sys
 
-from scripts.catalog_handoff import COMMIT, Refusal, require
+from scripts.catalog_handoff import COMMIT, Refusal, require, canonical, sha256
 from scripts.catalog_index import CorpusIndex
 from scripts.capability_graph import CapabilityGraph
 from scripts.package_resolver import inspect_package
@@ -81,8 +81,26 @@ def compare(graph, route, host, *, include_lexical=True, limit=25,
             external = external_inspector(
                 corpus, "governed:" + rid, external_selection["checkout"],
                 expected_repo_tree=external_selection["repo_tree"])
+            review = external.get("complete_package_reference_and_asset_review_queue")
+            require(isinstance(review, dict) and
+                    review.get("schema") == "qortara/package-reference-inventory/1" and
+                    review.get("state") == "VERIFIED_SOURCE_BYTES_REFERENCE_LEADS_ONLY" and
+                    review.get("file_count") ==
+                        external.get("complete_tracked_package_files_verified") and
+                    review.get("each_asset_rights_cleared") is False and
+                    review.get("dependency_closure_proven") is False and
+                    review.get("source_license_and_notice_obligations_assessed") is False and
+                    review.get("target_host_approved") is False and
+                    review.get("composition_eligible") is False,
+                    "EXTERNAL_ASSET_REVIEW",
+                    "external package must provide an unqualified full-file rights review queue")
             package = {
                 "status": external["state"],
+                "source_asset_rights_review_queue_sha256": sha256(canonical(review)),
+                "asset_files_requiring_review": review["file_count"],
+                "source_license_pointer_evidence_present":
+                    bool(review["frontmatter_license_pointer"]["matched"]),
+                "source_asset_rights_and_dependencies_still_unqualified": True,
                 "package_files": external["complete_tracked_package_files_verified"],
                 "package_git_tree_sha1": external["package_git_tree_sha1"],
                 "entrypoint_git_blob_sha1": external["entrypoint_git_blob_sha1"],
