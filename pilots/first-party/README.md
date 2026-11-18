@@ -2,12 +2,12 @@
 
 These two procedures were **authored for Skill Mason** as original, instruction-only development examples. They are not copied from the external `skillz` catalog and contain no scripts, bundled assets, credential requirements or network dependencies.
 
-| Source procedure | Explicit outcome | Original source blob |
-| --- | --- | --- |
-| [CI failure triage](ci-failure-triage/procedure.json) | `triage CI failure` | `23bd3a94a3da68996f406892dcbb94be247a6db9` |
-| [Governance drift review](governance-drift-review/procedure.json) | `review governance drift` | `0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07` |
+| Source procedure | Explicit outcome | Original Git blob SHA-1 | Pinned SHA-256 |
+| --- | --- | --- | --- |
+| [CI failure triage](ci-failure-triage/procedure.json) | `triage CI failure` | `23bd3a94a3da68996f406892dcbb94be247a6db9` | `9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47` |
+| [Governance drift review](governance-drift-review/procedure.json) | `review governance drift` | `0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07` | `949abaa21513610ce2d9b4a1b64da75af6edb4b9cea73266979eda85aec043d1` |
 
-The original authoring commit is [`87a6a5965a25af95a50127f26ec5afb404e0f2b8`](https://github.com/MythologIQ-Labs-LLC/skill-mason/commit/87a6a5965a25af95a50127f26ec5afb404e0f2b8). Code in [`src/backend/first-party-pilots.mjs`](../../src/backend/first-party-pilots.mjs) checks those historical Git object identities against the byte contents in this checkout and independently derives SHA-256 package/recipe pins before any candidate generation. A changed source file refuses rather than silently retargeting the procedure.
+The original authoring commit is [`87a6a5965a25af95a50127f26ec5afb404e0f2b8`](https://github.com/MythologIQ-Labs-LLC/skill-mason/commit/87a6a5965a25af95a50127f26ec5afb404e0f2b8). Code in [`src/backend/first-party-pilots.mjs`](../../src/backend/first-party-pilots.mjs) checks both original Git object identities **and independently pinned SHA-256 values** against the bytes in this checkout, then derives the bundled recipe snapshot digest before any candidate generation. A changed source file refuses rather than silently retargeting the procedure.
 
 Each JSON file is a bounded, *declarative, text-only* workflow: when to use and stop, required input evidence, actionable review steps, required evidence for each step, and the output fields to produce. [`text-procedure.mjs`](../../src/backend/text-procedure.mjs) rejects unknown fields, unbounded text and code/tool invocation fields; only this exact schema/version is interpreted into agent-facing steps. Unknown method versions remain quoted as inert source excerpts.
 
