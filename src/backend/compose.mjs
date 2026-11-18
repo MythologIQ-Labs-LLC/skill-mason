@@ -38,7 +38,7 @@ function canonicalize(v){
 export function canonicalJSON(v){return JSON.stringify(canonicalize(v))+'\n';}
 const digestJSON=v=>SHA(utf8(canonicalJSON(v)));
 function validateRecipe(recipe){
-  if(!obj(recipe)||recipe.schema!=='qortara/skill-recipe/1')refuse('INVALID_RECIPE','unsupported recipe schema');
+  if(!obj(recipe)||recipe.schema!=='qortara/internal-composition-plan/1')refuse('INVALID_RECIPE','unsupported recipe schema');
   if(typeof recipe.name!=='string'||!slug.test(recipe.name))refuse('INVALID_RECIPE','invalid package name');
   for(const name of ['title','description','targetHost'])boundedString(recipe[name],name,name==='description'?400:150);
   if(!Array.isArray(recipe.requiredOutcomes)||recipe.requiredOutcomes.length===0||recipe.requiredOutcomes.length>32)
