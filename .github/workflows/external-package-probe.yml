@@ -5,6 +5,9 @@ on:
       - 'scripts/external_package_resolver.py'
       - 'tests/test_external_package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'tests/test_external_comparison.py'
       - 'scripts/catalog_index.py'
       - 'scripts/catalog_handoff.py'
@@ -86,6 +89,15 @@ jobs:
             --external-checkout external-source \
             --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
             > external-comparison-receipt.json
+          python3 -m scripts.prism_input_preflight \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route software-engineering/frontend --host ChatGPT \
+            --governed-record governed:anthropic-skills/frontend-design \
+            --external-record governed:anthropic-skills/frontend-design \
+            --external-checkout external-source \
+            --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+            > external-prism-denial-preflight.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -122,6 +134,23 @@ jobs:
           assert cmp['chosen_method'] is None and cmp['composition_eligible'] is False
           assert cmp['prism_invoked'] is False
           print('PINNED EXTERNAL-TO-C4 COMPARISON: PASS; 2 evidence links, 1 full external byte receipt, 0 eligible methods')
+          bridge = json.loads(Path('external-prism-denial-preflight.json').read_text())
+          assert bridge['binding']['governed_id'] == 'anthropic-skills/frontend-design'
+          assert bridge['binding']['requested_route'] == 'software-engineering/frontend'
+          assert bridge['source_package_bytes_verified'] is True
+          assert bridge['binding']['package_bytes_verified'] is True
+          assert bridge['facts_verified'] == {
+              'evidence': False, 'rights': False, 'authority': False, 'coverage': False}
+          assert bridge['negative_test_vector_hex'] == '00000000'
+          assert bridge['expected_guest_refusals'] == [
+              'EVIDENCE_UNQUALIFIED', 'RIGHTS_UNRESOLVED',
+              'AUTHORITY_EXCEEDED', 'OUTCOME_UNCOVERED']
+          assert bridge['independently_authenticated_method_assertion'] is False
+          assert bridge['selected_method_for_composition'] is None
+          assert bridge['prism_invoked'] is False
+          assert bridge['composition_eligible'] is False and bridge['production_eligible'] is False
+          print('REAL EXTERNAL-TO-PRISM PREFLIGHT: source bytes yes; signed facts no; unsigned 00000000 denial only')
+
           PY
       - name: Preserve bounded metadata-only evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -130,5 +159,6 @@ jobs:
           path: |
             external-package-receipt.json
             external-comparison-receipt.json
+            external-prism-denial-preflight.json
           retention-days: 14
           if-no-files-found: error
