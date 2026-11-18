@@ -1,29 +1,71 @@
 # Qortara Skills Security Policy
 
-**Status:** Initial, **not yet owner-qualified**. The confidential reporting/handling choice requires owner confirmation. This file is intentionally present and honest rather than claiming a private mailbox, enabled GitHub advisories, or supported releases that have not been established.
+**Status:** Owner-selected security-reporting and handling policy for the public
+pre-alpha `skill-mason` repository. The repository owner confirmed the choices
+below on 2026-11-17 (America/New_York), and reported enabling GitHub Private
+Vulnerability Reporting. This records an owner decision, **not independent
+verification of a GitHub setting or a completed native Qortara audit**.
 
 ## Scope and supported versions
 
-Qortara Skills (repository `skill-mason`) is a **public, pre-implementation** repository. No release, production service, supported version range, external vulnerability intake, or service-level response time has been established. A future published or deployed version must receive an explicit security support and disclosure policy.
+Qortara Skills is a public repository in **pre-alpha development**. No
+production service, released generator, or supported version range is currently
+promised. Security fixes are evaluated by the accountable owner against the
+affected commit/revision and relevant maintained development branch.
+Historical revisions are not automatically security-supported.
 
 ## Reporting vulnerabilities
 
-**Confidential intake: `NOT_ESTABLISHED`.** Do **not** put secrets, exploit details, unreleased code or private reports in a general GitHub issue/PR. Do not send this project's security reports to `security@qortara.com`; that address belongs to Qortara's own product/services, not this consumer repository.
+Report suspected vulnerabilities **privately through GitHub Private
+Vulnerability Reporting** for this repository:
 
-The owner must explicitly choose and verify **one** repository-appropriate handling route before qualification:
-- If the owner confirms solo-maintained, non-public and closed-contribution intent, choose an **internal-only security process** and explicitly confirm that external vulnerability reporting is not accepted, including how incidents will be tracked privately.
-- Otherwise provide a real, repo-specific confidential address, approved internal team channel or an actually enabled provider-supported private advisory route.
+[Privately report a vulnerability](https://github.com/MythologIQ-Labs-LLC/skill-mason/security/advisories/new)
 
-Do not infer any route is operational merely from a GitHub organization name, an internal visibility flag or an email guessed from the domain.
+The owner confirmed that the repository's private vulnerability reporting
+setting has been enabled. This is the chosen reporting channel, not a
+general-purpose issue, pull request, discussion or public bug report.
+
+Do not post exploit details, credentials, unreleased code, security reports or
+other confidential data publicly. Provide the affected revision/component,
+impact and minimal reproduction steps without unnecessary sensitive data.
+Do not send Qortara Skills reports to `security@qortara.com`, which belongs
+to a different product/security scope.
+
+If the private report form is unexpectedly unavailable, do **not** disclose
+the vulnerability publicly as a workaround. The reporting-channel availability
+must be corrected by the repository owner before a confidential submission
+can proceed. No fallback mailbox or private channel is claimed.
 
 ## Accountability and handling
 
-**Accountable security decision authority:** MythologIQ Labs, LLC project owner or explicitly authorized delegate. The role assesses impact, affected revisions, confidentiality, mitigation, regression tests, dependency exposure, and authorized disclosure. Reports and corrections must be tied to verified source versions; release or closure requires actual evidence and approved action.
+**Accountable authority:** the MythologIQ Labs, LLC project owner, or a
+delegate explicitly authorized for the relevant security case. The owner
+reviews reports privately, triages reproducibility and severity, assesses
+affected revisions and dependency exposure, authorizes containment and
+remediation, and decides on disclosure after an appropriate review.
+Security-sensitive code changes follow the actual repository gates and
+permissions. A report or proposed fix is not automatically accepted.
 
-**Response timeline:** `NOT_ESTABLISHED`. No acknowledgment or remediation SLA is promised.
+**Response and remediation timelines:** no guaranteed acknowledgment,
+resolution or disclosure service-level agreement is offered during pre-alpha.
+This is an explicit current policy decision, not a promised deadline or
+an assertion that every past version receives backports.
 
-## Publication boundary
+## Contribution and disclosure boundary
 
-This repository must not publish vulnerability reports, exploit reproductions, credentials, private source, generated skill input secrets or source-corpus proprietary assets by default. Any disclosure, security contact, supported version matrix or release route needs the owner's explicit decision and actual host/repository permission.
+The owner has selected **closed contributions during pre-alpha**, despite the
+repository's public visibility. Public visibility does not imply permission
+to submit or merge unsolicited code or to reuse source beyond the applicable
+license. Changes by explicitly authorized maintainers and agents remain subject
+to repository permissions, governed review and owner acceptance.
 
-See [GOVERNANCE.md](GOVERNANCE.md), [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md) and [governed evidence layout](docs/technical/governed-evidence.md). A structurally present file is **not** a qualified security-reporting policy.
+Security disclosures, release support promises, and any change to the
+contribution model require a new explicit owner decision and policy update.
+A public repository or a successful CI status is not evidence of publication
+authorization, product fitness or security qualification.
+
+See [GOVERNANCE.md](GOVERNANCE.md),
+[ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md), and
+[governed evidence layout](docs/technical/governed-evidence.md).
+The current hosted Qortara Logic Demo can evaluate supplied governance
+inputs, but cannot attest local file checks, owner identity or host execution.
