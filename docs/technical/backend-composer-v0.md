@@ -33,6 +33,10 @@ PR #15 owns the pinned full `just vv` gate, isolated SDK execution, real guest, 
 
 The pinned `skillz` handoff still labels composition eligibility `not-assessed` and redistribution clearance `not-established-by-export`. **No method from those 1,043 records is automatically eligible for this composer.**
 
+## Bounded signed-assertion adapter (separate module)
+
+The [development-only Ed25519 verifier](signed-assertions-v0.md) can now implement the **structural** `assertMethod` callback: it requires an operator-pinned signing key, exact composition subject, current signed assertion, non-revoked proof digest and independently recomputed bytes for each positive evidence reference. In negative scenarios it returns signed denied facts so the real Prism guest, not host glue, still decides refusal. The signer and evidence fixture in unit tests are not production authorities. A valid signature or content hash does not independently establish source rights or host behavior, so the existing `DEVELOPMENT_CANDIDATE` status and native-Prism integration holds are unchanged.
+
 ## Unresolved production dependencies
 
 - Trusted, authenticated source roots and bytes for chosen `skillz` methods, including nested asset rights, issuer identity, freshness and revocation.
