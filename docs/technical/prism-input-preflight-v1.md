@@ -10,7 +10,7 @@ The C4 comparator separates evidence-linked governed reviews from name-only lead
 
 Neither a static review marked verified, a matching Git package tree, nor a user-supplied host label establishes any of these four facts. Source byte integrity is not independent evidence of correctness, source/asset reuse rights, actual host permissions, or essential-outcome qualification.
 
-The preflight binds one exact governed reviewed ID and evidence-linked capability route to the pinned source commit and tree, canonical full governed-record SHA-256, inspected-package receipt SHA-256, and the requested host label. Name-only leads, invented IDs, mismatched external source selections, unrecognized routes and malformed pinned source identities refuse. External source byte inspection is invoked directly; callers cannot provide JSON receipts as proof.
+The preflight binds one exact governed reviewed ID and evidence-linked capability route to the pinned source commit and tree, canonical full governed-record SHA-256, inspected-package receipt SHA-256, and the requested host label. For an inspected external source, the package receipt now contains an exact hash of **every verified source file's unresolved rights and reference-review inventory**, so its content is covered transitively by the preflight's own binding SHA-256. Altering the asset/notice review ledger changes that binding. No source permission is inferred. Name-only leads, invented IDs, mismatched external source selections, unrecognized routes and malformed pinned source identities refuse. External source byte inspection is invoked directly; callers cannot provide JSON receipts as proof.
 
 ## Output and refusal contract
 
