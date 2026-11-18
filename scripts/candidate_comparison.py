@@ -14,6 +14,7 @@ from scripts.catalog_handoff import COMMIT, Refusal, require
 from scripts.catalog_index import CorpusIndex
 from scripts.capability_graph import CapabilityGraph
 from scripts.package_resolver import inspect_package
+from scripts.external_package_resolver import inspect_external
 
 SCHEMA = "qortara/candidate-comparison/1"
 MAX_LEADS = 50
@@ -31,7 +32,8 @@ def _status(status):
 
 
 def compare(graph, route, host, *, include_lexical=True, limit=25,
-            package_inspector=inspect_package):
+            package_inspector=inspect_package,
+            external_selection=None, external_inspector=inspect_external):
     require(isinstance(route, str) and route in graph.paths,
             "UNKNOWN_ROUTE", "select one exact recognized capability route")
     require(isinstance(host, str) and 0 < len(host.strip()) <= MAX_HOST_LENGTH and
@@ -46,6 +48,17 @@ def compare(graph, route, host, *, include_lexical=True, limit=25,
     hints = sorted(node["hints"])
     reviewed = {item["raw"]["record_id"]: item
                 for item in corpus.records if item["family"] == "governed"}
+    if external_selection is not None:
+        require(isinstance(external_selection, dict) and
+                set(external_selection) == {"record_id", "checkout", "repo_tree"},
+                "EXTERNAL_SELECTION",
+                "supply exact record ID, separately pinned checkout and Git tree")
+        ext_id = external_selection["record_id"]
+        require(isinstance(ext_id, str) and ext_id.startswith("governed:") and
+                ext_id[len("governed:"):] in matched and
+                reviewed[ext_id[len("governed:"):]]["source_class"] == "third-party",
+                "EXTERNAL_SELECTION",
+                "external package must be an evidence-linked third-party review for route")
     evidence = []
     statuses = Counter()
     for rid in matched:
@@ -62,6 +75,21 @@ def compare(graph, route, host, *, include_lexical=True, limit=25,
                            "reference_dependency_closure_proven": False}
             except Refusal as exc:
                 package = {"status": "REFUSED", "code": exc.code}
+        elif external_selection is not None and external_selection["record_id"] == "governed:" + rid:
+            # Run the full Git inspector directly. Never accept arbitrary
+            # caller-supplied JSON as a verified package receipt.
+            external = external_inspector(
+                corpus, "governed:" + rid, external_selection["checkout"],
+                expected_repo_tree=external_selection["repo_tree"])
+            package = {
+                "status": external["state"],
+                "package_files": external["complete_tracked_package_files_verified"],
+                "package_git_tree_sha1": external["package_git_tree_sha1"],
+                "entrypoint_git_blob_sha1": external["entrypoint_git_blob_sha1"],
+                "historical_export_identity_gap_requires_upstream_correction":
+                    external["historical_export_identity_gap_requires_upstream_correction"],
+                "reference_dependency_closure_proven": False,
+                "rights_and_host_still_unapproved": True}
         statuses[status] += 1
         evidence.append({
             "governed_id": rid, "review_status": row["review"]["semantic_status"],
@@ -122,6 +150,9 @@ def compare(graph, route, host, *, include_lexical=True, limit=25,
             "unmapped_and_unreviewed_methods_may_be_relevant": True,
             "all_semantically_relevant_sources_exhaustively_qualified": False,
             "full_package_rights_and_host_qualification_established": False,
+            "externally_inspected_governed_id":
+                external_selection["record_id"] if external_selection is not None else None,
+            "external_inspection_does_not_grant_rights_or_relevance": True,
             "chosen_method": None,
             "eligible_candidate_count": 0,
             "composition_eligible": False,
@@ -137,11 +168,25 @@ def main(argv=None):
     p.add_argument("--host", required=True)
     p.add_argument("--limit", type=int, default=25)
     p.add_argument("--no-lexical", action="store_true")
+    p.add_argument("--external-record")
+    p.add_argument("--external-checkout")
+    p.add_argument("--external-repository-tree")
     opts = p.parse_args(argv)
     try:
         graph = CapabilityGraph(CorpusIndex(opts.handoff, opts.source_checkout))
+        supplied = (opts.external_record, opts.external_checkout,
+                    opts.external_repository_tree)
+        require(all(x is not None for x in supplied) or all(
+            x is None for x in supplied),
+            "EXTERNAL_SELECTION",
+            "external record/checkout/tree flags must be provided together")
+        external = ({"record_id": opts.external_record,
+                     "checkout": opts.external_checkout,
+                     "repo_tree": opts.external_repository_tree}
+                    if opts.external_record is not None else None)
         receipt = compare(graph, opts.route, opts.host,
-                          include_lexical=not opts.no_lexical, limit=opts.limit)
+                          include_lexical=not opts.no_lexical, limit=opts.limit,
+                          external_selection=external)
         print(json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True))
         return 0
     except Refusal as exc:
