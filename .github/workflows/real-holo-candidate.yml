@@ -1,12 +1,17 @@
 name: Real Prism candidate assembly (P0 development only)
+# Opt-in only: an artifact from an earlier native gate expires after 30 days.
+# Never make this an automatic, permanently required PR check.
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/real-holo-candidate.yml'
-      - 'tests/real_holo_candidate_acceptance.mjs'
-      - 'src/backend/**'
-      - 'bin/qortara-skills.mjs'
   workflow_dispatch:
+    inputs:
+      native_run_id:
+        description: Exact existing full native-gate run containing the pinned holo
+        required: true
+        default: '44235570627'
+      native_artifact_id:
+        description: Exact nested artifact ID from that run
+        required: true
+        default: '14399257681'
 permissions: {}
 concurrency:
   group: real-holo-candidate-${{ github.ref }}
@@ -26,8 +31,8 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           repository: MythologIQ-Labs-LLC/skill-mason
-          run-id: 44235570627
-          artifact-ids: 14399257681
+          run-id: ${{ inputs.native_run_id }}
+          artifact-ids: ${{ inputs.native_artifact_id }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/pinned-evidence
       - name: Verify recorded native receipt and original holo identity (never execute here)
