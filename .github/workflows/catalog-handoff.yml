@@ -1,0 +1,75 @@
+name: Pinned skillz handoff inspection (metadata-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/catalog_handoff.py'
+      - 'tests/test_catalog_handoff.py'
+      - '.github/workflows/catalog-handoff.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/catalog_handoff.py'
+      - 'tests/test_catalog_handoff.py'
+      - '.github/workflows/catalog-handoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-pinned-catalog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Qortara Skills with no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout exact published handoff snapshot (data only)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          sparse-checkout: registry/exports/skill-mason-v1
+          persist-credentials: false
+      - name: Checkout declared original source snapshot (tree verification only)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: 31a8c518dd97b7828adcc728202fa41388a306d7
+          path: skillz-source-pin
+          sparse-checkout: .gitattributes
+          persist-credentials: false
+      - name: Authenticate commit and Git tree binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          test "$(git -C skillz-source-pin rev-parse HEAD)" = 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source-pin rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Run fail-closed inspector against actual governed review population
+        run: |
+          python3 scripts/catalog_handoff.py --handoff skillz-export/registry/exports/skill-mason-v1 --report catalog-inventory-report.json
+      - name: Check exact population and non-eligibility declarations
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('catalog-inventory-report.json').read_text())
+          counts=v['counts']
+          assert (counts['governed_records'],counts['first_party'],counts['third_party'],counts['mapped'],counts['unmapped'])==(1043,48,995,122,921)
+          assert counts['semantic_states']=={'rejected':702,'retired':3,'verified':337,'verified-with-portability-caveats':1}
+          assert v['preserved_record_ids']==1043 and v['artifact_integrity']=='PASS'
+          assert v['composition_eligible'] is False and v['source_rights_assessed'] is False
+          assert v['prism_evaluated'] is False and v['production_qualified'] is False
+          assert v['source_commit_tree_authentication']=='NOT_RUN', 'inspector itself must not overclaim independent checkout results'
+          print('SOURCE-SNAPSHOT TREE: verified by separately pinned checkout')
+          print('CATALOG ARTIFACTS AND 1043 REVIEW STATES: PASS')
+          print('COMPOSITION RIGHTS / SOURCE FILE BYTES / PRISM PROOF: NOT QUALIFIED')
+          PY
+      - name: Upload inspection metadata report (no source package bytes)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pinned-skillz-catalog-report
+          path: catalog-inventory-report.json
+          retention-days: 14
+          if-no-files-found: error

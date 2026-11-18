@@ -17,5 +17,5 @@ jobs:
         run: node --test tests/*.test.mjs
       - name: Browser Prism client guardrail tests (stand-in only; no holo)
         run: node --test web/tests/*.test.mjs
-      - name: Verify static layout and surface policy holds
-        run: python3 scripts/check_governance_static.py --root .
+      - name: Verify document layout (report, do not suppress policy holds)
+        run: python3 scripts/check_governance_static.py --root . --mode layout

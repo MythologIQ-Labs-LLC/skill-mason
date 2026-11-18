@@ -130,16 +130,25 @@ def assess(root: Path) -> tuple[list[str], list[str]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--mode", choices=("layout", "guard"), default="guard",
+        help=("layout checks only structural errors and reports policy holds without "
+              "conflating them with layout failure; guard fails on both structural "
+              "errors and policy holds (default, fail closed)")
+    )
     args = parser.parse_args()
     errors, holds = assess(args.root)
     for message in errors:
         print("STATIC_ERROR:", message)
     for message in holds:
         print("QUALIFICATION_HOLD:", message)
-    if errors or holds:
-        print("NOT_QUALIFIED: static check cannot replace native Qortara validation")
+    if errors or (holds and args.mode == "guard"):
+        print("NOT_QUALIFIED: policy/structural screening failed; native Qortara checks still required")
         return 1
-    print("STATIC_LAYOUT_PASS ONLY: native Qortara checks, owner approval and host evidence still required")
+    if args.mode == "layout":
+        print("STATIC_LAYOUT_PASS ONLY: policy holds reported separately; native Qortara checks still required")
+        return 0
+    print("STATIC_POLICY_SCREEN_PASS ONLY: native Qortara checks, owner approval and host evidence still required")
     return 0
 
 

@@ -63,7 +63,9 @@ class PrismClaudeSkillTests(unittest.TestCase):
     def test_public_product_brand_and_artwork_are_present(self):
         readme = (ROOT / "README.md").read_text()
         self.assertIn("# Qortara Skills", readme)
-        self.assertIn("zero-inference-token agent-skill builder", readme)
+        self.assertIn("zero-inference-token compiler is a development target", readme)
+        self.assertIn("not yet a qualified release", readme)
+        self.assertIn("downloadable, clearly labeled", readme)
         self.assertIn("assets/brand/qortara-skills-banner.webp", readme)
         self.assertIn("assets/brand/qortara-skills-icon.webp", readme)
         self.assertNotIn("Qortara Logic", readme)
