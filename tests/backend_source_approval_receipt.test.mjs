@@ -6,6 +6,7 @@ import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createComposer,verifyPackage,writePackage,readPackage} from '../src/backend/compose.mjs';
+import {replaySealedSourceReceipt} from '../src/backend/source-proof-replay.mjs';
 
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const holo='c'.repeat(64),sourceText='Read a test fixture and report the evidence.';
@@ -160,4 +161,122 @@ test('changed four-fact proof and source approval proof both influence receipt h
  assert.notEqual(a.files['RECEIPT.json'],c.files['RECEIPT.json']);
  assert.notEqual(a.files['skill-mason.json'],b.files['skill-mason.json']);
  assert.notEqual(a.files['skill-mason.json'],c.files['skill-mason.json']);
+});
+
+
+function replayOpts(pkg,overrides={}){
+ const r=JSON.parse(pkg.files['RECEIPT.json']);
+ const a=r.assertions[0];
+ return {
+  expectedSourceBindings:{'method-receipt-fixture':approvalBinding},
+  expectedHoloSha256:holo,
+  verifySourceAcceptance:async({subjectSha256,sourceBindingSha256,
+                               approvalProofSha256})=>({
+   state:'OPERATOR_SOURCE_BINDING_SIGNATURE_VALID',
+   composerSubjectSha256:subjectSha256,
+   sourceBindingSha256,acceptanceProofSha256:approvalProofSha256,
+   signatureAuthenticatesOnlyIssuerClaim:true,productionEligible:false}),
+  verifySignedMethod:async({subjectSha256})=>({
+   subjectSha256,issuer:a.issuer,proofDigest:a.proofDigest,
+   evidence:true,rights:true,authority:true,coverage:true}),
+  runPrism:guest,
+  ...overrides
+ };
+}
+
+test('two operator-configured proof replay callbacks and guest recheck are required',async()=>{
+ const pkg=await strict()(plan(),[method()]);calls=0;
+ const out=await replaySealedSourceReceipt(pkg,replayOpts(pkg));
+ assert.equal(out.state,'P0_DEVELOPMENT_RECEIPT_REPLAYED_BY_CONFIGURED_ADAPTERS');
+ assert.equal(out.receiptMethodCount,1);
+ assert.equal(out.methods[0].sourceBindingSha256,approvalBinding);
+ assert.equal(out.methods[0].sourceApprovalProofSha256,approvalProof);
+ assert.equal(out.methods[0].signedFourFactProofSha256,fourFactProof);
+ assert.equal(calls,1);
+ assert.equal(out.productionEligible,false);
+ assert.equal(out.rightsOrBehavioralTruthEstablishedByThisModule,false);
+ assert.equal(out.replayResultIsNotP2Proof,true);
+});
+test('missing source signature verifier is a hard replay configuration refusal',async()=>{
+ const pkg=await strict()(plan(),[method()]);
+ await assert.rejects(replaySealedSourceReceipt(pkg,replayOpts(pkg,{
+  verifySourceAcceptance:undefined})),rejection('REPLAY_CONFIG'));
+});
+test('legacy fixture receipt may not masquerade as strict signed-source replay',async()=>{
+ const cb=({subjectSha256})=>({issuer:'fixture',subjectSha256,
+  proofDigest:fourFactProof,evidence:true,rights:true,authority:true,coverage:true});
+ const pkg=await createComposer({assertMethod:cb,runPrism:guest,holoSha256:holo})
+  (plan(),[method()]);
+ await assert.rejects(replaySealedSourceReceipt(pkg,replayOpts(pkg)),
+  rejection('SOURCE_REPLAY_REQUIRED'));
+});
+test('source signature replay mismatch refuses without invoking guest',async()=>{
+ const pkg=await strict()(plan(),[method()]);calls=0;
+ const out=replayOpts(pkg,{verifySourceAcceptance:async()=>({
+  state:'OPERATOR_SOURCE_BINDING_SIGNATURE_VALID',
+  sourceBindingSha256:approvalBinding,
+  composerSubjectSha256:'0'.repeat(64),
+  acceptanceProofSha256:approvalProof,
+  signatureAuthenticatesOnlyIssuerClaim:true,productionEligible:false})});
+ await assert.rejects(replaySealedSourceReceipt(pkg,out),
+  rejection('SOURCE_REPLAY_MISMATCH'));
+ assert.equal(calls,0);
+});
+test('revoked signed four-fact proof is not accepted by replay',async()=>{
+ const pkg=await strict()(plan(),[method()]);calls=0;
+ const opts=replayOpts(pkg,{verifySignedMethod:async()=>{
+  const err=new Error('source issuer revoked');err.code='ASSERTION_REVOKED';throw err;}});
+ await assert.rejects(replaySealedSourceReceipt(pkg,opts),
+  rejection('ASSERTION_REVOKED'));
+ assert.equal(calls,0);
+});
+test('signed four-fact replay returning false rights refuses before guest',async()=>{
+ const pkg=await strict()(plan(),[method()]);calls=0;
+ const opts=replayOpts(pkg,{verifySignedMethod:async({subjectSha256})=>({
+  subjectSha256,issuer:'fixture-signed-only',proofDigest:fourFactProof,
+  evidence:true,rights:false,authority:true,coverage:true})});
+ await assert.rejects(replaySealedSourceReceipt(pkg,opts),
+  rejection('ASSERTION_REPLAY_MISMATCH'));
+ assert.equal(calls,0);
+});
+test('guest incorrectly returning eligible for wrong holo fails P0 replay',async()=>{
+ const pkg=await strict()(plan(),[method()]);
+ const opts=replayOpts(pkg,{runPrism:async()=>({
+  ...guest({requestHex:'01010101',holoSha256:holo}),
+  artifact:{sha256:'0'.repeat(64)}})});
+ await assert.rejects(replaySealedSourceReceipt(pkg,opts),
+  rejection('PRISM_REPLAY_MISMATCH'));
+});
+test('trusted operator method source binding mismatch stops before evidence replay',async()=>{
+ const pkg=await strict()(plan(),[method()]);let invoked=0;
+ const opts=replayOpts(pkg,{
+  expectedSourceBindings:{'method-receipt-fixture':'0'.repeat(64)},
+  verifySourceAcceptance:async()=>{invoked++;}});
+ await assert.rejects(replaySealedSourceReceipt(pkg,opts),
+  rejection('REPLAY_SCOPE'));
+ assert.equal(invoked,0);
+});
+test('retrofitted receipt hashes cannot forge a valid original approval proof replay',async()=>{
+ const pkg=await strict()(plan(),[method()]);
+ const old=approvalProof;
+ const r=JSON.parse(pkg.files['RECEIPT.json']);
+ r.assertions[0].sourceAcceptanceProofSha256='f'.repeat(64);
+ pkg.files['RECEIPT.json']=JSON.stringify(r)+'\n';
+ const m=JSON.parse(pkg.files['skill-mason.json']);
+ m.receiptSha256=sha(pkg.files['RECEIPT.json']);
+ pkg.files['skill-mason.json']=JSON.stringify(m)+'\n';
+ assert.equal(verifyPackage(pkg).sourceAcceptanceProofRecorded,true);
+ let checked=0;
+ const opts=replayOpts(pkg,{verifySourceAcceptance:async({
+  subjectSha256,sourceBindingSha256,approvalProofSha256})=>{
+  checked++;
+  assert.notEqual(approvalProofSha256,old);
+  return {state:'OPERATOR_SOURCE_BINDING_SIGNATURE_VALID',
+    sourceBindingSha256,composerSubjectSha256:subjectSha256,
+    acceptanceProofSha256:old,
+    signatureAuthenticatesOnlyIssuerClaim:true,productionEligible:false};
+ }});
+ await assert.rejects(replaySealedSourceReceipt(pkg,opts),
+  rejection('SOURCE_REPLAY_MISMATCH'));
+ assert.equal(checked,1);
 });
