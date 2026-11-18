@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/MythologIQ-Labs-LLC/skill-mason/blob/main/schemas/recipe.v0.schema.json",
-  "title": "Skill Mason recipe v0 (draft, not implemented)",
+  "title": "Skill Mason recipe v0 (development mapping implemented, not qualified)",
   "type": "object",
   "additionalProperties": false,
   "required": [
