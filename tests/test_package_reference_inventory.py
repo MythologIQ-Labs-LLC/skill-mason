@@ -140,6 +140,13 @@ class ReferenceInventoryTests(unittest.TestCase):
             build_reference_inventory(raw, receipts)
         self.assertEqual(ex.exception.code, "PACKAGE_INVENTORY")
 
+    def test_forged_original_git_blob_identity_refused(self):
+        raw, receipts = checked(self.payload)
+        receipts[0]["git_blob_sha1"] = "0"*40
+        with self.assertRaises(Refusal) as ex:
+            build_reference_inventory(raw, receipts)
+        self.assertEqual(ex.exception.code, "PACKAGE_INVENTORY")
+
     def test_extra_unlisted_file_refused(self):
         raw, receipts = checked(self.payload)
         raw["evil/added.sh"] = b"exit 0"
