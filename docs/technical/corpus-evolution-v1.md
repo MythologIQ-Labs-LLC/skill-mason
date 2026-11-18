@@ -27,7 +27,7 @@ Proposal manifest fields:
 - record_count: integer total across shards
 - parts: list of objects with path, bytes, sha256, record_count
 
-Each NDJSON row carries a source-relative SKILL.md path, an entrypoint_git_blob_sha1 and a package_git_tree_sha1 when known. Untrusted extra fields are never treated as tool instructions, evidence of permission or source qualification. The preview distinguishes new placement leads, duplicate exact-placement claims, repeated proposal paths, changed/contradictory same-pin claims and unresolved evidence. Changed shard bytes, missing files, symlinks, truncated counts, and unsafe shard paths refuse explicitly.
+Each NDJSON row carries a source-relative SKILL.md path, an entrypoint_git_blob_sha1 and a package_git_tree_sha1 when known. Untrusted extra fields are never treated as tool instructions, evidence of permission or source qualification. The preview preserves two independent dimensions: the disposition relative to the trusted snapshot (new, duplicate, changed/contradictory or unresolved) and the separate repeated-within-proposal count (identical fingerprint, contradictory fingerprint or unknown fingerprint). It never hides a same-pin contradiction by relabeling it merely as a duplicate. Changed shard bytes, missing files, symlinks, truncated counts, and unsafe shard paths refuse explicitly.
 
 The preview performs **no** source network fetch, source authentication, writes to skillz, corpus admission, license determination, or generated-skill installation. Its SHA-256 checks compare self-declared proposal hashes only. This is structural integrity, not independently authenticated provenance.
 
