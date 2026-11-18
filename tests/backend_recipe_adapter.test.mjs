@@ -8,8 +8,8 @@ const SHA=bytes=>createHash('sha256').update(bytes).digest('hex');
 const SOURCE={repository:'https://example.test/pinned-discovery',commit:'a'.repeat(40),sha256:'b'.repeat(64)};
 const HOLO='c'.repeat(64);
 function entry(id='review-method',outcome='review changes'){
- const bytes=Buffer.from('fixture package '+id+' bytes\n','utf8');
  const methodText='Check declared task evidence for '+outcome+'.';
+ const bytes=Buffer.from('fixture package '+id+' bytes\n'+methodText+'\n','utf8');
  return {
    method_id:id,package_id:'fixture/'+id,package_sha256:SHA(bytes),packageBytes:bytes,
    method:{
@@ -168,4 +168,10 @@ test('composer rejects a snapshot-only plan that drops package pin evidence',asy
 test('an unknown snapshot field cannot leak into a canonical package',()=>{
  const r=recipe();r.source_snapshot.user_admin=true;
  assert.throws(()=>createRecipeAdapter(registry())(r),reject('SOURCE_SNAPSHOT'));
+});
+test('independently valid hashes must still bind method text to full package bytes',()=>{
+ const c=registry(),m=c.components[0].method;
+ m.methodText='Different procedure with its own valid digest.';
+ m.sha256=SHA(Buffer.from(m.methodText));
+ assert.throws(()=>createRecipeAdapter(c),reject('SOURCE_TEXT_UNBOUND'));
 });
