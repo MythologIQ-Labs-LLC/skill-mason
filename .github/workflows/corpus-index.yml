@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/snapshot_accession.py'
+      - 'tests/test_snapshot_accession.py'
+      - 'docs/technical/snapshot-accession-v1.md'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
@@ -29,6 +32,9 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/snapshot_accession.py'
+      - 'tests/test_snapshot_accession.py'
+      - 'docs/technical/snapshot-accession-v1.md'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
@@ -71,6 +77,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
+          python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -123,6 +130,15 @@ jobs:
           python3 -m scripts.package_resolver \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source first-party-scan > corpus-package-scan.json
+          python3 -m scripts.snapshot_accession \
+            --old-handoff skillz-export/registry/exports/skill-mason-v1 \
+            --old-source-checkout skillz-source \
+            --candidate-handoff skillz-export/registry/exports/skill-mason-v1 \
+            --candidate-source-checkout skillz-source \
+            --candidate-manifest-blob 55974d44fdfde36bd537a552feac933c341e1895 \
+            --candidate-source-commit 31a8c518dd97b7828adcc728202fa41388a306d7 \
+            --candidate-source-tree e6d5dfeb42bcd7777ddff52605922fead62135ff \
+            > corpus-accession-noop.json
           python3 -m scripts.corpus_evolution \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source summary > corpus-evolution-summary.json
@@ -181,6 +197,21 @@ jobs:
           assert not pkg["rights_assessed"] and not pkg["host_qualified"]
           assert not pkg["composition_eligible"] and not pkg["third_party_complete_packages_assessed"]
           print("First-party package inspection outcomes:", pkg["results_by_status"])
+          accession = json.loads(Path("corpus-accession-noop.json").read_text())
+          assert accession["state"] == "PINNED_SNAPSHOT_DIFF_ONLY"
+          assert not accession["exact_revisions_differ"] and not accession["data_delta_nonempty"]
+          assert accession["governed"]["before"] == accession["governed"]["after"] == 1043
+          assert accession["observed_source_rows"]["before"] == accession["observed_source_rows"]["after"] == 66139
+          assert accession["tracked_source_files"]["before"] == accession["tracked_source_files"]["after"] == 2825
+          for family in ("governed", "observed_source_rows", "tracked_source_files"):
+              assert all(accession[family][kind]["count"] == 0 for kind in ("added", "removed", "changed"))
+          assert accession["review_status_transitions"] == []
+          assert accession["taxonomy_artifacts_changed"] == []
+          assert not accession["candidate_snapshot_auto_imported"]
+          assert not accession["snapshot_accession_authorized"]
+          assert not accession["composition_eligible"]
+          assert not accession["candidate_publisher_independently_authenticated"]
+          print("Full exact-pinned source accession no-op:", "1043 reviewed, 66139 observed, 2825 tracked, 0 delta, NO ADMISSION")
           evolution = json.loads(Path("corpus-evolution-summary.json").read_text())
           assert evolution["observed_path_rows"] == 66139
           assert evolution["source_family_rows"] == {"four-source": 4813, "g1-g3": 61326}
@@ -201,6 +232,7 @@ jobs:
             corpus-index-summary.json
             corpus-capability-summary.json
             corpus-evolution-summary.json
+            corpus-accession-noop.json
             corpus-package-scan.json
             corpus-comparison-example.json
             corpus-capability-gaps.json
