@@ -8,6 +8,10 @@ on:
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
       - '.github/workflows/corpus-index.yml'
+      - 'docs/technical/corpus-index-v1.md'
+      - 'docs/technical/capability-graph-v1.md'
+      - 'docs/architecture/skill-mason-pipeline-v0.md'
+      - 'docs/README.md'
   push:
     branches: [main]
     paths:
@@ -17,6 +21,10 @@ on:
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
       - '.github/workflows/corpus-index.yml'
+      - 'docs/technical/corpus-index-v1.md'
+      - 'docs/technical/capability-graph-v1.md'
+      - 'docs/architecture/skill-mason-pipeline-v0.md'
+      - 'docs/README.md'
   workflow_dispatch:
 permissions:
   contents: read
@@ -91,12 +99,16 @@ jobs:
           example = json.loads(Path("corpus-capability-example.json").read_text())
           assert example["path"] == "software-engineering/frontend"
           assert example["explicit_gaps"]["rights_not_assessed"] and not example["composition_eligible"]
+          print("C2 recognized capability outcome definitions missing:", graph["outcome_definitions_missing"])
+          print("C2 routes with unqualified/unknown essential outcomes:", graph["unqualified_or_unknown_outcome_routes"])
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
           PY
       - name: Upload non-content reconciliation receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pinned-corpus-index-summary
-          path: corpus-index-summary.json
+          path: |
+            corpus-index-summary.json
+            corpus-capability-summary.json
           retention-days: 14
           if-no-files-found: error
