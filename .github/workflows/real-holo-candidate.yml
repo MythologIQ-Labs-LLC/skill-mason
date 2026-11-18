@@ -1,7 +1,14 @@
 name: Real Prism candidate assembly (P0 development only)
-# Opt-in only: an artifact from an earlier native gate expires after 30 days.
-# Never make this an automatic, permanently required PR check.
+# Temporary exact-branch validation for two original first-party pilots.
+# Restore manual-only before main integration: upstream artifact expires.
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/real-holo-candidate.yml'
+      - 'tests/real_holo_candidate_acceptance.mjs'
+      - 'bin/first-party-pilot.mjs'
+      - 'src/backend/**'
+      - 'pilots/first-party/**'
   workflow_dispatch:
     inputs:
       native_run_id:
@@ -24,6 +31,8 @@ jobs:
   stage-pinned-development-holo:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
+    # Never stage for fork PRs; this temporary validation is internal only.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/backend-recipe-v0-pinned-selection-20261118')
     permissions:
       actions: read
     steps:
@@ -31,16 +40,21 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           repository: MythologIQ-Labs-LLC/skill-mason
-          run-id: ${{ inputs.native_run_id }}
-          artifact-ids: ${{ inputs.native_artifact_id }}
+          run-id: ${{ inputs.native_run_id || '44235570627' }}
+          artifact-ids: ${{ inputs.native_artifact_id || '14399257681' }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/pinned-evidence
       - name: Verify recorded native receipt and original holo identity (never execute here)
         shell: bash
         run: |
           set -euo pipefail
-          holo="$RUNNER_TEMP/pinned-evidence/prism-native-nested-1719fd11c654528d3492ae9b6c71c9d2924fefae/nested/out/holo/eligibility.holo"
-          manifest="$RUNNER_TEMP/pinned-evidence/prism-native-nested-1719fd11c654528d3492ae9b6c71c9d2924fefae/nested/out/receipts/eligibility/manifest.json"
+          # Artifact name can change when the same pinned holo is rebuilt.
+          # Accept exactly one matching file of each type, regardless of wrapper.
+          mapfile -d '' -t holos < <(find "$RUNNER_TEMP/pinned-evidence" -type f -path '*/nested/out/holo/eligibility.holo' -print0)
+          mapfile -d '' -t manifests < <(find "$RUNNER_TEMP/pinned-evidence" -type f -path '*/nested/out/receipts/eligibility/manifest.json' -print0)
+          test "${#holos[@]}" -eq 1 && test "${#manifests[@]}" -eq 1
+          holo="${holos[0]}"
+          manifest="${manifests[0]}"
           test -f "$holo" && test -f "$manifest"
           test "$(stat -c %s "$holo")" = 17346
           test "$(sha256sum "$holo" | cut -d' ' -f1)" = "$HOLO_SHA256"
@@ -100,6 +114,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: real-prism-p0-candidate-pilot
-          path: ${{ runner.temp }}/candidate-pilot.json
+          path: |
+            ${{ runner.temp }}/candidate-pilot.json
+            ${{ runner.temp }}/first-party-pilot-candidates/**
           if-no-files-found: error
           retention-days: 14
