@@ -228,7 +228,7 @@ The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues
 | [`docs/RFC-0001-prism-feasibility.md`](docs/RFC-0001-prism-feasibility.md) | Open Prism integration questions and evidence needed |
 | [`schemas/recipe.v0.schema.json`](schemas/recipe.v0.schema.json) | Draft input format; **not** a working generator API |
 | [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) | Planned positive, adversarial, and host acceptance cases |
-| [`GOVERNANCE.md`](GOVERNANCE.md) · [`SECURITY.md`](SECURITY.md) | Owner authority, change controls, and unresolved reporting policy |
+| [`GOVERNANCE.md`](GOVERNANCE.md) · [`SECURITY.md`](SECURITY.md) | Owner authority, change controls, and owner-selected private reporting policy (PR #20) |
 | [`AGENTS.md`](AGENTS.md) | Required operating instructions for development agents |
 | [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Internal governance evidence and audit-record procedures |
 | [`scripts/check_governance_static.py`](scripts/check_governance_static.py) · [tests](tests/test_governance_static.py) | Supplemental read-only layout lint and planted controls |
@@ -280,13 +280,13 @@ See [local CLI usage and explicit P0 limits](docs/technical/local-cli.md). The l
 
 ## GitHub Pages web app
 
-**[Open Qortara Skills](https://mythologiq-labs-llc.github.io/skill-mason/)**. The request-first page accepts a plain-language skill request and returns a **downloadable starter `SKILL.md` draft** produced by a deterministic local template. It is a *request handoff*, not a vetted or Prism-qualified skill generator: no catalog sources, rights, or host behavior are verified. The separate developer panel retains the real pinned `.holo` diagnostic path. The page uses a [pinned Verdant Engine renderer](web/vendor/verdant/NOTICE.md) to animate the visual prism, with accessible CSS fallback. No hosted MCP, accounts, uploads or server are involved.
+**[Open Qortara Skills](https://mythologiq-labs-llc.github.io/skill-mason/)** (publication currently under repair, [issue #13](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/13)). The request-first page accepts a plain-language skill request and returns a **downloadable starter `SKILL.md` draft** produced by a deterministic local template. It is a *request handoff*, not a vetted or Prism-qualified skill generator: no catalog sources, rights, or host behavior are verified. The separate developer panel retains the real pinned `.holo` diagnostic path. The page uses a [pinned Verdant Engine renderer](web/vendor/verdant/NOTICE.md) to animate the visual prism, with accessible CSS fallback. No hosted MCP, accounts, uploads or server are involved.
 
-The [Pages workflow](.github/workflows/pages.yml) successfully deployed the request-first site at commit `34eb63d` in [run 44216793111](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44216793111) (GitHub environment URL confirmed; independent browser smoke and native holo execution still outstanding). See [Pages design and limits](docs/technical/pages-web.md). A local `stdio` MCP remains the third access priority.
+The [custom Pages workflow](.github/workflows/pages.yml) built and deployed the request-first app at commit `34eb63d` in [run 44216793111](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44216793111). Later **automatic Jekyll deployments** built from the repository rather than the bundled app; GitHub Pages must use **Source = GitHub Actions**, not branch publishing, before a corrected deploy can be considered durable ([issue #13](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/13)). The workflow supports a main-only manual rebuild/deploy; browser smoke and native holo execution are still unverified. See [Pages design and limits](docs/technical/pages-web.md). A local `stdio` MCP remains the third access priority.
 
 ## Repository governance
 
-Development governance is **not part of the Qortara Skills product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. The [PR #2 merge record](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) documents the bounded source-only exception; unresolved security and native-governance qualification remain tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
+Development governance is **not part of the Qortara Skills product architecture**. The [governance policy](GOVERNANCE.md), [security policy](SECURITY.md), [architecture index](ARCHITECTURE_INDEX.md) and [documentation register](docs/README.md) describe how this repository is maintained and reviewed. The [developer instructions](AGENTS.md) document agent and contributor workflows. The [PR #2 merge record](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) documents the bounded source-only exception; the security reporting choice was subsequently recorded in [PR #20](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/20), while actual native-governance qualification remains tracked in [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4).
 
 ## Frequently asked questions
 
@@ -306,7 +306,7 @@ Not by itself. The nested Prism architecture is **owner-accepted**, and historic
 No released skill generator or product installer exists. Developers can link the [local CLI](docs/technical/local-cli.md) to check prerequisites and test real Prism eligibility outputs once a verified native holo is available.
 
 **Why did the documentation CI job fail?**  
-The old job mixed **passing structural checks** with an unresolved **security-reporting policy hold** from `SECURITY.md`. The checks are now separate: structural CI tests the repository layout, and a dedicated fail-closed security-policy check preserves the unresolved owner decision under [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). A green layout check is not native Qortara or production qualification.
+The old job mixed **passing structural checks** with a then-unresolved **security-reporting policy hold** from `SECURITY.md`. The checks are now separate: structural CI tests the repository layout, and the fail-closed security-policy screen passed after the owner confirmed private reporting in [PR #20](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/20). Native Qortara runtime verification and actual confidential-intake availability remain separate under [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). A green layout or policy screen is not production qualification.
 
 ## Contributions and licensing
 
