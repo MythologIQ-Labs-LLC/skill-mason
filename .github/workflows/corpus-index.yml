@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_evolution.py'
+      - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
@@ -16,6 +18,8 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_evolution.py'
+      - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
@@ -40,7 +44,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify synthetic omissions, shadowed bytes and refusal controls
-        run: python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
+          python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -76,6 +82,9 @@ jobs:
           python3 -m scripts.capability_graph \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source show "software-engineering/frontend" > corpus-capability-example.json
+          python3 -m scripts.corpus_evolution \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source summary > corpus-evolution-summary.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -99,6 +108,14 @@ jobs:
           example = json.loads(Path("corpus-capability-example.json").read_text())
           assert example["path"] == "software-engineering/frontend"
           assert example["explicit_gaps"]["rights_not_assessed"] and not example["composition_eligible"]
+          evolution = json.loads(Path("corpus-evolution-summary.json").read_text())
+          assert evolution["observed_path_rows"] == 66139
+          assert evolution["source_family_rows"] == {"four-source": 4813, "g1-g3": 61326}
+          assert evolution["fully_specified_placement_claims"] <= 66139
+          assert not evolution["composition_eligible"] and not evolution["content_equivalence_verified_from_bytes"]
+          assert evolution["source_observations_preserved"] and not evolution["mirror_reuse_rights_inferred"]
+          print("Source identity accounting:", json.dumps(evolution, sort_keys=True))
+
           print("C2 recognized capability outcome definitions missing:", graph["outcome_definitions_missing"])
           print("C2 routes with unqualified/unknown essential outcomes:", graph["unqualified_or_unknown_outcome_routes"])
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
@@ -110,5 +127,6 @@ jobs:
           path: |
             corpus-index-summary.json
             corpus-capability-summary.json
+            corpus-evolution-summary.json
           retention-days: 14
           if-no-files-found: error
