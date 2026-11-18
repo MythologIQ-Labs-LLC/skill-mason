@@ -1,0 +1,242 @@
+"""Synthetic fail-closed corpus indexing tests. No external source or rights approval."""
+import copy
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+from scripts.catalog_handoff import (
+    COMMIT, TREE, ORIGIN, Refusal, canonical, git_blob, inspect, sha256,
+)
+from scripts.catalog_index import CorpusIndex
+
+
+def review(record_id, source_class, status, mapping):
+    return {
+        "schema_version": "skill-mason-catalog-record-v1",
+        "record_id": record_id, "source_class": source_class,
+        "review": {"semantic_status": status},
+        "capability_mapping": {
+            "state": mapping,
+            "evidence_linked_paths": ["software-engineering/testing"]
+            if mapping == "evidence-linked" else [],
+            "name_only_hints": ["test"]},
+        "rights": {"package_redistribution_clearance": "not-established-by-export"},
+        "composition": {
+            "eligibility": "not-assessed",
+            "composable_method_contract": None,
+            "export_is_not_admission_or_permission": True},
+        "original_evidence": {"sentinel": "preserve even when rejected"}}
+
+
+class Fixture:
+    def __init__(self, home):
+        self.handoff = home / "handoff"
+        self.source = home / "source"
+        self.handoff.mkdir()
+        self.source.mkdir()
+        self.records = [
+            review("local-skills/alpha", "first-party", "verified", "evidence-linked"),
+            review("external/beta", "third-party", "rejected", "unmapped")]
+        self.paths = {}
+        self.discovery_paths = ["registry/discovery/pointer-%03d.json" % i for i in range(170)]
+        self.evidence_paths = ["registry/evidence/pointer-%04d.json" % i for i in range(2322)]
+        self.g1_paths = ["registry/discovery/g%d.json" % i for i in range(14)]
+        self.frontier_paths = ["registry/discovery/f%d.json" % i for i in range(4)]
+        self.taxonomy = {
+            "recognized": "registry/capability-directory.json",
+            "prior_proposals": "registry/discovery/old-proposals.json",
+            "new_proposals": "registry/proposed-extensions.json",
+            "outcomes": "registry/capability-outcome-register.json"}
+        self.first_party = ["skills/original/SKILL.md"]
+        self.engine = ["engine/skills/internal/SKILL.md"]
+        self.discovery = {
+            "schema_version": "skill-mason-discovery-manifests-v1",
+            "all_discovery_artifacts": self.discovery_paths,
+            "all_evidence_artifacts": self.evidence_paths,
+            "repository_entrypoints": {
+                "first_party": self.first_party,
+                "engine_maintenance_only": self.engine},
+            "g1_g3_shards": [
+                {"path": p, "record_count": 1, "records_pointer": "/records"}
+                for p in self.g1_paths],
+            "four_source_frontier": [
+                {"source_id": "source-%d" % i, "manifest": p,
+                 "record_count": 1,
+                 "parts": [{"path": p, "record_count": 1, "records_pointer": "/entries"}]}
+                for i, p in enumerate(self.frontier_paths)]}
+        for path in (self.discovery_paths + self.evidence_paths +
+                     list(self.taxonomy.values()) + self.first_party + self.engine):
+            self.paths[path] = b"x"
+        for i, path in enumerate(self.g1_paths):
+            self.paths[path] = canonical({"records": [
+                {"repository": "example/team", "pinned_revision": "a" * 40,
+                 "path": "skills/lexical-example-%d/SKILL.md" % i,
+                 "package_tree": "%040x" % i, "heuristic_domain": "unclassified"}]})
+        for i, path in enumerate(self.frontier_paths):
+            self.paths[path] = canonical({
+                "source_id": "source-%d" % i,
+                "entry_encoding": "[path, skill blob SHA, tree SHA, size, structural shape]",
+                "entries": [["skills/four-family-%d/SKILL.md" % i,
+                             "b" * 40, "c" * 40, 500, "direct-shape"]]})
+        self.persist()
+
+    def persist(self):
+        for path, blob in self.paths.items():
+            p = self.source / path
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(blob)
+        self.manifest = {
+            "schema_version": "skill-mason-catalog-manifest-v1",
+            "source": {"repository": ORIGIN, "commit": COMMIT, "git_tree_sha1": TREE},
+            "readiness": {
+                "composition_eligibility": "requires-independent-target-specific-assessment"},
+            "taxonomy": self.taxonomy,
+            "artifacts": [],
+            "source_files": [
+                {"path": path, "bytes": len(blob), "sha256": sha256(blob),
+                 "git_blob_sha1": git_blob(blob)}
+                for path, blob in sorted(self.paths.items())],
+            "submodule_pins": [],
+            "counts": {
+                "first_party": 1, "third_party": 1, "governed_records": 2,
+                "mapped": 1, "unmapped": 1,
+                "semantic_states": {"verified": 1, "rejected": 1},
+                "source_files": len(self.paths), "submodule_pins": 0,
+                "discovery_artifacts": 170,
+                "g1_g3_observations": 14, "four_source_paths": 4}}
+        data = {
+            "governed.ndjson": b"".join(canonical(r) for r in self.records),
+            "discovery-manifests.json": canonical(self.discovery)}
+        for name, blob in sorted(data.items()):
+            (self.handoff / name).write_bytes(blob)
+            self.manifest["artifacts"].append({
+                "path": name, "bytes": len(blob), "sha256": sha256(blob)})
+        raw = canonical(self.manifest)
+        (self.handoff / "manifest.json").write_bytes(raw)
+        self.pin = git_blob(raw)
+
+    def index(self):
+        def inspector(handoff):
+            return inspect(handoff, manifest_pin=self.pin)
+
+        def verifier(_source, manifest):
+            return {
+                "source_commit": COMMIT, "source_tree": TREE,
+                "file_sha256_verified": manifest["counts"]["source_files"],
+                "gitlinks_verified": 0,
+                "source_rights_assessed": False, "composition_eligible": False}
+        return CorpusIndex(self.handoff, self.source, inspector=inspector,
+                           source_verifier=verifier)
+
+
+class CorpusIndexTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.fx = Fixture(Path(self.temp.name))
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def refuses(self, code):
+        with self.assertRaises(Refusal) as ex:
+            self.fx.index()
+        self.assertEqual(ex.exception.code, code)
+
+    def test_lossless_review_and_all_observation_families(self):
+        index = self.fx.index()
+        report = index.summary()
+        self.assertEqual(report["total_index_rows_not_unique_skills"], 20)
+        self.assertEqual((report["governed"], report["g1_g3_path_observations"],
+                          report["four_source_path_observations"]), (2, 14, 4))
+        self.assertEqual((report["discovery_artifact_pointers"],
+                          report["evidence_artifact_pointers"]), (170, 2322))
+        self.assertEqual(report["governed_unmapped"], 1)
+        self.assertEqual(report["first_party_entrypoints"], 1)
+        self.assertEqual(report["engine_maintenance_entrypoints_separate"], 1)
+        self.assertFalse(report["composition_eligible"])
+        self.assertFalse(report["rights_assessed"])
+        self.assertFalse(report["behaviorally_validated"])
+
+    def test_rejected_and_unmapped_record_retains_original_data(self):
+        index = self.fx.index()
+        result = index.search("sentinel", family="governed", limit=1)
+        self.assertEqual(result["total_matches"], 2)
+        self.assertTrue(result["truncated"])
+        item = index.record("governed:external/beta")
+        self.assertEqual(item["review_status"], "rejected")
+        self.assertEqual(item["mapping_state"], "unmapped")
+        self.assertEqual(item["raw"]["original_evidence"]["sentinel"],
+                         "preserve even when rejected")
+        self.assertEqual(item["composition_eligibility"], "not-assessed")
+
+    def test_retrieval_covers_shards_without_promoting_lexical_leads(self):
+        index = self.fx.index()
+        leads = index.search("lexical-example", family="g1-g3")
+        self.assertEqual(leads["total_matches"], 14)
+        self.assertFalse(leads["outcome_coverage_assessed"])
+        four = index.search("four-family", family="four-source")
+        self.assertEqual(four["total_matches"], 4)
+        self.assertEqual(four["results"][0]["source_id"], "source-0")
+        item = index.record(four["results"][0]["id"])
+        self.assertEqual(len(item["raw"]), 5)
+        self.assertTrue(item["pointer"].startswith("/entries/"))
+
+    def test_referenced_artifact_is_pinned_and_not_a_rights_grant(self):
+        index = self.fx.index()
+        got = index.artifact(self.fx.taxonomy["recognized"])
+        self.assertEqual(got["sha256"], sha256(b"x"))
+        self.assertTrue(got["reference_only"])
+        with self.assertRaises(Refusal) as ex:
+            index.artifact("../outside")
+        self.assertEqual(ex.exception.code, "UNKNOWN_ARTIFACT")
+
+    def test_fail_closed_missing_declared_pointer(self):
+        self.fx.discovery["all_discovery_artifacts"][0] = "not/in/source.json"
+        self.fx.persist()
+        self.refuses("MISSING_REFERENCE")
+
+    def test_fail_closed_shadowed_shard_content(self):
+        path = self.fx.g1_paths[0]
+        (self.fx.source / path).write_bytes(b'{"records":[]}\n')
+        self.refuses("SOURCE_SHA256")
+
+    def test_fail_closed_truncated_shard_with_recomputed_digest(self):
+        path = self.fx.g1_paths[0]
+        self.fx.paths[path] = canonical({"records": []})
+        self.fx.persist()
+        self.refuses("COUNT_MISMATCH")
+
+    def test_fail_closed_no_silent_frontier_omission(self):
+        self.fx.discovery["four_source_frontier"].pop()
+        self.fx.persist()
+        self.refuses("SHARD_SCHEMA")
+
+    def test_fail_closed_corrupt_handoff_record(self):
+        path = self.fx.handoff / "governed.ndjson"
+        path.write_bytes(path.read_bytes().replace(b"rejected", b"verified"))
+        self.refuses("ARTIFACT_INTEGRITY")
+
+    def test_required_lexical_query_and_bounds(self):
+        index = self.fx.index()
+        for query, limit, code in [("", 25, "QUERY_REQUIRED"),
+                                   ("test", 201, "QUERY_LIMIT")]:
+            with self.assertRaises(Refusal) as ex:
+                index.search(query, limit=limit)
+            self.assertEqual(ex.exception.code, code)
+
+    def test_source_verifier_cannot_claim_rights(self):
+        def wrong_verifier(source, manifest):
+            return {"source_commit": COMMIT, "source_tree": TREE,
+                    "file_sha256_verified": len(manifest["source_files"]),
+                    "gitlinks_verified": 0, "source_rights_assessed": True,
+                    "composition_eligible": True}
+        with self.assertRaises(Refusal) as ex:
+            CorpusIndex(self.fx.handoff, self.fx.source,
+                        inspector=lambda p: inspect(p, manifest_pin=self.fx.pin),
+                        source_verifier=wrong_verifier)
+        self.assertEqual(ex.exception.code, "SOURCE_INTEGRITY")
+
+
+if __name__ == "__main__":
+    unittest.main()
