@@ -49,7 +49,7 @@ function validateRecipe(recipe){
     refuse('AUTHORITY_EXCEEDED','first slice cannot request network, secrets or execution');
   const allowed=new Set(['schema','name','title','description','targetHost','requiredOutcomes','network','secrets','execution']);
   if(Object.keys(recipe).some(k=>!allowed.has(k)))refuse('INVALID_RECIPE','unrecognized recipe field');
-  return {...recipe,requiredOutcomes:[...out].sort()};
+  return Object.freeze({...recipe,requiredOutcomes:Object.freeze([...out].sort())});
 }
 function validateMethod(method){
   if(!obj(method))refuse('INVALID_METHOD','method must be an object');
@@ -69,7 +69,7 @@ function validateMethod(method){
   if(method.containsAssets!==false)refuse('RIGHTS_UNRESOLVED','nested assets require a separate rights gate');
   const allowed=new Set(['id','origin','sourcePath','commit','sha256','methodVersion','methodText','covers','containsAssets']);
   if(Object.keys(method).some(k=>!allowed.has(k)))refuse('INVALID_METHOD','unrecognized method field');
-  return {...method,covers:[...method.covers].sort()};
+  return Object.freeze({...method,covers:Object.freeze([...method.covers].sort())});
 }
 function escapedMarkdown(x){
   // Quoted method text is data, never execution authority.
@@ -102,6 +102,7 @@ function render(recipe,methods){
 function validateDecision(value,expectedHex,pin){
   if(!obj(value)||value.schema!=='qortara/local-eligibility-result/1'||
     value.status!=='GUEST_COMPLETED'||value.response!=='eligible'||
+    value.responseHex!=='656c696769626c65'||value.application!=='Qortara Skills Eligibility'||
     value.requestHex!==expectedHex||value.engine!=='prism-code@0.9.5'||
     !obj(value.artifact)||value.artifact.sha256!==pin||!hex64.test(pin)||
     value.productionEligible!==false||value.exitCode!==0)
@@ -130,15 +131,20 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
     if(recipe.requiredOutcomes.some(o=>!covered.has(o)))refuse('OUTCOME_UNCOVERED','essential outcome missing from declared method coverage');
     const assertions=[];
     for(const method of methods){
-      const x=await assertMethod({recipe,method});
+      const subjectSha256=digestJSON({schema:'qortara/assurance-subject/1',
+        planSha256:digestJSON(recipe),method:{id:method.id,origin:method.origin,
+          sourcePath:method.sourcePath,commit:method.commit,sha256:method.sha256,
+          methodVersion:method.methodVersion,covers:method.covers,containsAssets:false}});
+      const x=await assertMethod({recipe,method,subjectSha256});
       if(!obj(x)||x.evidence!==true||x.rights!==true||x.authority!==true||x.coverage!==true||
-          typeof x.issuer!=='string'||!x.issuer||typeof x.proofDigest!=='string'||!hex64.test(x.proofDigest))
+          typeof x.issuer!=='string'||!x.issuer||typeof x.proofDigest!=='string'||!hex64.test(x.proofDigest)||
+          x.subjectSha256!==subjectSha256)
         refuse('UNTRUSTED_ASSERTION','source, rights, authority or coverage not independently asserted');
       const hex='01010101';
       // These are transport bytes only AFTER the trusted adapter establishes
       // each fact. Never derive them from a user-provided eligibility flag.
       const verdict=validateDecision(await runPrism({requestHex:hex,holoSha256}),hex,holoSha256);
-      assertions.push({methodId:method.id,issuer:x.issuer,proofDigest:x.proofDigest,verdict});
+      assertions.push({methodId:method.id,issuer:x.issuer,subjectSha256,proofDigest:x.proofDigest,verdict});
     }
     const markdown=render(recipe,methods),methodRefs=methods.map(({id,origin,sourcePath,commit,sha256,methodVersion,covers})=>
       ({id,origin,sourcePath,commit,sha256,methodVersion,covers}));
