@@ -140,8 +140,9 @@ class ReferenceInventoryTests(unittest.TestCase):
     def test_static_link_scan_never_claims_dynamic_dependencies_closed(self):
         files = dict(self.payload)
         files["SKILL.md"] = "# Original\nUse scripts/run.sh dynamically.\n"
+        files["references/guide.md"] = "# No inline links\n"
         x = self.scan(files)
-        self.assertEqual(x["inline_markdown_reference_count"], 1)
+        self.assertEqual(x["inline_markdown_reference_count"], 0)
         self.assertTrue(x["other_reference_syntaxes_and_dynamic_dependencies_not_assessed"])
         self.assertFalse(x["dependency_closure_proven"])
 
