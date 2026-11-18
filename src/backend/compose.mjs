@@ -171,10 +171,23 @@ function validateDecision(value,expectedHex,pin){
  * authority and outcome coverage, returning proofDigest and issuer.
  * The real Prism guest remains the FINAL eligibility decision.
  */
-export function createComposer({assertMethod,runPrism,holoSha256}={}){
+export function createComposer({assertMethod,runPrism,holoSha256,sourceApprovalBindings}={}){
   if(typeof assertMethod!=='function'||typeof runPrism!=='function'||
      typeof holoSha256!=='string'||!hex64.test(holoSha256))
     refuse('ADAPTER_MISSING','trusted assertion and Prism guest adapters plus pinned holo digest required');
+  // Only trusted coordinator bootstrap supplies these expected exact source
+  // bindings. A source method or user recipe cannot turn this check on/off.
+  const requireSourceApproval=sourceApprovalBindings!==undefined;
+  let acceptedBindings;
+  if(requireSourceApproval){
+    if(!obj(sourceApprovalBindings)||Object.keys(sourceApprovalBindings).length<1||
+       Object.keys(sourceApprovalBindings).length>16||
+       Object.entries(sourceApprovalBindings).some(([id,d])=>
+         !/^[a-zA-Z][a-zA-Z0-9_.:-]{2,159}$/.test(id)||!hex64.test(d)))
+      refuse('SOURCE_ACCEPTANCE_CONFIG',
+        'operator must pin a bounded exact binding SHA-256 for each method');
+    acceptedBindings=Object.freeze({...sourceApprovalBindings});
+  }
   return async function compose(recipeRaw,methodInputs){
     const recipe=validateRecipe(recipeRaw);
     if(!Array.isArray(methodInputs)||methodInputs.length===0||methodInputs.length>16)
@@ -184,6 +197,12 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
     if(recipe.packagePins && (recipe.packagePins.length!==methods.length||
        recipe.packagePins.some((p,i)=>p.methodId!==methods[i].id)))
       refuse('SOURCE_PIN','source package identities must bind every selected method');
+    if(requireSourceApproval &&
+       (!recipe.sourceSnapshot||!recipe.packagePins||
+        Object.keys(acceptedBindings).length!==methods.length||
+        methods.some(m=>!Object.hasOwn(acceptedBindings,m.id))))
+      refuse('SOURCE_ACCEPTANCE_CONFIG',
+        'source approval requires an exact pinned snapshot, packages and one binding per method');
     // Independent refusal for uncovered outcomes. This does not admit any source.
     const covered=new Set(methods.flatMap(m=>m.covers));
     if(recipe.requiredOutcomes.some(o=>!covered.has(o)))refuse('OUTCOME_UNCOVERED','essential outcome missing from declared method coverage');
@@ -198,11 +217,26 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
           typeof x.issuer!=='string'||!x.issuer||typeof x.proofDigest!=='string'||!hex64.test(x.proofDigest)||
           x.subjectSha256!==subjectSha256)
         refuse('UNTRUSTED_ASSERTION','source, rights, authority or coverage not independently asserted');
+      if(requireSourceApproval){
+        if(x.sourceBindingSha256!==acceptedBindings[method.id]||
+           !hex64.test(x.sourceBindingSha256)||
+           !hex64.test(x.sourceAcceptanceProofSha256))
+          refuse('SOURCE_ACCEPTANCE_REQUIRED',
+            'independent source approval proof and configured exact method binding are missing or wrong');
+      }else if(x.sourceBindingSha256!==undefined||
+               x.sourceAcceptanceProofSha256!==undefined){
+        refuse('SOURCE_ACCEPTANCE_CONFIG',
+          'signed source-approval proof requires explicit trusted coordinator binding');
+      }
       const hex=[x.evidence,x.rights,x.authority,x.coverage].map(y=>y?'01':'00').join('');
       // The four facts are derived ONLY from the trusted assertion adapter.
       // Prism determines admission or refusal over those facts, not this module.
       const verdict=validateDecision(await runPrism({requestHex:hex,holoSha256}),hex,holoSha256);
-      assertions.push({methodId:method.id,issuer:x.issuer,subjectSha256,proofDigest:x.proofDigest,verdict});
+      assertions.push({methodId:method.id,issuer:x.issuer,subjectSha256,
+        proofDigest:x.proofDigest,verdict,
+        ...(requireSourceApproval?{
+          sourceBindingSha256:x.sourceBindingSha256,
+          sourceAcceptanceProofSha256:x.sourceAcceptanceProofSha256}:{})});
     }
     const markdown=render(recipe,methods),methodRefs=methods.map(({id,origin,sourcePath,commit,sha256,methodVersion,covers})=>
       ({id,origin,sourcePath,commit,sha256,methodVersion,covers}));
@@ -213,7 +247,10 @@ export function createComposer({assertMethod,runPrism,holoSha256}={}){
     const files={'SKILL.md':markdown,'SOURCES.json':sourceJson};
     const digests=Object.fromEntries(Object.entries(files).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([name,data])=>[name,SHA(utf8(data))]));
     const receipt={schema:'qortara/skill-receipt/1',recipeSha256:digestJSON(recipe),sourceSha256:SHA(utf8(sourceJson)),
-      files:digests,assertions,assurance:'P0 unverified',productionEligible:false,
+      files:digests,assertions,
+      ...(requireSourceApproval?{sourceApprovalRequired:true,
+        sourceApprovalState:'PROOF_DIGESTS_RECORDED_SIGNATURES_REQUIRE_INDEPENDENT_REPLAY'}:{}),
+      assurance:'P0 unverified',productionEligible:false,
       hostValidated:false,modelCallsMeasured:false,claim:'DEVELOPMENT_CANDIDATE'};
     files['RECEIPT.json']=canonicalJSON(receipt);
     const manifest={schema:PACKAGE_SCHEMA,name:recipe.name,targetHost:recipe.targetHost,
@@ -242,7 +279,37 @@ export function verifyPackage(packageValue){
     receipt.files['SOURCES.json']!==SHA(utf8(files['SOURCES.json']))||
     receipt.sourceSha256!==SHA(utf8(files['SOURCES.json'])))
     refuse('PACKAGE_INTEGRITY','receipt or file digest mismatch');
+  // Integrity checks below detect partial/malformed source proof persistence.
+  // A digest by itself is not a verified Ed25519 signature or rights grant:
+  // the independently pinned coordinator must replay BOTH proof envelopes.
+  let sources;
+  try{sources=JSON.parse(files['SOURCES.json']);}
+  catch{refuse('PACKAGE_INTEGRITY','invalid source JSON');}
+  const refs=sources?.methods;
+  if(!Array.isArray(refs)||!Array.isArray(receipt.assertions)||
+     receipt.assertions.length!==refs.length||
+     receipt.assertions.length<1||receipt.assertions.length>16)
+    refuse('PACKAGE_INTEGRITY','source and assertion populations disagree');
+  const strict=receipt.sourceApprovalRequired===true;
+  if((receipt.sourceApprovalRequired!==undefined&&!strict)||
+     (strict&&receipt.sourceApprovalState!==
+       'PROOF_DIGESTS_RECORDED_SIGNATURES_REQUIRE_INDEPENDENT_REPLAY')||
+     (!strict&&receipt.sourceApprovalState!==undefined))
+    refuse('PACKAGE_INTEGRITY','invalid source proof mode');
+  for(let i=0;i<refs.length;i++){
+    const a=receipt.assertions[i];
+    if(!obj(a)||a.methodId!==refs[i].id||
+       !hex64.test(a.subjectSha256)||!hex64.test(a.proofDigest)||
+       (strict?(!hex64.test(a.sourceBindingSha256)||
+                !hex64.test(a.sourceAcceptanceProofSha256)):
+        a.sourceBindingSha256!==undefined||
+        a.sourceAcceptanceProofSha256!==undefined))
+      refuse('PACKAGE_INTEGRITY','unbound or partial signed proof references');
+  }
   return {state:'INTEGRITY_VERIFIED',productionQualified:false,authorityVerified:false,
+    sourceAcceptanceProofRecorded:strict,
+    sourceAcceptanceSignatureVerified:false,
+    signedFourFactAssertionReverified:false,
     packageSha256:SHA(utf8(files['skill-mason.json']))};
 }
 const PACKAGE_FILES=Object.freeze(['SKILL.md','SOURCES.json','RECEIPT.json','skill-mason.json']);
