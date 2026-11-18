@@ -107,6 +107,8 @@ async function main(args){
  assert.equal(factCalls,1);
  assert.equal(result.sourceAcceptanceProofSha256,
    accepted.acceptanceProofSha256);
+ assert.equal(result.sourceBindingSha256,
+   source.binding_sha256);
  assert.deepEqual([result.evidence,result.rights,result.authority,result.coverage],
    [false,false,false,false]);
  assert.equal(result.subjectSha256,subjectSha256);
