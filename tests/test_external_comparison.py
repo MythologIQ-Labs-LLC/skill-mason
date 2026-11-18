@@ -133,6 +133,39 @@ class ExternalComparisonTests(unittest.TestCase):
                     external_inspector=forged)
         self.assertEqual(exc.exception.code, "EXTERNAL_ASSET_REVIEW")
 
+    def test_external_claiming_composition_eligibility_is_rejected(self):
+        def forged(*args, **kwargs):
+            receipt = self.fake(*args, **kwargs)
+            receipt["composition_eligible"] = True
+            return receipt
+        with self.assertRaises(Refusal) as err:
+            compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                    include_lexical=False, external_selection=self.selection,
+                    external_inspector=forged)
+        self.assertEqual(err.exception.code, "EXTERNAL_ASSET_REVIEW")
+
+    def test_external_missing_pinned_git_proof_is_rejected(self):
+        def forged(*args, **kwargs):
+            receipt = self.fake(*args, **kwargs)
+            receipt["pinned_git_object_consistency_verified"] = False
+            return receipt
+        with self.assertRaises(Refusal) as err:
+            compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                    include_lexical=False, external_selection=self.selection,
+                    external_inspector=forged)
+        self.assertEqual(err.exception.code, "EXTERNAL_ASSET_REVIEW")
+
+    def test_malformed_license_pointer_record_is_refused(self):
+        def forged(*args, **kwargs):
+            receipt = self.fake(*args, **kwargs)
+            receipt["complete_package_reference_and_asset_review_queue"]["frontmatter_license_pointer"] = "approved"
+            return receipt
+        with self.assertRaises(Refusal) as err:
+            compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                    include_lexical=False, external_selection=self.selection,
+                    external_inspector=forged)
+        self.assertEqual(err.exception.code, "EXTERNAL_ASSET_REVIEW")
+
     def test_rejected_review_stays_rejected_after_external_hashes(self):
         self.raw["review"]["semantic_status"] = "rejected"
         r = self.compare(external_selection=self.selection)
