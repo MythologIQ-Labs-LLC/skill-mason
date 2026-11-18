@@ -18,15 +18,17 @@ import {createComposer,verifyPackage,writePackage,readPackage,canonicalJSON} fro
 import {replaySealedSourceReceipt,replaySealedSourceReceiptFromDisk} from '../../src/backend/source-proof-replay.mjs';
 import {createSignedAssertionAdapter} from '../../src/backend/signed-assertions.mjs';
 import {createPinnedPrismGuest} from '../../src/backend/prism-guest.mjs';
+import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,PILOT_SOURCE_COMMIT,PILOT_HOST} from '../../src/backend/first-party-pilots.mjs';
+import {createRecipeAdapter} from '../../src/backend/recipe-adapter.mjs';
 
 const SHA=x=>createHash('sha256').update(x).digest('hex');
 const H='a'.repeat(40),T='b'.repeat(40),MOCK_HOLO='c'.repeat(64),NOW=1784419200;
 const PINNED_HOLO='9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e';
 const srcText='This is an original, disposable fixture method and not a real host instruction.';
-const method=()=>({id:'fixture-review-method',origin:'https://example.invalid/test-only',
+const fixtureMethod=()=>({id:'fixture-review-method',origin:'https://example.invalid/test-only',
  sourcePath:'fixtures/method.txt',commit:H,sha256:SHA(srcText),methodVersion:'v1',
  methodText:srcText,covers:['produce test-only review'],containsAssets:false});
-const recipe=()=>({schema:'qortara/internal-composition-plan/1',
+const fixtureRecipe=()=>({schema:'qortara/internal-composition-plan/1',
  name:'fixture-source-proof',title:'Fixture receipt provenance',
  description:'Only tests two independently signed evidence references.',
  targetHost:'fixture-host',requiredOutcomes:['produce test-only review'],
@@ -40,9 +42,8 @@ function key(){
  return {privateKey,pem:publicKey.export({format:'pem',type:'spki'}).toString(),
   sha:SHA(publicKey.export({format:'der',type:'spki'}))};
 }
-function scope(){
- return {snapshotCommit:H,snapshotTree:T,
-  route:'software-engineering/frontend',host:'fixture-host'};
+function scope({commit,tree,route,host}){
+ return {snapshotCommit:commit,snapshotTree:tree,route,host};
 }
 const signal=error=>({code:error});
 const approvalRefusal=async f=>{
@@ -52,24 +53,59 @@ const approvalRefusal=async f=>{
 async function main(args){
  assert.equal(args[0],'--source-gate-root');
  assert.equal(isAbsolute(args[1]),true);
- const realGuest=args.length===6;
+ const realGuest=args.length===6||args.length===8;
  if(realGuest){
   assert.deepEqual([args[2],args[4]],['--holo','--sha256']);
   assert.ok(isAbsolute(args[3]),'real holo must be absolute');
   assert.equal(args[5],PINNED_HOLO,'only the previously pinned real P0 holo permitted');
  }else assert.equal(args.length,2,'mock mode must not accept extra args');
+ const firstParty=args.length===8;
+ if(firstParty)assert.deepEqual(args.slice(6),['--pilot','ci-failure-triage']);
  const HOLO=realGuest?PINNED_HOLO:MOCK_HOLO;
+ let H='a'.repeat(40),T='b'.repeat(40);
+ let route='software-engineering/frontend',host='fixture-host';
+ let method=fixtureMethod,recipe=fixtureRecipe;
+ let originalMethodSha256=null,sourceGitBlob=null;
+ if(firstParty){
+  // Exact original source bytes are checked against original Git blob SHA-1
+  // and independent SHA-256 pins by loadFirstPartyPilots().
+  const registry=await loadFirstPartyPilots();
+  const adapted=createRecipeAdapter(registry)(
+   recipeForPilot('ci-failure-triage',registry));
+  assert.equal(adapted.methods.length,1);
+  method=()=>adapted.methods[0];
+  recipe=()=>adapted.plan;
+  const original=PILOT_DEFINITIONS.find(x=>x.id==='ci-failure-triage');
+  assert.equal(method().sha256,original.sha256);
+  assert.equal(method().commit,PILOT_SOURCE_COMMIT);
+  originalMethodSha256=original.sha256;
+  sourceGitBlob=original.gitBlob;
+  H=PILOT_SOURCE_COMMIT;
+  T='9857c6ef4c4a88b1f4c6c7981be4cc805eab9342';
+  route='first-party/unmapped-p0-pilot';
+  host=PILOT_HOST;
+ }
+ const selectedId=method().id;
  const gate=await import(pathToFileURL(join(args[1],
   'scripts/source_acceptance_gate.mjs')).href);
  const {canonicalSourceJSON,SOURCE_ACCEPTANCE_SCHEMA,
   SOURCE_ACCEPTANCE_ENVELOPE,SOURCE_TRUST_SCHEMA,SOURCE_ACCEPTANCE_DOMAIN,
   createSourceBoundAssertionGuard}=gate;
  const b={snapshot_commit:H,snapshot_tree:T,
-  governed_id:'fixture-review-method',governed_record_sha256:'f'.repeat(64),
-  requested_route:'software-engineering/frontend',
-  requested_host_label_not_authority:'fixture-host',
-  package_inspection_sha256:'1'.repeat(64),package_bytes_verified:true,
-  review_status:'verified',review_disposition:'BLOCKED_RIGHTS_AND_HOST'};
+  governed_id:selectedId,
+  governed_record_sha256:firstParty?SHA(method().methodText):'f'.repeat(64),
+  requested_route:route,
+  requested_host_label_not_authority:host,
+  // Test-only binding. Not a C3/Skillz governed rights/license review.
+  package_inspection_sha256:firstParty?SHA(canonicalJSON({
+   schema:'qortara/first-party-fixture-inventory/1',
+   sourceCommit:H,sourceTree:T,
+   path:method().sourcePath,methodSha256:originalMethodSha256,
+   gitBlob:sourceGitBlob,containsAssets:false
+  })):'1'.repeat(64),
+  package_bytes_verified:true,
+  review_status:firstParty?'not-reviewed':'verified',
+  review_disposition:'BLOCKED_RIGHTS_AND_HOST'};
  const sourcePreflight={schema:'qortara/method-to-prism-preflight/1',
   state:'UNSIGNED_P0_DENIAL_VECTOR_NOT_READY_FOR_COMPOSITION',
   binding:b,binding_sha256:SHA(canonicalSourceJSON(b)),
@@ -85,7 +121,7 @@ async function main(args){
   issuer:'fixture.source-operator',keyId:'fixture-source-001',
   policyRevision:'fixture-source-policy-001',
   publicKeyPem:sourceKey.pem,publicKeySha256:sourceKey.sha,
-  scope:scope(),
+  scope:scope({commit:H,tree:T,route,host}),
   revocations:{validFrom:NOW-100,expiresAt:NOW+100,revokedApprovalDigests:[]}};
  const factTrust={schema:'qortara/method-assertion-trust/1',
   issuer:'fixture.four-fact-operator',keyId:'fixture-facts-001',
@@ -156,7 +192,7 @@ async function main(args){
  };
  const compose=createComposer({
   assertMethod,runPrism:guest,holoSha256:HOLO,
-  sourceApprovalBindings:{'fixture-review-method':sourcePreflight.binding_sha256}
+  sourceApprovalBindings:{[selectedId]:sourcePreflight.binding_sha256}
  });
  const pkg=await compose(recipe(),[method()]);
  assert.equal(guestCalls,1);assert.equal(factCalls,1);
@@ -171,7 +207,7 @@ async function main(args){
  assert.equal(verification.sourceAcceptanceSignatureVerified,false);
  assert.equal(verification.signedFourFactAssertionReverified,false);
  const replayConfiguration={
-  expectedSourceBindings:{'fixture-review-method':sourcePreflight.binding_sha256},
+  expectedSourceBindings:{[selectedId]:sourcePreflight.binding_sha256},
   expectedHoloSha256:HOLO,
   verifySourceAcceptance:async({subjectSha256,sourceBindingSha256,
                                 approvalProofSha256})=>{
@@ -224,7 +260,7 @@ async function main(args){
  const refused=createComposer({
   assertMethod:noApproval,runPrism:()=>{deniedGuest++;},
   holoSha256:HOLO,
-  sourceApprovalBindings:{'fixture-review-method':sourcePreflight.binding_sha256}
+  sourceApprovalBindings:{[selectedId]:sourcePreflight.binding_sha256}
  });
  const denial=await approvalRefusal(()=>refused(recipe(),[method()]));
  assert.equal(denial.code,'SOURCE_ACCEPTANCE_MISSING');
@@ -259,7 +295,7 @@ async function main(args){
  });
  const rightsDenialComposer=createComposer({
   assertMethod:rightsDenialGuard,runPrism:guest,holoSha256:HOLO,
-  sourceApprovalBindings:{'fixture-review-method':sourcePreflight.binding_sha256}
+  sourceApprovalBindings:{[selectedId]:sourcePreflight.binding_sha256}
  });
  const deniedByGuest=await approvalRefusal(()=>
   rightsDenialComposer(recipe(),[method()]));
@@ -273,6 +309,12 @@ async function main(args){
   sourceAcceptanceProofSha256:proofSource,
   signedFourFactProofSha256:proofFacts,
   methodSubjectSha256:receipt.assertions[0].subjectSha256,
+  selectedMethodId:selectedId,
+  firstPartyOriginalMethodSourceUsed:firstParty,
+  firstPartyOriginalMethodSha256:originalMethodSha256,
+  firstPartyExactGitBlob:sourceGitBlob,
+  originalFirstPartySourceBytesIndependentlyPinned:firstParty,
+  skillzC4GovernedReviewOrRightsQualified:false,
   exactPinnedSourceGateImported:true,
   sourceApprovalRequiredByComposer:true,
   bothProofDigestsSealed:true,
