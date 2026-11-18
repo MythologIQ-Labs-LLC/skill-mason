@@ -198,7 +198,8 @@ class CorpusIndexTests(unittest.TestCase):
 
     def test_fail_closed_shadowed_shard_content(self):
         path = self.fx.g1_paths[0]
-        (self.fx.source / path).write_bytes(b'{"records":[]}\n')
+        original = (self.fx.source / path).read_bytes()
+        (self.fx.source / path).write_bytes(original.replace(b"lexical-example", b"lexical-examplf"))
         self.refuses("SOURCE_SHA256")
 
     def test_fail_closed_truncated_shard_with_recomputed_digest(self):
