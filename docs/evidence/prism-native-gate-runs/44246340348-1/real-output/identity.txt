@@ -1,0 +1,9 @@
+holo_sha256_from_manifest=9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e
+holo_sha256_of_file=9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e
+holo_bytes=17346
+manifest_sha256_attestation_id=cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518
+node=v22.23.4
+prism_code=0.9.5
+assurance_grade_observed=P0 unverified check_exit=1
+assurance_experiment=recorded in assurance-experiment.txt; it changes no claim
+failures=0

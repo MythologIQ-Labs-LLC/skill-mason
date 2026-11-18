@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: the checkout path passes through a symlink (/opt/prism-gate/run/work/refusal-link/prism resolves to /opt/prism-gate/run/work/refusal-clone/prism).

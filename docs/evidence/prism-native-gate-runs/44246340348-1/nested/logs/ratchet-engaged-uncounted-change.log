@@ -1,0 +1,4 @@
+GATE_SOURCE repo=/opt/prism-gate/run/work/ratchet-engaged-uncounted-change.projection commit=78c5e59fad3b03dea4cb7b9828e9fdd3cb5e200e tree=7dece9bc142cc1625c827f13dbb25bd4324472c0 subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/ratchet-engaged-uncounted-change
+audit-prism: non-Prism implementation is 13501 lines in 78 files (13501 lines, 78 files in the parent); it only shrinks
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=11s cmd=cargo run -q --locked -p xtask -- audit-prism

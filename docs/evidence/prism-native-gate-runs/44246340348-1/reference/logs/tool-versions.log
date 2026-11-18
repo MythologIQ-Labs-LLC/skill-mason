@@ -1,0 +1,15 @@
+GATE_SOURCE repo=/opt/prism-gate/template commit=b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b tree=baf38d0be448b35eaa2ac6a39b68bfb6c42d93cd subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none egress_network=none egress_proxy=none uid=1000:1000 docker_socket=not-mounted seed_tmp=none workdir=/opt/prism-gate/run/work/tool-versions
+prismpm 0.4.0
+lexlean 0.4.0
+language 1.0
+compiler-semantics 07859acb5a756221018b7f65e7f725d99b00a694670eecc7cd264832ba1333fb
+lean-toolchain leanprover/lean4:v4.32.1
+Lean (version 4.32.1, x86_64-unknown-linux-gnu, commit f054605aea4b840552cca2e725580bffd1e1b704, Release)
+Lake version 5.0.0-src+f054605 (Lean version 4.32.1)
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo 1.97.1 (c980f4866 2026-06-30)
+just 1.57.0
+cargo-deny 0.20.2
+v22.23.2
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=10s cmd=bash -c prismpm --version; lexlean --version; lean --version; lake --version; rustc --version; cargo --version; just --version; cargo deny --version; node --version
