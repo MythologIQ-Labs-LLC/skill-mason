@@ -48,6 +48,10 @@ The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produc
 
 The [deterministic candidate comparison receipt](../technical/candidate-comparison-v1.md) lists exact recognized evidence links, name-only review hints and bounded lexical raw observations separately, with no eligibility or chosen method. Rights, dependencies and host authority are unassessed; a comparison is not an automatic recommendation or Prism input.
 
+## Operator-signed source-selection acceptance (proposed C4/C5 signed handoff)
+
+A future positively evidenced source cannot reuse a signed assurance assertion from a different host, original source revision, license/asset review, capability route or P0 composer plan. The [Ed25519 source-acceptance guard](../technical/source-acceptance-gate-v1.md) binds these identities under an **independently pinned operator key and fresh revocation policy** before invoking the **separate PR #28 signed four-fact adapter**. This authenticates the scoped source selection, not the factual truth of rights or host behavior. An unsigned C4 receipt still returns `SOURCE_ACCEPTANCE_MISSING`; the source selection signature does not set evidence, rights, authority or coverage to true. The real Prism guest and actual host tests remain separate. The #28 receipt does not yet record the source-approval digest, so full replay/release approval remains held.
+
 ## Source-bound Prism input preflight (proposed C4/C5 refusal boundary)
 
 The [Prism input preflight](../technical/prism-input-preflight-v1.md) deterministically binds one exact reviewed source, its source snapshot/tree and byte-inspection receipt to a recognized capability route and requested host. It prepares only the **unsigned negative development vector 00000000** because static review and source byte matching do not establish independent signed evidence, rights, host authority or qualified outcome coverage. It does not run a Prism guest, sign claims, install or generate a skill, or introduce a substitute selection engine. The signed-assertion verifier and actual P0 guest in the separate pilot PR #28 remain the consumer interface for future properly qualified facts.
