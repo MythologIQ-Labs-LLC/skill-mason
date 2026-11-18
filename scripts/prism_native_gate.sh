@@ -163,35 +163,68 @@ if [[ $phase == reference ]]; then
   exit $((failures > 0))
 fi
 
-# --- a throwaway repository: root governance first, then the instance --------
-# The commit that adds prism/ is the installing commit: audit-prism measures it
-# against a parent that ran no ratchet. Identity and dates are fixed so the
-# commit and tree hashes depend only on the two pinned inputs.
+# --- a throwaway repository: this repository first, then the instance --------
+# The first commit is the whole subject revision, so the rehearsal meets the
+# same root .gitignore, .gitattributes and hand-written code a real install
+# would. The commit that adds prism/ is the installing commit: audit-prism
+# measures it against a parent that ran no ratchet. Identity and dates are
+# fixed so the commit and tree hashes depend only on the two pinned inputs.
 repo=$base/repo
 export GIT_AUTHOR_NAME=prism-gate GIT_AUTHOR_EMAIL=prism-gate@example.invalid
 export GIT_COMMITTER_NAME=prism-gate GIT_COMMITTER_EMAIL=prism-gate@example.invalid
 export GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 git init --quiet --initial-branch=main "$repo"
-mkdir -p "$repo/docs"
-for file in AGENTS.md GOVERNANCE.md SECURITY.md ARCHITECTURE_INDEX.md docs/README.md; do
-  cp "$sm/$file" "$repo/$file"
-done
+git -C "$sm" archive "$sm_commit" | tar -x -C "$repo" || exit 70
+if [[ -e $repo/prism ]]; then
+  echo "the subject revision already contains prism/; this driver stages an install, it does not re-stage one" >&2
+  exit 70
+fi
 git -C "$repo" add -A
-git -C "$repo" commit --quiet -m "root: Qortara Skills governance files at $sm_commit"
+git -C "$repo" commit --quiet -m "root: skill-mason at $sm_commit"
+note "staged_root_commit=$(git -C "$repo" rev-parse HEAD) staged_root_tree=$(git -C "$repo" rev-parse 'HEAD^{tree}') subject_tree=$(git -C "$sm" rev-parse "$sm_commit^{tree}")"
 "$sm/scripts/prism_instance.sh" "$template" "$repo/prism" || exit 70
 git -C "$repo" add -A
 git -C "$repo" commit --quiet -m "prism: install nested instance (template pin + prism-overlay at $sm_commit)"
 install=$(git -C "$repo" rev-parse HEAD)
+# Nothing the instance holds may be dropped or rewritten by a root rule. Every
+# template file must reach the commit with the blob the pin has, except the
+# three the overlay's patch changes.
+ignored=$(git -C "$repo" status --porcelain --ignored -- prism)
+if [[ -n $ignored ]]; then
+  echo "root ignore rules keep instance files out of the installing commit:" >&2
+  echo "$ignored" >&2
+  exit 70
+fi
+python3 - "$template" "$repo" <<'PY' | tee -a "$identities" || exit 70
+import subprocess, sys
+template, repo = sys.argv[1], sys.argv[2]
+def tree(directory, rev, prefix=""):
+    out = subprocess.run(["git", "-C", directory, "ls-tree", "-r", rev, *([prefix] if prefix else [])],
+                         check=True, capture_output=True, text=True).stdout
+    entries = {}
+    for line in out.splitlines():
+        meta, path = line.split("\t", 1)
+        mode, _, blob = meta.split()
+        entries[path[len(prefix):] if prefix else path] = (mode, blob)
+    return entries
+pinned, staged = tree(template, "HEAD"), tree(repo, "HEAD", "prism/")
+patched = {"CONFORMANCE.md", "Justfile", "model/ids.toml"}
+missing = sorted(set(pinned) - set(staged))
+changed = sorted(path for path in pinned if path in staged and pinned[path] != staged[path])
+if missing or set(changed) != patched:
+    sys.exit(f"instance differs from the template pin beyond the overlay's patch: missing={missing} changed={changed}")
+print(f"template_files={len(pinned)} identical_blobs={len(pinned) - len(patched)} patched={sorted(patched)} added_by_overlay={len(set(staged) - set(pinned))}")
+PY
 note "staged_install_commit=$install staged_install_tree=$(git -C "$repo" rev-parse 'HEAD^{tree}')"
-note "staged_root_agents_sha256=$(sha "$repo/AGENTS.md") staged_prism_agents_sha256=$(sha "$repo/prism/AGENTS.md")"
+note "staged_root_agents_sha256=$(git -C "$repo" show HEAD:AGENTS.md | sha256sum | cut -d' ' -f1) staged_prism_agents_sha256=$(git -C "$repo" show HEAD:prism/AGENTS.md | sha256sum | cut -d' ' -f1)"
 for policy in .devcontainer/devcontainer.json .github/workflows/bootstrap.yml AGENTS.md VERIFICATION.md prismpm.lock template-contract.json template.lock; do
-  cmp -- "$template/$policy" "$repo/prism/$policy" || {
+  git -C "$repo" show "HEAD:prism/$policy" | cmp -s -- - "$template/$policy" || {
     echo "universal policy file differs from the pin: $policy" >&2
     exit 70
   }
 done
-note "universal_policy_files=7/7 byte-identical to the template pin"
+note "universal_policy_files=7/7 byte-identical to the template pin, as committed"
 instance=$repo/prism
 
 # --- phase: author -----------------------------------------------------------
@@ -350,6 +383,21 @@ control nc-stale-conformance 'CONFORMANCE\.md is stale' just model
 plant nc-ratchet-new-test
 printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism/crates/conformance/tests/added_later.rs"
 control nc-ratchet-new-test 'new non-Prism file' just model
+
+# An observation, not a control: nobody has shown whether the nested ratchet
+# measures hand-written code outside prism/. A shell file is added at the
+# repository root in a commit after installation, and whatever `just model`
+# says is recorded. Either answer is a design fact for the installing commit.
+plant obs-root-file-added-after-install
+printf '#!/usr/bin/env bash\necho added after installation, outside prism\n' >"$repo/scripts/added_after_install.sh"
+git -C "$repo" add -A
+git -C "$repo" commit --quiet -m "observation: hand-written file added outside prism/ after installation"
+obs_rc=0
+sdk obs-root-file-added-after-install "$instance" allowlist "$seed" just model || obs_rc=$?
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' obs-root-file-added-after-install allowlist "recorded, not judged" "$obs_rc" OBSERVED "just model" >>"$summary"
+note "observation root-file-added-after-install: just model exit=$obs_rc; $(grep -F 'audit-prism' "$base/logs/obs-root-file-added-after-install.log" | tail -1)"
+rm -rf "$base/work/obs-root-file-added-after-install"
+git -C "$repo" checkout --quiet --force main
 
 # One weakened decision per fact: the function stops checking it, the
 # proposition still requires it, so eligible_decides is false and Lean says so.

@@ -2,7 +2,10 @@
 __pycache__/
 *.pyc
 
-# Local Node SDK and report outputs are not source artifacts.
-node_modules/
-package-lock.json
-*.tgz
+# Local Node SDK and report outputs are not source artifacts. Anchored to the
+# repository root on purpose: an unanchored `package-lock.json` would silently
+# keep the nested Prism instance's own lockfile out of an installing commit.
+/node_modules/
+/package-lock.json
+/*.tgz
+/web-dist/
