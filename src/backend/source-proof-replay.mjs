@@ -30,7 +30,6 @@ export async function replaySealedSourceReceipt(pkg,{
     typeof verifySignedMethod!=='function'||typeof runPrism!=='function')
   fail('REPLAY_CONFIG','operator trust, revocations, guest and exact source bindings required');
  const receipt=JSON.parse(pkg.files['RECEIPT.json']);
- const source=JSON.parse(pkg.files['SOURCES.json']);
  const entries=receipt.assertions;
  if(Object.keys(expectedSourceBindings).length!==entries.length||
     entries.some(x=>!Object.hasOwn(expectedSourceBindings,x.methodId)||
