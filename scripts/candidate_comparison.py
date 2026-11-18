@@ -81,8 +81,16 @@ def compare(graph, route, host, *, include_lexical=True, limit=25,
             external = external_inspector(
                 corpus, "governed:" + rid, external_selection["checkout"],
                 expected_repo_tree=external_selection["repo_tree"])
+            require(isinstance(external, dict) and
+                    external.get("state") == "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED" and
+                    external.get("pinned_git_object_consistency_verified") is True and
+                    external.get("composition_eligible") is False,
+                    "EXTERNAL_ASSET_REVIEW",
+                    "selected external package source receipt is not byte-verified or is over-promoted")
             review = external.get("complete_package_reference_and_asset_review_queue")
             require(isinstance(review, dict) and
+                    isinstance(review.get("frontmatter_license_pointer"), dict) and
+                    isinstance(review["frontmatter_license_pointer"].get("matched"), list) and
                     review.get("schema") == "qortara/package-reference-inventory/1" and
                     review.get("state") == "VERIFIED_SOURCE_BYTES_REFERENCE_LEADS_ONLY" and
                     review.get("file_count") ==
