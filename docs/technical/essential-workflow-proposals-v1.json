@@ -1,0 +1,413 @@
+{
+  "schema_version": "qortara/essential-workflow-proposals/1",
+  "authority": "proposals-only-not-imported-into-skillz-or-capability-graph",
+  "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+  "source_outcome_register": "registry/capability-outcome-register.json",
+  "outcome_definition_status": "draft-requires-upstream-source-and-owner-review",
+  "qualification_status": "not-tested",
+  "rights_assessed": false,
+  "host_validated": false,
+  "composition_eligible": false,
+  "rows": [
+    {
+      "route": "software-engineering/frontend",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Build an accessible responsive UI component from explicit behavior, design and device constraints",
+      "inputs": [
+        "design requirements",
+        "supported browser and viewport matrix",
+        "interaction and accessibility requirements"
+      ],
+      "outputs": [
+        "implementation artifact",
+        "behavioral and accessibility test evidence",
+        "known limitations"
+      ],
+      "acceptance_criteria": [
+        "Visual and interaction requirements are traceable to tests",
+        "Keyboard interactions and semantic labels satisfy declared criteria",
+        "Responsive layout passes the declared viewport matrix"
+      ],
+      "dependencies": [
+        "frontend framework version",
+        "approved design system",
+        "test host"
+      ],
+      "failure_modes": [
+        "Missing user flows or accessibility constraints",
+        "Unsupported framework/library versions",
+        "Conflicting design and behavior requirements"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "software-engineering/frontend"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "testing/accessibility",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Assess a user flow for keyboard and assistive-technology barriers using specified standards",
+      "inputs": [
+        "target flow and pages",
+        "accessibility criteria/version",
+        "allowed testing environment"
+      ],
+      "outputs": [
+        "reproducible findings with severity and evidence",
+        "tested coverage and exclusions",
+        "remediation verification cases"
+      ],
+      "acceptance_criteria": [
+        "Each finding identifies expected versus actual behavior",
+        "Automated checks are not presented as complete manual coverage",
+        "Remediation can be reproduced and retested"
+      ],
+      "dependencies": [
+        "authorized test account",
+        "browser/assistive technology",
+        "stable fixture"
+      ],
+      "failure_modes": [
+        "Restricted pages without authorization",
+        "Flaky or inaccessible test environment",
+        "Ambiguous criteria or incomplete flow"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "testing/accessibility"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "security/supply-chain",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Inventory release dependencies and provenance evidence before recommending a release decision",
+      "inputs": [
+        "exact source and build revision",
+        "dependency manifests and lockfiles",
+        "release policy and allowed registries"
+      ],
+      "outputs": [
+        "component inventory with pins",
+        "provenance/attestation status by artifact",
+        "blocked and unknown release risks"
+      ],
+      "acceptance_criteria": [
+        "Direct and transitive dependencies preserve exact identity",
+        "Missing or unverifiable provenance remains explicit HOLD",
+        "No unreviewed artifact is treated as signed or approved"
+      ],
+      "dependencies": [
+        "read-only package metadata",
+        "approved trust roots",
+        "release gate requirements"
+      ],
+      "failure_modes": [
+        "Tampered or missing lockfile",
+        "Unexpected signer or digest",
+        "Unavailable dependency metadata"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "security/supply-chain"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "game-design/systems-balancing",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Evaluate symmetric player combat and turn economy using a specified game ruleset",
+      "inputs": [
+        "authoritative rules",
+        "unit/action/economy tables",
+        "representative match configurations"
+      ],
+      "outputs": [
+        "documented turn-economy model",
+        "symmetry and matchup test matrix",
+        "candidate changes with explicit tradeoffs"
+      ],
+      "acceptance_criteria": [
+        "Equal-player baseline is verified before balance changes",
+        "All action/movement costs are accounted for",
+        "Claims are traceable to reproducible test scenarios"
+      ],
+      "dependencies": [
+        "ruleset revision",
+        "playtest constraints",
+        "simulation assumptions"
+      ],
+      "failure_modes": [
+        "Undefined actions or conflicting rules",
+        "Insufficient match samples",
+        "Unfair starting placements"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "game-design/systems-balancing"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "memory-context/provenance",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Trace a retrieved memory claim to its source, scope, revision and deletion state",
+      "inputs": [
+        "source IDs and timestamps",
+        "scope and permissions policy",
+        "memory retrieval query"
+      ],
+      "outputs": [
+        "evidence-linked claims and uncertainties",
+        "scope exclusion record",
+        "deletion/freshness verification receipt"
+      ],
+      "acceptance_criteria": [
+        "Every surfaced claim has a verifiable permitted source",
+        "Deleted or disallowed records are excluded rather than paraphrased",
+        "Conflicting source revisions trigger qualification"
+      ],
+      "dependencies": [
+        "source ledger",
+        "identity and access policy",
+        "deletion/tombstone index"
+      ],
+      "failure_modes": [
+        "Missing provenance",
+        "Scope collision",
+        "Tombstoned source or stale index"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "memory-context/provenance"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "science/reproducibility",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Reproduce a published quantitative result from disclosed methods and datasets",
+      "inputs": [
+        "published methods and version",
+        "exact dataset revision and access rights",
+        "evaluation environment and tolerance"
+      ],
+      "outputs": [
+        "executable reproducibility plan",
+        "result comparison and uncertainty",
+        "unreproduced assumptions and blockers"
+      ],
+      "acceptance_criteria": [
+        "Methods and data revisions are independently identified",
+        "Observed and reference metrics use consistent units and tolerances",
+        "Unmet resource or licensing prerequisites are reported before execution"
+      ],
+      "dependencies": [
+        "software/toolchain versions",
+        "authorized datasets",
+        "compute limits"
+      ],
+      "failure_modes": [
+        "Unavailable data or missing license",
+        "Inconsistent measurement definitions",
+        "Nondeterminism outside reported tolerance"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "science/reproducibility"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "ux-ui/usability-testing",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Run a consented human usability evaluation for a defined user task",
+      "inputs": [
+        "target user goal and task",
+        "participant consent and access requirements",
+        "prototype and test context"
+      ],
+      "outputs": [
+        "task completion observations",
+        "severity-ranked usability findings",
+        "evidence and proposed design iterations"
+      ],
+      "acceptance_criteria": [
+        "Observed task outcomes distinguish success from subjective sentiment",
+        "Consent and participant privacy are documented",
+        "Findings are reproducible without identifying participants"
+      ],
+      "dependencies": [
+        "approved protocol",
+        "participant recruitment",
+        "record retention policy"
+      ],
+      "failure_modes": [
+        "Missing informed consent",
+        "Unrepresentative sample",
+        "Invalid prototype interaction"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "ux-ui/usability-testing"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "ml-accelerators/model-quantization",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Compare exact-model quantization candidates under a controlled quality and runtime budget",
+      "inputs": [
+        "pinned model and tokenizer",
+        "target hardware/runtime",
+        "representative evaluation data and limits"
+      ],
+      "outputs": [
+        "reproducible candidate matrix",
+        "quality/latency/memory receipts",
+        "unsupported paths and rollback criteria"
+      ],
+      "acceptance_criteria": [
+        "All variants use equivalent evaluation prompts and metrics",
+        "Measured hardware/driver/tool versions are recorded",
+        "Quality regressions above the declared limit block selection"
+      ],
+      "dependencies": [
+        "toolchain and driver versions",
+        "hardware instrumentation",
+        "benchmark data permission"
+      ],
+      "failure_modes": [
+        "Incompatible kernels or formats",
+        "Out-of-memory errors",
+        "Unreproducible quality measurement"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "ml-accelerators/model-quantization"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "agent-mcp-development/tool-design",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Specify and verify a least-authority tool contract for an agent task",
+      "inputs": [
+        "task and authority boundaries",
+        "tool transport and host policy",
+        "negative misuse cases"
+      ],
+      "outputs": [
+        "typed tool contract and errors",
+        "permission map and refusal behavior",
+        "host-level acceptance matrix"
+      ],
+      "acceptance_criteria": [
+        "Tool cannot exceed its declared resource scope",
+        "Malformed inputs and prompt injection attempts are rejected",
+        "Successful host invocation and refusal are independently tested"
+      ],
+      "dependencies": [
+        "host integration contract",
+        "sandboxed test fixture",
+        "permission enforcement"
+      ],
+      "failure_modes": [
+        "Missing approval or unclear user authority",
+        "Untrusted tool response",
+        "Unsupported transport or host"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "agent-mcp-development/tool-design"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    },
+    {
+      "route": "audio-voice-sound/mixing",
+      "source_outcome_current_status": "needs-workflow-decomposition",
+      "proposal_status": "DRAFT_NOT_GOVERNED",
+      "objective": "Produce an auditable audio mix that meets a declared delivery loudness and clarity profile",
+      "inputs": [
+        "licensed source stems",
+        "target format and loudness",
+        "artistic priority and monitoring constraints"
+      ],
+      "outputs": [
+        "exported mix and stems",
+        "measured loudness/peak and intelligibility evidence",
+        "source and processing provenance"
+      ],
+      "acceptance_criteria": [
+        "Signal levels and peak limits meet declared delivery profile",
+        "No source is modified without applicable rights",
+        "Audible clipping and phase issues are checked on representative playback"
+      ],
+      "dependencies": [
+        "audio tooling",
+        "rights-cleared stems",
+        "reference monitoring setup"
+      ],
+      "failure_modes": [
+        "Unlicensed material or missing stem",
+        "Clipping or phase cancellation",
+        "Incompatible export format"
+      ],
+      "refusal_rule": "If required permission, input, dependency or evidence is absent, return explicit gap or refuse; do not fabricate a successful outcome.",
+      "source_anchor": {
+        "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+        "outcome_register_path": "registry/capability-outcome-register.json",
+        "route": "audio-voice-sound/mixing"
+      },
+      "method_source_attested": false,
+      "rights_qualified": false,
+      "behavior_tested": false
+    }
+  ]
+}
