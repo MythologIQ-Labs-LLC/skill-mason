@@ -157,6 +157,44 @@ class ExternalPackageTests(unittest.TestCase):
     def test_observation_id_is_not_governed(self):
         self.refuse("EXTERNAL_ID", record_id="observation:any")
 
+    def test_historical_combined_git_tree_and_blob_fingerprint_is_explicitly_reported(self):
+        identity = self.record["identity"]
+        identity["recorded_fingerprint_algorithm"] = "git-tree-and-blob-sha1"
+        identity["recorded_fingerprint"] = self.skill_blob
+        del identity["entrypoint_git_blob_sha1"]
+        self.persist()
+        receipt = self.inspect()
+        self.assertEqual(receipt["entrypoint_git_blob_sha1"], self.skill_blob)
+        self.assertEqual(receipt["entrypoint_identity_source"],
+                         "recorded_fingerprint_git_tree_and_blob_sha1_fallback")
+        self.assertTrue(receipt["historical_export_identity_gap_requires_upstream_correction"])
+        self.assertFalse(receipt["published_handoff_explicit_entrypoint_present"])
+        self.assertFalse(receipt["composition_eligible"])
+
+    def test_missing_explicit_entrypoint_without_known_combined_algorithm_refuses(self):
+        identity = self.record["identity"]
+        identity["recorded_fingerprint_algorithm"] = "opaque"
+        identity["recorded_fingerprint"] = self.skill_blob
+        del identity["entrypoint_git_blob_sha1"]
+        self.persist()
+        self.refuse("EXTERNAL_IDENTITY_INCOMPLETE")
+
+    def test_historical_fallback_still_refuses_divergent_recorded_blob(self):
+        identity = self.record["identity"]
+        identity["recorded_fingerprint_algorithm"] = "git-tree-and-blob-sha1"
+        identity["recorded_fingerprint"] = "0" * 40
+        del identity["entrypoint_git_blob_sha1"]
+        self.persist()
+        self.refuse("EXTERNAL_ENTRYPOINT_DRIFT")
+
+    def test_historical_fallback_requires_valid_full_blob_id(self):
+        identity = self.record["identity"]
+        identity["recorded_fingerprint_algorithm"] = "git-tree-and-blob-sha1"
+        identity["recorded_fingerprint"] = "invalid-blob"
+        del identity["entrypoint_git_blob_sha1"]
+        self.persist()
+        self.refuse("EXTERNAL_PIN")
+
     def test_incomplete_record_tree_refused(self):
         del self.record["identity"]["package_git_tree_sha1"]
         self.persist()
