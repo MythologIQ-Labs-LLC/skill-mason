@@ -25,7 +25,7 @@ A valid operator signature authenticates **who accepted that exact source-to-com
 
 `createSourceBoundAssertionGuard` wraps the production coordinator's **separately configured signed four-fact adapter**. It refuses until a matching, fresh operator acceptance verifies, and **only then** delegates to that adapter for the actual P0 subject. Source acceptance never provides a default `rights: true`, modifies the signed facts, or bypasses the guest.
 
-The guard currently returns an additional `sourceAcceptanceProofSha256` to the trusted coordinator. **The current PR #28 composer does not yet persist this new value into its candidate artifact/receipt.** That release/replay integration remains an explicit separate dependency and production HOLD; do not claim fully replayable production provenance from this module alone.
+The guard now returns **both** the independently verified `sourceBindingSha256` and the operator's signed `sourceAcceptanceProofSha256` to the trusted coordinator. These must match the operator-pinned method map in the separate strict composer [PR #38](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/38) before its guest runs. The two PRs remain separately reviewed. **PR #28's existing branch does not yet persist these values into its candidate artifact/receipt. PR #38 proposes that strictly opt-in persisted receipt change.** That release/replay integration remains an explicit separate dependency and production HOLD; do not claim fully replayable production provenance from this module alone.
 
 ## Real source and development test
 
