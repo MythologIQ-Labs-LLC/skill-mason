@@ -29,3 +29,11 @@ test('tablet and phone breakpoints make the workspace one column without extra l
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.doesNotMatch(html,/https?:\/\/[^"]+\.(?:woff|ttf|css)/);
 });
+
+test('Q icon and ortara form a single wordmark with a distinct Skills gap',()=>{
+  assert.match(html, /<a class="brand"[^>]+aria-label="Qortara Skills"[^>]*><img[^>]+><span>ortara <strong>Skills<\\/strong><\\/span>/);
+  assert.match(css, /\\.brand\\{gap:0;font-size:21px/);
+  assert.match(css, /\\.brand>span\\{display:inline-flex;align-items:baseline;gap:10px;margin-left:-1px\\}/);
+  assert.match(css, /\\.brand\\{font-size:19px;gap:0\\}/);
+  assert.doesNotMatch(html, /<span>Qortara <strong>Skills/);
+});
