@@ -9,7 +9,7 @@ import {createHash} from 'node:crypto';
 
 const SHA=/^[a-f0-9]{64}$/;
 const COMMIT=/^[a-f0-9]{40}$/;
-const SLUG=/^[a-z][a-z0-9-]{2,79}$/;
+const SLUG=/^(?!.*--)[a-z][a-z0-9-]{1,62}[a-z0-9]$/;
 const MAX_BYTES=1_000_000;
 
 export class RecipeRefusal extends Error {
