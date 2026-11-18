@@ -2,10 +2,11 @@
  * Network-isolated cross-branch integration fixture.
  *
  * PR #37 source signature guard -> PR #28 + receipt extension signer ->
- * mock P0 guest -> exclusive development candidate disk seal.
+ * mock or exact-pinned real P0 guest -> exclusive development candidate disk seal.
  *
  * All source records, rights, keys and positive facts are SYNTHETIC TEST
- * FIXTURES. Do not present this as a real skillz source, host, or rights test.
+ * FIXTURES. The optional real guest proves only P0 execution, never source
+ * rights or downstream agent-host behavior.
  */
 import assert from 'node:assert/strict';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
@@ -16,9 +17,11 @@ import {pathToFileURL} from 'node:url';
 import {createComposer,verifyPackage,writePackage,readPackage,canonicalJSON} from '../../src/backend/compose.mjs';
 import {replaySealedSourceReceipt,replaySealedSourceReceiptFromDisk} from '../../src/backend/source-proof-replay.mjs';
 import {createSignedAssertionAdapter} from '../../src/backend/signed-assertions.mjs';
+import {createPinnedPrismGuest} from '../../src/backend/prism-guest.mjs';
 
 const SHA=x=>createHash('sha256').update(x).digest('hex');
-const H='a'.repeat(40),T='b'.repeat(40),HOLO='c'.repeat(64),NOW=1784419200;
+const H='a'.repeat(40),T='b'.repeat(40),MOCK_HOLO='c'.repeat(64),NOW=1784419200;
+const PINNED_HOLO='9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e';
 const srcText='This is an original, disposable fixture method and not a real host instruction.';
 const method=()=>({id:'fixture-review-method',origin:'https://example.invalid/test-only',
  sourcePath:'fixtures/method.txt',commit:H,sha256:SHA(srcText),methodVersion:'v1',
@@ -47,9 +50,15 @@ const approvalRefusal=async f=>{
  catch(err){if(err.code==='ERR_ASSERTION')throw err;return err;}
 };
 async function main(args){
- assert.deepEqual(args.slice(0,1),['--source-gate-root']);
- assert.equal(args.length,2);
+ assert.equal(args[0],'--source-gate-root');
  assert.equal(isAbsolute(args[1]),true);
+ const realGuest=args.length===6;
+ if(realGuest){
+  assert.deepEqual([args[2],args[4]],['--holo','--sha256']);
+  assert.ok(isAbsolute(args[3]),'real holo must be absolute');
+  assert.equal(args[5],PINNED_HOLO,'only the previously pinned real P0 holo permitted');
+ }else assert.equal(args.length,2,'mock mode must not accept extra args');
+ const HOLO=realGuest?PINNED_HOLO:MOCK_HOLO;
  const gate=await import(pathToFileURL(join(args[1],
   'scripts/source_acceptance_gate.mjs')).href);
  const {canonicalSourceJSON,SOURCE_ACCEPTANCE_SCHEMA,
@@ -129,9 +138,14 @@ async function main(args){
   readOperatorAcceptance:readApproval,
   assertSignedMethod,nowEpoch:()=>NOW
  });
- const guest=({requestHex,holoSha256})=>{
+ const actualGuest=realGuest?createPinnedPrismGuest({
+  holoPath:args[3],holoSha256:PINNED_HOLO,
+  developmentP0Consent:true
+ }):null;
+ const guest=async({requestHex,holoSha256})=>{
   guestCalls++;assert.equal(requestHex,'01010101');
   assert.equal(holoSha256,HOLO);
+  if(realGuest)return actualGuest({requestHex,holoSha256});
   return {schema:'qortara/local-eligibility-result/1',
    status:'GUEST_COMPLETED',application:'Qortara Skills Eligibility',
    requestHex,response:'eligible',responseHex:'656c696769626c65',
@@ -225,14 +239,17 @@ async function main(args){
   bothProofDigestsSealed:true,
   sourceApprovalSignatureReplayedByActualGate:true,
   independentlySignedFourFactProofReplayedByActualAdapter:true,
-  pinnedGuestReplayedUsingFixtureMock:true,
+  pinnedGuestReplayedUsingFixtureMock:!realGuest,
+  realPinnedPrismGuestExecuted:realGuest,
+  pinnedP0HoloSha256:HOLO,
+  realGuestCalls:realGuest?guestCalls:0,
   exclusiveDiskSealVerified:true,
   independentDiskSealedReplayWithRealSignatureVerifiers:true,
   tamperedDiskReceiptRefused:true,
   tamperedDiskReplayRefusedBeforeVerifiers:true,
   missingSourceApprovalStoppedBeforeGuest:true,
   positiveFactsAreFixturesOnly:true,
-  prismGuestIsMock:true,
+  prismGuestIsMock:!realGuest,
   productionEligible:false,hostValidated:false,sourceRightsEstablished:false
  };
  console.log(JSON.stringify(output));
