@@ -200,6 +200,11 @@ jobs:
           assert bridge["binding"]["requested_route"] == "software-engineering/frontend"
           assert bridge["source_package_bytes_verified"] is False
           assert bridge["negative_test_vector_hex"] == "00000000"
+          refusal = bridge["typed_generation_refusal"]
+          assert refusal["state"] == "REFUSED_PRE_ADMISSION"
+          assert refusal["source_record_id"] == "anthropic-skills/frontend-design"
+          assert refusal["codes"][0] == "SOURCE_PACKAGE_BYTES_UNVERIFIED"
+          assert refusal["no_method_composed"] and refusal["not_a_prism_guest_verdict"]
           assert all(v is False for v in bridge["facts_verified"].values())
           assert bridge["expected_guest_refusals"] == [
               "EVIDENCE_UNQUALIFIED", "RIGHTS_UNRESOLVED",
