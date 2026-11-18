@@ -80,10 +80,20 @@ def _license_pointer(skill_text, known):
         return {"raw_field_present": False, "matched": [], "unresolved": [],
                 "declared_text_sha256": None}
     declared = candidates[0].strip().strip("\"'")
-    names = sorted(set(LICENSE_FILE.findall(declared)))
-    matched = sorted(x for x in names if x in known)
-    unresolved = sorted(x for x in names if x not in known)
-    return {"raw_field_present": True, "matched": matched, "unresolved": unresolved,
+    # Tokenize conservatively. Retain ../, absolute paths and URL schemes so
+    # a remote or parent LICENSE.txt cannot masquerade as the in-package file.
+    tokens = (x.strip(" ,;()`<>\\\"'") for x in re.split(r"\\s+", declared))
+    matched, unresolved = set(), set()
+    for token in tokens:
+        if not LICENSE_FILE.search(token):
+            continue
+        classification, local = _resolve("SKILL.md", token, known)
+        if classification == "verified_local_file_lead":
+            matched.add(local)
+        else:
+            unresolved.add(token[:160])
+    return {"raw_field_present": True, "matched": sorted(matched),
+            "unresolved": sorted(unresolved),
             "declared_text_sha256": sha256(declared.encode("utf-8"))}
 
 
