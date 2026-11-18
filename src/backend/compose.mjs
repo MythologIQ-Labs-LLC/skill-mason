@@ -209,7 +209,7 @@ export function verifyPackage(packageValue){
      Object.keys(packageValue.files).sort().join('|')!==['RECEIPT.json','SKILL.md','SOURCES.json','skill-mason.json'].join('|'))
     refuse('PACKAGE_SCHEMA','unexpected package structure');
   const files=packageValue.files;
-  for(const [name,data] of Object.entries(files))if(typeof data!=='string'||data.length>500_000)
+  for(const [name,data] of Object.entries(files))if(typeof data!=='string'||Buffer.byteLength(data,'utf8')>500_000)
     refuse('PACKAGE_SCHEMA','invalid package file: '+name);
   let manifest,receipt;
   try{manifest=JSON.parse(files['skill-mason.json']);receipt=JSON.parse(files['RECEIPT.json']);}
