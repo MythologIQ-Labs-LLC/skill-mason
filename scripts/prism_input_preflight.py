@@ -32,6 +32,11 @@ def prepare_preflight(graph, route, host, governed_id, *,
     require(isinstance(governed_id, str) and governed_id.startswith("governed:") and
             len(governed_id) > len("governed:"),
             "METHOD_SELECTION", "explicit governed method ID required")
+    if external_selection is not None:
+        require(isinstance(external_selection, dict) and
+                external_selection.get("record_id") == governed_id,
+                "METHOD_SELECTION",
+                "inspected external package must be the selected governed method")
     opts = {"include_lexical": False, "external_selection": external_selection}
     if package_inspector is not None:
         opts["package_inspector"] = package_inspector
