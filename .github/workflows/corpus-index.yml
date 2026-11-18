@@ -9,6 +9,9 @@ on:
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
@@ -38,6 +41,9 @@ on:
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
@@ -78,6 +84,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
           python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
+          python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -127,6 +134,12 @@ jobs:
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
             --route "software-engineering/frontend" --host ChatGPT --limit 5 > corpus-comparison-example.json
+          python3 -m scripts.prism_input_preflight \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route software-engineering/frontend --host ChatGPT \
+            --governed-record governed:anthropic-skills/frontend-design \
+            > corpus-prism-denial-preflight.json
           python3 -m scripts.package_resolver \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source first-party-scan > corpus-package-scan.json
@@ -181,6 +194,21 @@ jobs:
           assert not focus["actual_registered_essential_outcomes"] and not focus["composition_eligible"]
           print("Recognized capability gap categories:", gaps["gap_categories"])
           print("Cross-domain draft outcomes pending upstream review:", gaps["draft_workflow_proposals_pending_review"])
+          bridge = json.loads(Path("corpus-prism-denial-preflight.json").read_text())
+          assert bridge["state"] == "UNSIGNED_P0_DENIAL_VECTOR_NOT_READY_FOR_COMPOSITION"
+          assert bridge["binding"]["governed_id"] == "anthropic-skills/frontend-design"
+          assert bridge["binding"]["requested_route"] == "software-engineering/frontend"
+          assert bridge["source_package_bytes_verified"] is False
+          assert bridge["negative_test_vector_hex"] == "00000000"
+          assert all(v is False for v in bridge["facts_verified"].values())
+          assert bridge["expected_guest_refusals"] == [
+              "EVIDENCE_UNQUALIFIED", "RIGHTS_UNRESOLVED",
+              "AUTHORITY_EXCEEDED", "OUTCOME_UNCOVERED"]
+          assert bridge["independently_authenticated_method_assertion"] is False
+          assert bridge["prism_invoked"] is False and bridge["prism_guest_decision"] is None
+          assert bridge["production_eligible"] is False
+          assert bridge["composition_eligible"] is False
+          print("Exact pinned source-to-Prism negative input: bound source, zero unsigned facts, NO ADMISSION")
           cmp = json.loads(Path("corpus-comparison-example.json").read_text())
           assert cmp["route"] == "software-engineering/frontend"
           assert cmp["declared_observation_rows_swept"] == 66139
@@ -244,6 +272,7 @@ jobs:
             corpus-accession-noop.json
             corpus-package-scan.json
             corpus-comparison-example.json
+            corpus-prism-denial-preflight.json
             corpus-capability-gaps.json
             corpus-workflow-proposal-example.json
           retention-days: 14
