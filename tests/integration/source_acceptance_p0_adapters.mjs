@@ -123,7 +123,10 @@ async function main(args){
  const report={
    schema:'qortara/external-source-to-p0-signed-assertion-interop/1',
    source:'real-pinned-original-external-package',testSignatures:'EPHEMERAL_FIXTURE_ONLY',
-   sourceRecord:b.governed_id,sourceBindingSha256:b ? source.binding_sha256 : null,
+   sourceRecord:b.governed_id,sourceBindingSha256:source.binding_sha256,
+   sourceAcceptanceProofSha256:accepted.acceptanceProofSha256,
+   signedFourFactProofSha256:result.proofDigest,
+   fixtureOnlyP0SubjectSha256:subjectSha256,
    actualP0AdapterSource:'exact-pinned-PR28',operatorSignatureChecked:true,
    independentlySignedFourFactsChecked:true,
    falseFacts:[result.evidence,result.rights,result.authority,result.coverage],
