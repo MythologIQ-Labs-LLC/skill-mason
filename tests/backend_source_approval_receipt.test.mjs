@@ -195,6 +195,8 @@ test('two operator-configured proof replay callbacks and guest recheck are requi
  assert.equal(out.methods[0].signedFourFactProofSha256,fourFactProof);
  assert.equal(calls,1);
  assert.equal(out.productionEligible,false);
+ assert.equal(out.matchingCallerPinnedManifestSha256,verifyPackage(pkg).packageSha256);
+ assert.equal(out.packagePinCustodyVerifiedByThisModule,false);
  assert.equal(out.rightsOrBehavioralTruthEstablishedByThisModule,false);
  assert.equal(out.replayResultIsNotP2Proof,true);
 });
