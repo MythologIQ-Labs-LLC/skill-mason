@@ -157,8 +157,23 @@ def inspect_external(index, record_id, checkout, *, expected_repo_tree):
             len(PurePosixPath(entrypoint).parts) >= 3,
             "EXTERNAL_ENTRYPOINT", "review must identify exact nested skill entrypoint")
     dirname = entrypoint[:-len("/SKILL.md")]
-    entry_sha = _oid(identity.get("entrypoint_git_blob_sha1"),
-                     "recorded SKILL.md Git blob")
+    # Historical producer bug: a "git-tree-and-blob-sha1" companion may put
+    # the independently recorded entrypoint blob in recorded_fingerprint but
+    # omit the dedicated entrypoint_git_blob_sha1 field. Recover that narrow
+    # case explicitly, then require exact Git-object agreement. Never invent a
+    # blob for unknown fingerprint algorithms or silently call this complete.
+    declared_entry = identity.get("entrypoint_git_blob_sha1")
+    if declared_entry is None:
+        require(identity.get("recorded_fingerprint_algorithm") ==
+                "git-tree-and-blob-sha1",
+                "EXTERNAL_IDENTITY_INCOMPLETE",
+                "missing explicit entrypoint; no supported recorded-fingerprint fallback")
+        entry_sha = _oid(identity.get("recorded_fingerprint"),
+                         "recorded combined-fingerprint SKILL.md Git blob")
+        entry_identity_source = "recorded_fingerprint_git_tree_and_blob_sha1_fallback"
+    else:
+        entry_sha = _oid(declared_entry, "recorded SKILL.md Git blob")
+        entry_identity_source = "explicit_entrypoint_git_blob_sha1"
     subtree = _oid(identity.get("package_git_tree_sha1"),
                    "recorded complete package tree")
     root_tree = _oid(expected_repo_tree, "independently expected repository tree")
@@ -215,6 +230,10 @@ def inspect_external(index, record_id, checkout, *, expected_repo_tree):
         "repository_git_tree_sha1": root_tree,
         "package_path": dirname, "package_git_tree_sha1": actual_tree,
         "entrypoint_git_blob_sha1": entry_sha,
+        "entrypoint_identity_source": entry_identity_source,
+        "published_handoff_explicit_entrypoint_present": declared_entry is not None,
+        "historical_export_identity_gap_requires_upstream_correction":
+            declared_entry is None,
         "complete_tracked_package_files_verified": len(files),
         "package_bytes_verified": total, "files": files,
         "reference_leads": leads,
