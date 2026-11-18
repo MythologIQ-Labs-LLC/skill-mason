@@ -16,12 +16,14 @@ export const PILOT_DEFINITIONS=Object.freeze([
     description:'Analyze supplied CI failure logs and produce a grounded diagnosis without executing commands.',
     outcome:'triage CI failure',
     path:'pilots/first-party/ci-failure-triage/procedure.json',
-    gitBlob:'23bd3a94a3da68996f406892dcbb94be247a6db9'}),
+    gitBlob:'23bd3a94a3da68996f406892dcbb94be247a6db9',
+    sha256:'9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
     path:'pilots/first-party/governance-drift-review/procedure.json',
-    gitBlob:'0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07'})
+    gitBlob:'0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07',
+    sha256:'949abaa21513610ce2d9b4a1b64da75af6edb4b9cea73266979eda85aec043d1'})
 ]);
 const sha=(data)=>createHash('sha256').update(data).digest('hex');
 const gitBlob=(data)=>createHash('sha1')
@@ -38,7 +40,7 @@ export async function loadFirstPartyPilots(){
   for(const pilot of PILOT_DEFINITIONS){
     const path=new URL('../../'+pilot.path,import.meta.url);
     const bytes=await readFile(path);
-    if(bytes.length===0||bytes.length>16_000||gitBlob(bytes)!==pilot.gitBlob)
+    if(bytes.length===0||bytes.length>16_000||gitBlob(bytes)!==pilot.gitBlob||sha(bytes)!==pilot.sha256)
       refuse('PILOT_SOURCE_DRIFT','first-party pilot source Git blob changed: '+pilot.id);
     const methodText=bytes.toString('utf8');
     if(Buffer.from(methodText,'utf8').compare(bytes)!==0)
