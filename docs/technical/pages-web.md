@@ -34,6 +34,14 @@ The Pages workflow bundles the pinned browser Prism runtime and local Verdant re
 
 GitHub Pages deployment first succeeded in [run 44206841779](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44206841779) at https://mythologiq-labs-llc.github.io/skill-mason/. HTTP smoke-testing, interactive regression on an actual browser, real-holo dispatch and all generated-skill behavioral tests remain separate.
 
+### Pages publishing configuration and recovery
+
+The **repository Pages setting** must be **Build and deployment → Source: GitHub Actions**. A second GitHub-generated `pages build and deployment` workflow was observed on later `main` pushes ([run 44227741360](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44227741360)); it used Jekyll on the repository tree, *not* the `web-dist/` app artifact. GitHub reported success while the published content could still be the wrong site. Track the mismatch in [issue #13](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/13).
+
+The source-controlled `.github/workflows/pages.yml` is authoritative for the app build. It runs browser contract tests, bundles the pinned Prism browser runtime, asserts `web-dist/index.html`, `app.js`, `style.css`, `.nojekyll` and brand assets exist, and deploys the artifact on a matching `main` push or **manual workflow dispatch from `main`**. Pull requests build but do not deploy. The manual path is for governed recovery, **not** a way to bypass source/configuration verification.
+
+Acceptance requires all of: the Pages setting is **GitHub Actions**; the custom deploy job passes on the expected `main` commit; the live URL serves that bundle and its assets and interactive starter flow; an unrelated later `main` push does not cause a Jekyll overwrite. A green workflow alone is insufficient. Repository automation cannot verify or mutate the account-level Pages source setting; that requires owner/admin control.
+
 ## Trust and authority
 
 - User text is bounded, normalized and escaped before inclusion in draft Markdown. Results are created entirely client-side, and downloaded locally; no telemetry or uploads.
