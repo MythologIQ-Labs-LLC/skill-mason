@@ -210,7 +210,9 @@ class SnapshotAccessionTests(unittest.TestCase):
     def test_only_real_original_source_bytes_can_pass_shard_hashes(self):
         path = self.fx.g1_paths[0]
         (self.fx.source / path).write_bytes(b'{"records":[]}\n')
-        self.refuse("SNAPSHOT_BYTES")
+        # The source reader catches changed file size before a SHA-256 can
+        # be compared. Preserve the earliest refusal instead of normalizing it.
+        self.refuse("SOURCE_BYTES")
 
     def test_unknown_new_manifest_source_class_veto(self):
         self.fx.records[1]["source_class"] = "automatically-approved"
