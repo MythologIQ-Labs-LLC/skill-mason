@@ -24,9 +24,9 @@ The priority queue is an **intake-work distribution queue**, not a subjective ra
 
 Every category has 0 approved methods until independent source-specific rights, references, authority and host acceptance are proven. Raw observation counts, popularity, filename words and static grades never change this.
 
-## Ten new draft workflow definitions for human review
+## Thirteen new draft workflow definitions for human review
 
-docs/technical/essential-workflow-proposals-v1.json contains ten *new, original requirement proposals* covering software frontend, accessibility testing, software supply-chain, systems balancing, memory provenance, research reproducibility, UX usability testing, model quantization, agent tool design and audio mixing. Each has explicit required inputs, outputs, correctness acceptance criteria, dependencies, failure modes, refusal behavior and exact original outcome-register path/pin.
+docs/technical/essential-workflow-proposals-v1.json contains thirteen *new, original requirement proposals* covering software frontend, accessibility testing, software supply-chain, systems balancing, memory provenance, research reproducibility, UX usability testing, model quantization, agent tool design audio mixing, technical drawing, robotics safety and medical evidence appraisal. Each has explicit required inputs, outputs, correctness acceptance criteria, dependencies, failure modes, refusal behavior and exact original outcome-register path/pin.
 
 These are **specification-gap fills**, not newly installed skills. They are explicitly not imported into the skillz essential outcome register. They do not assert that any existing method fulfills the specification. Each proposal must be reviewed against actual source evidence, revised as required, accepted by the owning skillz taxonomy/governance process, and only then captured in a newly pinned export that Skill Mason independently validates.
 
