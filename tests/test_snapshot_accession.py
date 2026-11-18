@@ -120,10 +120,103 @@ class SnapshotAccessionTests(unittest.TestCase):
     def test_deleted_discovery_observation_visible(self):
         cand = self.candidate()
         cand["observations"] = dict(cand["observations"])
+        cand["stable_observation_counts"] = dict(cand["stable_observation_counts"])
         key = sorted(cand["observations"])[0]
         del cand["observations"][key]
+        # A complete source row deletion must reduce both the pointer-ledger
+        # and the content multiset. These are independently reconciled.
+        content_id = sorted(cand["stable_observation_counts"])[0]
+        cand["stable_observation_counts"][content_id] -= 1
+        if not cand["stable_observation_counts"][content_id]:
+            del cand["stable_observation_counts"][content_id]
         report = compare_snapshots(self.old, cand)
         self.assertEqual(report["observed_source_rows"]["removed"]["count"], 1)
+        self.assertEqual(report["source_aware_observation_multiset"]["removed"]["occurrences"], 1)
+
+    def test_same_content_shard_repacking_is_not_a_new_discovery(self):
+        cand = self.candidate()
+        cand["observations"] = dict(cand["observations"])
+        key = sorted(cand["observations"])[0]
+        content = cand["observations"].pop(key)
+        cand["observations"]["g1-g3:registry/discovery/moved.json#/records/0"] = content
+        report = compare_snapshots(self.old, cand)
+        self.assertEqual(report["observed_source_rows"]["added"]["count"], 1)
+        self.assertEqual(report["observed_source_rows"]["removed"]["count"], 1)
+        self.assertTrue(report["source_shard_repacking_may_explain_pointer_delta"])
+        stable = report["source_aware_observation_multiset"]
+        self.assertEqual(stable["before_observations"], 18)
+        self.assertEqual(stable["after_observations"], 18)
+        self.assertEqual(stable["unchanged_observation_occurrences"], 18)
+        self.assertEqual(stable["added"]["occurrences"], 0)
+        self.assertEqual(stable["removed"]["occurrences"], 0)
+        self.assertFalse(report["snapshot_accession_authorized"])
+
+    def test_real_content_fingerprint_change_is_not_a_shard_repack(self):
+        cand = self.candidate()
+        counts = dict(cand["stable_observation_counts"])
+        prior = sorted(counts)[0]
+        counts[prior] -= 1
+        if not counts[prior]:
+            del counts[prior]
+        replacement = sha256(b"synthetic different pinned raw content")
+        counts[replacement] = counts.get(replacement, 0) + 1
+        cand["stable_observation_counts"] = counts
+        report = compare_snapshots(self.old, cand)
+        stable = report["source_aware_observation_multiset"]
+        self.assertEqual(stable["before_observations"], 18)
+        self.assertEqual(stable["after_observations"], 18)
+        self.assertEqual(stable["added"]["occurrences"], 1)
+        self.assertEqual(stable["removed"]["occurrences"], 1)
+        self.assertFalse(report["source_shard_repacking_may_explain_pointer_delta"])
+        self.assertFalse(report["composition_eligible"])
+
+    def test_repeated_content_is_counted_not_silently_deduplicated(self):
+        from scripts.snapshot_accession import _stable_content_delta
+        content = sha256(b"same raw row and source claims")
+        before = {content: 3}
+        after = {content: 5}
+        diff = _stable_content_delta(before, after)
+        self.assertEqual(diff["before_observations"], 3)
+        self.assertEqual(diff["after_observations"], 5)
+        self.assertEqual(diff["before_distinct_content_fingerprints"], 1)
+        self.assertEqual(diff["after_distinct_content_fingerprints"], 1)
+        self.assertEqual(diff["unchanged_observation_occurrences"], 3)
+        self.assertEqual(diff["added"]["occurrences"], 2)
+        self.assertEqual(diff["removed"]["occurrences"], 0)
+        self.assertTrue(diff["all_duplicate_occurrences_preserved"])
+
+    def test_missing_content_ledger_occurrence_is_explicit_refusal(self):
+        cand = self.candidate()
+        cand["stable_observation_counts"] = dict(cand["stable_observation_counts"])
+        content = sorted(cand["stable_observation_counts"])[0]
+        del cand["stable_observation_counts"][content]
+        with self.assertRaises(Refusal) as ex:
+            compare_snapshots(self.old, cand)
+        self.assertEqual(ex.exception.code, "SNAPSHOT_DELTA")
+
+    def test_extra_fabricated_content_ledger_occurrence_is_explicit_refusal(self):
+        cand = self.candidate()
+        cand["stable_observation_counts"] = dict(cand["stable_observation_counts"])
+        cand["stable_observation_counts"][sha256(b"forged extra")] = 1
+        with self.assertRaises(Refusal) as ex:
+            compare_snapshots(self.old, cand)
+        self.assertEqual(ex.exception.code, "SNAPSHOT_DELTA")
+
+    def test_source_aware_fingerprint_binds_four_source_metadata(self):
+        from scripts.snapshot_accession import _stable_content_delta
+        # A source-id or revision switch is not an equivalent raw source
+        # observation, even when the five-field row bytes appear identical.
+        original = {"family": "four-source", "source_id": "publisher-A",
+                    "repository": "https://github.com/team/one",
+                    "source_pin": "a" * 40,
+                    "record": ["skills/alpha/SKILL.md", "b" * 40, "c" * 40, 100, "shape"]}
+        changed = dict(original, source_pin="d" * 40)
+        a = sha256(canonical(original))
+        b = sha256(canonical(changed))
+        diff = _stable_content_delta({a: 1}, {b: 1})
+        self.assertEqual(diff["added"]["occurrences"], 1)
+        self.assertEqual(diff["removed"]["occurrences"], 1)
+        self.assertFalse(diff["equivalence_is_source_aware_raw_metadata_not_verified_skill_bytes"] is False)
 
     def test_source_file_diff_and_evidence_reference_loss_separate(self):
         cand = self.candidate()
