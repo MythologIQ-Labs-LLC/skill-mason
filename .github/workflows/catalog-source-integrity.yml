@@ -1,0 +1,55 @@
+name: Pinned skillz source integrity (read only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/catalog_handoff.py'
+      - 'scripts/verify_catalog_source.py'
+      - 'tests/test_catalog_snapshot.py'
+      - '.github/workflows/catalog-source-integrity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/catalog_handoff.py'
+      - 'scripts/verify_catalog_source.py'
+      - 'tests/test_catalog_snapshot.py'
+      - '.github/workflows/catalog-source-integrity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: catalog-source-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Qortara Skills source without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check offline negative controls
+        run: python3 -m unittest discover -s tests -p 'test_catalog_snapshot.py' -v
+      - name: Checkout exact skillz handoff publication, no submodule materialization
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+        env:
+          GIT_LFS_SKIP_SMUDGE: '1'
+      - name: Verify pinned source snapshot and every manifest-declared source byte
+        shell: bash
+        env:
+          GIT_LFS_SKIP_SMUDGE: '1'
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = "efba572262fc5fa3ff1934b054aa4f15ce149c1a"
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          python3 -m scripts.verify_catalog_source \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --report "$RUNNER_TEMP/qortara-source-check.json"
