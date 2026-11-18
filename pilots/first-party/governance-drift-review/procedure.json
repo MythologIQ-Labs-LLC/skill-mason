@@ -1,0 +1,43 @@
+{
+  "schema": "qortara/text-review-procedure/1",
+  "useWhen": "The user provides repository governance requirements and implementation evidence and wants a traceable drift comparison.",
+  "doNotUseWhen": "The request asks for an automatic policy change, forged approval, arbitrary shell execution or an assertion that a missing native gate passed.",
+  "inputs": [
+    "The supplied canonical governance requirements and their revision",
+    "The observed implementation or workflow evidence",
+    "The identity of the repository revision being evaluated"
+  ],
+  "steps": [
+    {
+      "action": "List each requirement as a separate acceptance condition without weakening its original wording.",
+      "evidenceRequired": "Cite the source policy section and revision for the condition."
+    },
+    {
+      "action": "Match every condition to implementation or verification evidence, preserving the tested revision.",
+      "evidenceRequired": "Record the file, exact run or check; mark missing evidence as not established."
+    },
+    {
+      "action": "Classify gaps as unmet requirements, contradicted evidence, or untested conditions.",
+      "evidenceRequired": "Identify the precise difference, not a generic compliance score."
+    },
+    {
+      "action": "Describe a minimal remediation and the exact check that could verify it.",
+      "evidenceRequired": "List expected test outcomes without claiming changes or audits have run."
+    },
+    {
+      "action": "Produce a decision table without converting advisory findings into owner acceptance.",
+      "evidenceRequired": "Keep separate columns for current status, evidence, blocker and next check."
+    }
+  ],
+  "outputFields": [
+    "Requirement and revision",
+    "Observed evidence",
+    "Status or drift",
+    "Required remediation",
+    "Verification gate"
+  ],
+  "stopConditions": [
+    "If the canonical policy or implementation revision is missing, stop the affected requirement as not established.",
+    "Never infer approval from a green supplemental CI check when a native Qortara gate is required."
+  ]
+}
