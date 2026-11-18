@@ -54,6 +54,8 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertEqual(expected_repo_tree, "e"*40)
         return {
             "state": "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED",
+            "pinned_git_object_consistency_verified": True,
+            "composition_eligible": False,
             "complete_tracked_package_files_verified": 2,
             "package_git_tree_sha1": "a"*40,
             "entrypoint_git_blob_sha1": "b"*40,
