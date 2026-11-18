@@ -171,8 +171,19 @@ class GateWrapperTests(unittest.TestCase):
         self.assertEqual(self.run_gate(self.repo, HTTPS_PROXY="http://proxy.invalid:1").returncode, 0)
         self.assertNotIn("HTTPS_PROXY", self.docker_args())
         shutil.rmtree(self.work)
-        self.assertEqual(self.run_gate(self.repo, "host", HTTPS_PROXY="http://proxy.invalid:1").returncode, 0)
+        result = self.run_gate(self.repo, "host", HTTPS_PROXY="http://proxy.invalid:1",
+                               PRISM_GATE_HOST_NETWORK="unfiltered-egress-accepted")
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("HTTPS_PROXY", self.docker_args())
+
+    def test_host_network_is_refused_without_its_exact_opt_in(self):
+        self.assert_refused(self.run_gate(self.repo, "host"), "unfiltered and unlogged")
+        self.assertFalse(self.work.exists())
+        self.assert_refused(self.run_gate(self.repo, "host", PRISM_GATE_HOST_NETWORK="yes"), "unfiltered and unlogged")
+        self.assertFalse(self.work.exists())
+        result = self.run_gate(self.repo, "host", PRISM_GATE_HOST_NETWORK="unfiltered-egress-accepted")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.docker_args()[:4], ["run", "--rm", "--network", "host"])
 
     def test_allowlist_network_uses_the_internal_network_and_only_the_named_proxy(self):
         result = self.run_gate(

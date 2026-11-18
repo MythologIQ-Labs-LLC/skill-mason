@@ -271,6 +271,64 @@ if ! must_pass pre-canonical "$instance" none - 'lexlean.lock is current' bash -
   exit 1
 fi
 
+# --- refusals, on this runner, with the real docker client --------------------
+# Issue #9: each unsafe condition must be refused before a container starts.
+# The wrapper is asked to run `true` in the SDK image under one such condition.
+# A refusal passes only with exit 77, the reason in its own words, and no gate
+# log: the wrapper writes that log immediately before `docker run`.
+mkdir -p "$base/logs/refusals"
+refusal() { # <label> <reason-words> [NAME=value...] -- <checkout> <network>
+  local label=$1 words=$2
+  shift 2
+  local vars=("PRISM_GATE_WORKDIR=$base/work/$label")
+  while [[ $1 != -- ]]; do
+    vars+=("$1")
+    shift
+  done
+  shift
+  local out=$base/logs/refusals/$label.txt gate_log=$base/work/$label.gate.log rc=0 result=PASS
+  env "${vars[@]}" "$wrapper" "$1" "$2" "$gate_log" true >"$out" 2>&1 || rc=$?
+  if [[ $rc -ne 77 ]]; then
+    result="FAIL(exit $rc)"
+  elif ! grep -qF -- "REFUSED before starting a container" "$out" || ! grep -qF -- "$words" "$out"; then
+    result="FAIL(wrong reason)"
+  elif [[ -e $gate_log ]]; then
+    result="FAIL(a container was started)"
+  fi
+  record "$label" "$2" "exit 77: $words" "$rc" "$result" "wrapper <checkout> $2 <log> true"
+}
+clone=$base/work/refusal-clone
+git clone --quiet "$repo" "$clone"
+ln -s "$clone" "$base/work/refusal-link"
+mkdir -p "$base/work/refusal-home/.ssh"
+other_image="ghcr.io/afflom/prismpm-sdk-patched@sha256:$(printf 'a%.0s' {1..64})"
+
+refusal refuse-credential-variable 'credential-like variables are set (FAKE_SERVICE_API_TOKEN)' FAKE_SERVICE_API_TOKEN=placeholder -- "$instance" none
+refusal refuse-credential-store 'credential store' "HOME=$base/work/refusal-home" -- "$instance" none
+refusal refuse-symlinked-checkout 'passes through a symlink' -- "$base/work/refusal-link/prism" none
+printf 'not committed\n' >"$clone/untracked.txt"
+refusal refuse-dirty-tree 'is not clean' -- "$clone/prism" none
+refusal refuse-unexpected-sdk-digest 'not the expected' "PRISM_GATE_EXPECT_IMAGE=$other_image" -- "$instance" none
+refusal refuse-socket-without-exact-opt-in "accepts only 'disposable-daemon'" PRISM_GATE_DOCKER_SOCKET=1 -- "$instance" none
+refusal refuse-host-network-without-opt-in 'unfiltered and unlogged' -- "$instance" host
+refusal refuse-shared-network 'dedicated internal network' PRISM_GATE_EGRESS_NETWORK=bridge -- "$instance" allowlist
+refusal refuse-missing-network 'does not exist' PRISM_GATE_EGRESS_NETWORK=prism-gate-absent -- "$instance" allowlist
+if docker network create prism-gate-not-internal >/dev/null 2>&1; then
+  refusal refuse-network-not-internal 'is not internal' PRISM_GATE_EGRESS_NETWORK=prism-gate-not-internal -- "$instance" allowlist
+  docker network rm prism-gate-not-internal >/dev/null 2>&1
+else
+  record refuse-network-not-internal allowlist "exit 77: is not internal" - "FAIL(could not create the test network)" setup
+fi
+mkdir "$base/work/refuse-existing-workdir"
+refusal refuse-existing-workdir 'already exists' -- "$instance" none
+refusal refuse-workdir-inside-source 'outside the source repository' "PRISM_GATE_WORKDIR=$repo/gate-work" -- "$instance" none
+if [[ -z $(git -C "$repo" status --porcelain --untracked-files=all) && ! -e $repo/gate-work ]]; then
+  record refusals-left-the-source-untouched - "clean tree" 0 PASS "git status"
+else
+  record refusals-left-the-source-untouched - "clean tree" 1 "FAIL(source modified)" "git status"
+fi
+rm -rf "$clone" "$base/work/refusal-link" "$base/work/refusal-home" "$base/work/refuse-existing-workdir"
+
 # The network claim, tested from inside the SDK container: nothing is reachable
 # directly, a host off the allowlist is refused by the proxy, an allowlisted
 # host is tunnelled.

@@ -16,7 +16,9 @@
 #                   out is an allowlisting CONNECT proxy
 #                   (scripts/prism_egress_proxy.py), so every destination is
 #                   named in advance and logged. `host` shares the runner's
-#                   network namespace and is the widest of the three.
+#                   network namespace: nothing is filtered and nothing is
+#                   logged. It is refused unless PRISM_GATE_HOST_NETWORK is set
+#                   to `unfiltered-egress-accepted`.
 #
 # Required environment:
 #   PRISM_GATE_WORKDIR   a directory that does not exist yet. The staged copy,
@@ -54,6 +56,7 @@
 #   - the working tree is not clean, so the source identity is not fixed;
 #   - the lock selects a different image from the expected one, or a mutable tag;
 #   - `allowlist` is asked for and the named network is missing or not internal;
+#   - `host` is asked for without its explicit opt-in;
 #   - PRISM_GATE_WORKDIR already exists.
 #
 # The copy is identified by commit and tree hash, recorded at the top of the log.
@@ -75,7 +78,7 @@ refuse() {
 }
 
 if [[ $# -lt 3 ]]; then
-  sed -n '2,63p' "$0" >&2
+  sed -n '2,66p' "$0" >&2
   exit 64
 fi
 
@@ -187,6 +190,11 @@ case ${PRISM_GATE_DOCKER_SOCKET:-} in
     ;;
   *) refuse "PRISM_GATE_DOCKER_SOCKET accepts only 'disposable-daemon'." ;;
 esac
+
+# --- host network: unfiltered, so never by default ---------------------------
+if [[ $net == host && ${PRISM_GATE_HOST_NETWORK:-} != unfiltered-egress-accepted ]]; then
+  refuse "the host network gives the SDK container the runner's whole network, unfiltered and unlogged. Use 'allowlist', or set PRISM_GATE_HOST_NETWORK=unfiltered-egress-accepted on a throwaway machine."
+fi
 
 # --- allowlist egress: an internal network and one named proxy --------------
 docker_net=$net

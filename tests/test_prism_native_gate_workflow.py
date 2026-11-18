@@ -49,9 +49,27 @@ class NativeGateWorkflowTests(unittest.TestCase):
 
     def test_the_sdk_never_gets_the_docker_socket_or_extra_privilege(self):
         for source in (self.text, self.driver):
-            for forbidden in ("docker.sock", "--privileged", "--cap-add", "--pid", "PRISM_GATE_DOCKER_SOCKET", "--network host"):
+            for forbidden in ("docker.sock", "--privileged", "--cap-add", "--pid", "--network host",
+                              "disposable-daemon\n", "PRISM_GATE_DOCKER_SOCKET=disposable-daemon",
+                              "PRISM_GATE_HOST_NETWORK"):
                 with self.subTest(forbidden=forbidden):
                     self.assertNotIn(forbidden, source)
+        # The socket variable appears once, with a value the wrapper must refuse.
+        self.assertNotIn("PRISM_GATE_DOCKER_SOCKET", self.text)
+        self.assertEqual(re.findall(r"PRISM_GATE_DOCKER_SOCKET\S*", self.driver), ["PRISM_GATE_DOCKER_SOCKET=1"])
+        self.assertRegex(self.driver, r"(?m)^refusal refuse-socket-without-exact-opt-in .* PRISM_GATE_DOCKER_SOCKET=1 -- ")
+
+    def test_every_issue_9_refusal_is_exercised_on_the_runner_before_any_gate_container(self):
+        labels = re.findall(r"(?m)^\s*refusal (refuse-[a-z-]+) ", self.driver)
+        for needed in ("credential-variable", "credential-store", "symlinked-checkout", "dirty-tree",
+                       "unexpected-sdk-digest", "socket-without-exact-opt-in", "host-network-without-opt-in",
+                       "shared-network", "missing-network", "network-not-internal", "existing-workdir",
+                       "workdir-inside-source"):
+            with self.subTest(refusal=needed):
+                self.assertIn(f"refuse-{needed}", labels)
+        self.assertLess(self.driver.index("refusal refuse-credential-variable"), self.driver.index("must_pass egress-control"))
+        self.assertIn('[[ $rc -ne 77 ]]', self.driver)
+        self.assertIn('result="FAIL(a container was started)"', self.driver)
 
     def test_jobs_that_touch_the_sdk_or_the_holo_use_no_checkout_action(self):
         for name in ("sdk", "real-output"):

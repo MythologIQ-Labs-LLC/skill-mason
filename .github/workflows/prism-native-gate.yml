@@ -204,6 +204,14 @@ jobs:
             echo "::endgroup::"
           fi
           # A failing step's own words, so the reason is in the job log.
+          for refusal in "$out"/logs/refusals/*.txt; do
+            [[ -f $refusal ]] || continue
+            label=$(basename "$refusal" .txt)
+            result=$(awk -F'\t' -v l="$label" '$1 == l {print $5}' "$out/out/summary.tsv" 2>/dev/null)
+            if [[ $result != PASS ]]; then
+              echo "::group::refusal $label (${result:-not recorded})"; cat "$refusal"; echo "::endgroup::"
+            fi
+          done
           for log in "$out"/logs/*.log; do
             [[ -f $log ]] || continue
             label=$(basename "$log" .log)
