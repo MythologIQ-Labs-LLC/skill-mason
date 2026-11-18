@@ -11,6 +11,7 @@ on:
       - 'scripts/verify_catalog_source.py'
       - '.github/workflows/corpus-index.yml'
       - 'docs/technical/corpus-index-v1.md'
+      - 'docs/technical/corpus-evolution-v1.md'
       - 'docs/technical/capability-graph-v1.md'
       - 'docs/architecture/skill-mason-pipeline-v0.md'
       - 'docs/README.md'
