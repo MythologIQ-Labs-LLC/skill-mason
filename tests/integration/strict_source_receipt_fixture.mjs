@@ -143,12 +143,14 @@ async function main(args){
   developmentP0Consent:true
  }):null;
  const guest=async({requestHex,holoSha256})=>{
-  guestCalls++;assert.equal(requestHex,'01010101');
+  guestCalls++;
+  assert.ok(['01010101','01000101'].includes(requestHex),'expected four facts');
   assert.equal(holoSha256,HOLO);
   if(realGuest)return actualGuest({requestHex,holoSha256});
+  const response=requestHex==='01000101'?'refused: RIGHTS_UNRESOLVED':'eligible';
   return {schema:'qortara/local-eligibility-result/1',
    status:'GUEST_COMPLETED',application:'Qortara Skills Eligibility',
-   requestHex,response:'eligible',responseHex:'656c696769626c65',
+   requestHex,response,responseHex:Buffer.from(response).toString('hex'),
    engine:'prism-code@0.9.5',artifact:{sha256:holoSha256},
    productionEligible:false,exitCode:0};
  };
@@ -227,6 +229,43 @@ async function main(args){
  const denial=await approvalRefusal(()=>refused(recipe(),[method()]));
  assert.equal(denial.code,'SOURCE_ACCEPTANCE_MISSING');
  assert.equal(deniedFacts,0);assert.equal(deniedGuest,0);
+ // Unlike the missing-source refusal above, this has a valid fixture source
+ // approval and a separately signed, explicitly negative rights fact. The
+ // real Prism guest must decide the denial. No package may be emitted.
+ const signedRightsDenial=createSignedAssertionAdapter({
+  trust:factTrust,nowEpoch:()=>NOW,
+  loadEnvelope:async subjectSha256=>{
+   const payload={schema:'qortara/method-assertion/1',
+    subjectSha256,issuer:factTrust.issuer,keyId:factTrust.keyId,
+    policyRevision:factTrust.policyRevision,
+    validFrom:NOW-40,expiresAt:NOW+40,
+    facts:{authority:true,coverage:true,evidence:true,rights:false},
+    evidenceDigests:Object.fromEntries(Object.entries(evidence)
+      .map(([field,bytes])=>[field,field==='rights'?null:SHA(bytes)]))};
+   return {schema:'qortara/signed-method-assertion/1',payload,
+    signature:sign(null,Buffer.from('QORTARA-METHOD-ASSERTION-V1\n'+
+     canonicalJSON(payload)),factKey.privateKey).toString('base64url')};
+  },
+  readEvidence:async({sha256,field})=>{
+   assert.notEqual(field,'rights','false rights cannot resolve positive evidence');
+   assert.equal(SHA(evidence[field]),sha256);
+   return evidence[field];
+  }
+ });
+ const rightsDenialGuard=createSourceBoundAssertionGuard({
+  preflight:sourcePreflight,trust:sourceTrust,
+  readOperatorAcceptance:readApproval,
+  assertSignedMethod:signedRightsDenial,nowEpoch:()=>NOW
+ });
+ const rightsDenialComposer=createComposer({
+  assertMethod:rightsDenialGuard,runPrism:guest,holoSha256:HOLO,
+  sourceApprovalBindings:{'fixture-review-method':sourcePreflight.binding_sha256}
+ });
+ const deniedByGuest=await approvalRefusal(()=>
+  rightsDenialComposer(recipe(),[method()]));
+ assert.equal(deniedByGuest.code,'PRISM_REFUSED');
+ assert.match(deniedByGuest.message,/RIGHTS_UNRESOLVED/);
+ assert.equal(guestCalls,4,'signed rights denial reached guest after three accepts');
  const output={
   schema:'qortara/strict-source-receipt-fixture-integration/1',
   state:'FIXTURE_ONLY_TWO_SIGNATURES_AND_SEALED_DIGESTS',
@@ -243,6 +282,8 @@ async function main(args){
   realPinnedPrismGuestExecuted:realGuest,
   pinnedP0HoloSha256:HOLO,
   realGuestCalls:realGuest?guestCalls:0,
+  signedRightsDenialReachedGuest:true,
+  signedRightsDenialRefused:true,
   exclusiveDiskSealVerified:true,
   independentDiskSealedReplayWithRealSignatureVerifiers:true,
   tamperedDiskReceiptRefused:true,
