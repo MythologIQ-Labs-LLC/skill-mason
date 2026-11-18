@@ -69,7 +69,10 @@ def _markdown_leads(raw, file_names):
         target = token.strip().split(" ", 1)[0].strip("<>")
         if not target or target.startswith("#"):
             continue
-        parsed = urlsplit(target)
+        try:
+            parsed = urlsplit(target)
+        except ValueError:
+            raise Refusal("PACKAGE_REFERENCES", "invalid inline Markdown link URL")
         if parsed.scheme or parsed.netloc or target.startswith("//"):
             remote.append(target[:160])
             continue
