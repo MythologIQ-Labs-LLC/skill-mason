@@ -1,13 +1,13 @@
 # Qortara Skills Governance (repository `skill-mason`)
 
-**Status:** Source baseline published in [merged PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) under a bounded documentation-only exception. Confidential security handling and native Qortara qualification remain on HOLD ([issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4)). This file does not authenticate an approval, relax GitHub permissions, or prove that the Qortara native host gates ran.
+**Status:** Source baseline published in [merged PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) under a bounded documentation-only exception. The owner selected closed pre-alpha contributions and repository-specific GitHub private vulnerability reporting on 2026-11-17; see [SECURITY.md](SECURITY.md) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Native Qortara qualification remains on HOLD until executed evidence exists. This policy does not authenticate GitHub security-setting state, relax permissions, or prove native host gates ran.
 
 ## Owner, roles and intent
 
 - **Accountable project owner:** MythologIQ Labs, LLC retains product direction, repository governance, security posture, legal/licensing, merge, release and deployment decisions.
 - **Maintainer model:** Solo-developer owner workflow is the stated working context. Owner-authorized adversarial review is an acceptable form of challenge; do not invent a second required human. Actual GitHub protections and host permissions remain separately authoritative.
 - **Repository visibility:** GitHub reports **public** as of 2026-11-17. Visibility does not establish contribution policy or license rights.
-- **Contribution intent:** `NOT_ESTABLISHED` until the owner explicitly confirms closed / invited / open. Repository visibility is not evidence of contribution policy.
+- **Contribution intent:** **Closed during pre-alpha**, explicitly selected by the project owner on 2026-11-17. Public visibility does not imply open or invited contributions. The owner must explicitly approve any future change.
 - **Maintainers and agents:** May propose/review/modify only as independently authorized for the specific task, repository, branch and host. Tool access or an agent statement does not constitute owner acceptance.
 
 This project implements a skill generator. It consumes `Knapp-Kevin/skillz` as a read-only upstream source and does not gain authority over that repository.
