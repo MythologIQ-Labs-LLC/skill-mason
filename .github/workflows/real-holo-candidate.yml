@@ -34,8 +34,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          holo="$RUNNER_TEMP/pinned-evidence/nested/out/holo/eligibility.holo"
-          manifest="$RUNNER_TEMP/pinned-evidence/nested/out/receipts/eligibility/manifest.json"
+          holo="$RUNNER_TEMP/pinned-evidence/prism-native-nested-1719fd11c654528d3492ae9b6c71c9d2924fefae/nested/out/holo/eligibility.holo"
+          manifest="$RUNNER_TEMP/pinned-evidence/prism-native-nested-1719fd11c654528d3492ae9b6c71c9d2924fefae/nested/out/receipts/eligibility/manifest.json"
           test -f "$holo" && test -f "$manifest"
           test "$(stat -c %s "$holo")" = 17346
           test "$(sha256sum "$holo" | cut -d' ' -f1)" = "$HOLO_SHA256"
