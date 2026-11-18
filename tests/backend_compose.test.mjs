@@ -220,3 +220,11 @@ test('corrupted completion seal refuses even if source files are unchanged',asyn
   await assert.rejects(readPackage(dest),refused('PACKAGE_INTEGRITY'));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('on-disk size bounds use UTF-8 bytes, not JavaScript code-unit length',async()=>{
+ const p=await composer()(recipe(),[source()]);
+ p.files['SKILL.md']='🙂'.repeat(130_000);
+ assert.ok(p.files['SKILL.md'].length<500_000);
+ assert.ok(Buffer.byteLength(p.files['SKILL.md'],'utf8')>500_000);
+ assert.throws(()=>verifyPackage(p),refused('PACKAGE_SCHEMA'));
+});
