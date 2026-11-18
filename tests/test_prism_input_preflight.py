@@ -135,6 +135,13 @@ class PrismInputPreflightTests(unittest.TestCase):
             self.preflight("observation:external/other")
         self.assertEqual(e.exception.code, "METHOD_SELECTION")
 
+    def test_external_selection_must_equal_selected_method_even_in_direct_api(self):
+        selection = {"record_id": "governed:external/other",
+                     "checkout": "/fixed/source", "repo_tree": "e"*40}
+        with self.assertRaises(Refusal) as e:
+            self.preflight("governed:first/example", external_selection=selection)
+        self.assertEqual(e.exception.code, "METHOD_SELECTION")
+
     def test_external_verifier_refusal_propagates(self):
         def blocked(*_args, **_kwargs):
             raise Refusal("EXTERNAL_BYTES", "tampered package")
