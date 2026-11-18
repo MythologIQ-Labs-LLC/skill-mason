@@ -32,6 +32,10 @@
            optional sandbox behavior test
 ```
 
+## C1 implementation candidate: pinned corpus opportunity index
+
+The read-only catalog stage is now proposed for implementation in [scripts/catalog_index.py](../../scripts/catalog_index.py), governed by the [C1 technical contract](../technical/corpus-index-v1.md) and [issue #30](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/30). Its source of truth is the separately authenticated original pinned source checkout plus the published export. It preserves governed reviews (including rejected/unmapped), all fourteen G1–G3 shards, four separate frontier source families, evidence references and recognized/proposed taxonomy inputs. Lexical search results are *unassessed leads*, not capability matches or reusable method candidates. Runtime adoption, rights assessment, C2+ planner, Prism routing, and host proof remain unimplemented. Until exact-revision CI and owner acceptance exist this is an **implementation candidate**, not a qualified component.
+
 ## Trust boundaries
 
 1. **Catalog data is not authority.** Pins, metadata and review states are untrusted until linked to an authenticated provenance/evidence export. The adapter must validate a trusted source root and any cryptographic signatures/receipts it claims; hashes alone do not establish who made a claim.
