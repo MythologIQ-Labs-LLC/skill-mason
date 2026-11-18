@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash,generateKeyPairSync,sign as signEd25519} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
-import {createComposer,verifyPackage} from '../src/backend/compose.mjs';
+import {createComposer,verifyPackage,writePackage,readPackage,canonicalJSON} from '../src/backend/compose.mjs';
+import {createSignedAssertionAdapter} from '../src/backend/signed-assertions.mjs';
 
 const SHA=bytes=>createHash('sha256').update(bytes).digest('hex');
 const SOURCE={repository:'https://example.test/pinned-discovery',commit:'a'.repeat(40),sha256:'b'.repeat(64)};
@@ -174,4 +178,49 @@ test('independently valid hashes must still bind method text to full package byt
  m.methodText='Different procedure with its own valid digest.';
  m.sha256=SHA(Buffer.from(m.methodText));
  assert.throws(()=>createRecipeAdapter(c),reject('SOURCE_TEXT_UNBOUND'));
+});
+
+test('public recipe to signed evidence to Prism interface to sealed disk package replays exactly',async()=>{
+ const now=1784419200,{privateKey,publicKey}=generateKeyPairSync('ed25519');
+ const pem=publicKey.export({type:'spki',format:'pem'}).toString('utf8');
+ const keySha=SHA(publicKey.export({type:'spki',format:'der'}));
+ const evidence=Object.fromEntries(['evidence','rights','authority','coverage']
+   .map(k=>[k,Buffer.from('independently checked FIXTURE for '+k)]));
+ const evidenceDigests=Object.fromEntries(Object.entries(evidence).map(([k,b])=>[k,SHA(b)]));
+ const seen=[];
+ const trustedAssertions=createSignedAssertionAdapter({
+  trust:{schema:'qortara/method-assertion-trust/1',issuer:'fixture.owner',
+   keyId:'fixture-key-01',publicKeyPem:pem,publicKeySha256:keySha,policyRevision:'fixture.v1',
+   revocations:{validFrom:now-100,expiresAt:now+100,proofDigests:[]}},
+  loadEnvelope:async subjectSha256=>{
+   seen.push(subjectSha256);
+   const payload={schema:'qortara/method-assertion/1',subjectSha256,
+     issuer:'fixture.owner',keyId:'fixture-key-01',policyRevision:'fixture.v1',
+     validFrom:now-30,expiresAt:now+30,
+     facts:{evidence:true,rights:true,authority:true,coverage:true},evidenceDigests};
+   return {schema:'qortara/signed-method-assertion/1',payload,
+    signature:signEd25519(null,Buffer.from('QORTARA-METHOD-ASSERTION-V1\n'+canonicalJSON(payload)),
+     privateKey).toString('base64url')};
+  },
+  readEvidence:async({field})=>evidence[field],nowEpoch:()=>now
+ });
+ const adapt=createRecipeAdapter(registry());
+ const {plan,methods}=adapt(recipe());
+ const build=createComposer({assertMethod:trustedAssertions,runPrism:guest,holoSha256:HOLO});
+ const root=await mkdtemp(join(tmpdir(),'skill-mason-pilot-fixture-'));
+ try{
+  const first=await build(plan,methods),dest=join(root,'candidate');
+  await writePackage(first,dest);
+  const restored=await readPackage(dest);
+  assert.deepEqual(restored,first);
+  const inputs=JSON.parse(restored.files['SOURCES.json']);
+  const receipt=JSON.parse(restored.files['RECEIPT.json']);
+  assert.equal(inputs.sourceSnapshot.sha256,SOURCE.sha256);
+  assert.equal(receipt.assertions.length,1);
+  assert.equal(receipt.assertions[0].subjectSha256,seen[0]);
+  assert.equal(receipt.productionEligible,false);
+  assert.equal(receipt.hostValidated,false);
+  assert.equal(receipt.modelCallsMeasured,false);
+  assert.deepEqual(first,await build(plan,methods));
+ }finally{await rm(root,{recursive:true,force:true});}
 });
