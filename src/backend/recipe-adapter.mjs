@@ -55,6 +55,10 @@ function record(entry){
      sha(Buffer.from(m.methodText,'utf8'))!==m.sha256)
     refuse('SOURCE_MISMATCH','method identity or source text SHA-256 differs');
   if(m.containsAssets!==false)refuse('RIGHTS_UNRESOLVED','nested package assets require separate authorization');
+  // For the first pilot, method text must be a verbatim UTF-8 excerpt of the
+  // independently hash-pinned full package bytes. No unreviewed transforms.
+  if(!bytes.includes(Buffer.from(m.methodText,'utf8')))
+    refuse('SOURCE_TEXT_UNBOUND','claimed method is not present in pinned package bytes');
   const covers=normalizedArray(m.covers,'method coverage');
   // Preserve the complete source identity. The composer separately validates
   // paths, authority and the exact source-method hash before any Prism call.
