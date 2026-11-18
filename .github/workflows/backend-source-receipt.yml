@@ -73,9 +73,119 @@ jobs:
               missingSourceApprovalStoppedBeforeGuest:true,
               positiveFactsAreFixturesOnly:true,
               prismGuestIsMock:true,
+              realPinnedPrismGuestExecuted:false,
               productionEligible:false,
               hostValidated:false,
               sourceRightsEstablished:false
             }))if(r[key]!==value)throw Error("fixture integration failure "+key);
             console.log("PINNED SOURCE GATE + STRICT P0 COMPOSER: two fixture signatures sealed, missing signature refused, NO PRODUCT AUTHORITY");
+          '
+
+  # Scoped to #38. Original native artifact expires 2026-12-18.
+  # Not a standing requirement for other PRs or main.
+  strict-p0-native-stage:
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 38
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      actions: read
+    steps:
+      - name: Retrieve recorded native evidence by immutable run/artifact identity
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          run-id: '44235570627'
+          artifact-ids: '14399257681'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p0-native-evidence
+      - name: Verify pinned compiled holo and native manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t holos < <(find "$RUNNER_TEMP/p0-native-evidence" -type f -path '*/nested/out/holo/eligibility.holo' -print0)
+          mapfile -d '' -t manifests < <(find "$RUNNER_TEMP/p0-native-evidence" -type f -path '*/nested/out/receipts/eligibility/manifest.json' -print0)
+          test "${#holos[@]}" -eq 1 && test "${#manifests[@]}" -eq 1
+          test "$(stat -c %s "${holos[0]}")" -eq 17346
+          test "$(sha256sum "${holos[0]}" | cut -d' ' -f1)" = '9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e'
+          test "$(sha256sum "${manifests[0]}" | cut -d' ' -f1)" = 'cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518'
+          mkdir "$RUNNER_TEMP/p0-standalone"
+          cp -- "${holos[0]}" "$RUNNER_TEMP/p0-standalone/eligibility.holo"
+          chmod 0600 "$RUNNER_TEMP/p0-standalone/eligibility.holo"
+      - name: Transfer only verified holo to credential-free runner
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strict-receipt-pinned-p0-holo
+          path: ${{ runner.temp }}/p0-standalone/eligibility.holo
+          retention-days: 3
+          if-no-files-found: error
+
+  strict-p0-real-guest:
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 38
+    needs: strict-p0-native-stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions: {}
+    steps:
+      - name: Checkout review code without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout independent source gate by exact commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          ref: 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          path: pinned-corpus-gate
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Download same-run verified holo with no token
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: strict-receipt-pinned-p0-holo
+          path: ${{ runner.temp }}/p0-holo
+      - name: Verify holo and independent runtime tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          holo="$RUNNER_TEMP/p0-holo/eligibility.holo"
+          test "$(stat -c %s "$holo")" -eq 17346
+          test "$(sha256sum "$holo" | cut -d' ' -f1)" = '9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e'
+          mkdir "$RUNNER_TEMP/npm-pin" && cd "$RUNNER_TEMP/npm-pin"
+          npm pack --silent prism-code@0.9.5
+          actual="sha512-$(openssl dgst -sha512 -binary prism-code-0.9.5.tgz | base64 -w0)"
+          test "$actual" = 'sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA=='
+          cd "$GITHUB_WORKSPACE"
+          npm install --no-save --ignore-scripts --omit=optional --package-lock=false "$RUNNER_TEMP/npm-pin/prism-code-0.9.5.tgz"
+          node -e 'if(require("prism-code/package.json").version!=="0.9.5")process.exit(1)'
+      - name: Run exact pinned Prism guest with two fixture proofs, offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          test "$(git -C pinned-corpus-gate rev-parse HEAD)" = 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" \
+              --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+            > strict-p0-real-replay.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("strict-p0-real-replay.json","utf8"));
+            for(const [k,v] of Object.entries({
+              realPinnedPrismGuestExecuted:true, realGuestCalls:3,
+              prismGuestIsMock:false, pinnedGuestReplayedUsingFixtureMock:false,
+              bothProofDigestsSealed:true,
+              sourceApprovalSignatureReplayedByActualGate:true,
+              independentlySignedFourFactProofReplayedByActualAdapter:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              missingSourceApprovalStoppedBeforeGuest:true,
+              positiveFactsAreFixturesOnly:true,
+              productionEligible:false,hostValidated:false,sourceRightsEstablished:false
+            }))if(r[k]!==v)throw Error("unqualified strict P0 receipt "+k);
+            console.log("REAL PINNED P0 PRISM + TWO FIXTURE ED25519 PROOFS + DISK REPLAY; NO RIGHTS OR HOST AUTHORITY");
           '
