@@ -37,6 +37,10 @@ The pinned `skillz` handoff still labels composition eligibility `not-assessed` 
 
 The [development-only Ed25519 verifier](signed-assertions-v0.md) can now implement the **structural** `assertMethod` callback: it requires an operator-pinned signing key, exact composition subject, current signed assertion, non-revoked proof digest and independently recomputed bytes for each positive evidence reference. In negative scenarios it returns signed denied facts so the real Prism guest, not host glue, still decides refusal. The signer and evidence fixture in unit tests are not production authorities. A valid signature or content hash does not independently establish source rights or host behavior, so the existing `DEVELOPMENT_CANDIDATE` status and native-Prism integration holds are unchanged.
 
+## Pinned Prism consumer adapter (separate transport module)
+
+The [development-only Prism guest bridge](prism-guest-adapter-v0.md) now supplies a guarded `runPrism` callback through the existing `qortara-skills evaluate` consumer, using the configured absolute holo path and independently recorded SHA-256. It validates the four-byte SM-01 call, rejects caller policy overrides and missing/wrong digest, and delegates real guest execution to the pinned `prism-code@0.9.5` consumer without `allowUnverified`. In test fixtures the runtime guest remains a stand-in, so these checks prove bounded transport and deterministic packaging, not native holo acceptance, source rights or production qualification.
+
 ## Unresolved production dependencies
 
 - Trusted, authenticated source roots and bytes for chosen `skillz` methods, including nested asset rights, issuer identity, freshness and revocation.
