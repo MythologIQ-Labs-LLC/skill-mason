@@ -56,6 +56,10 @@ The [Prism input preflight](../technical/prism-input-preflight-v1.md) determinis
 
 The separately pinned [external package inspector](../technical/external-package-inspection-v1.md) verifies a governed third-party candidate's complete Git subtree and actual files against its original exact source revision and recorded package tree/blob, without downloading on invocation, running code, granting rights or declaring host fitness. A Git object consistency receipt is only source-byte evidence. Independent publisher, asset licenses, dependency closure, modification/redistribution rights and actual agent-host acceptance remain explicit holds.
 
+## Package asset and license reference review (proposed C3/C5 prerequisite)
+
+The [source-reference inventory](../technical/package-reference-inventory-v1.md) records original Git-verified package files, code/media/notice roles, limited per-file Markdown reference leads and frontmatter license pointers as **review evidence only**. A matched LICENSE file does not establish the legal rights of every file or transitive dependency closure. The complete source/asset permissions, publisher custody, target-host authority and signed claims are all separate required gates before the existing Prism method composer can accept a source.
+
 ## First-party source-package inspection (proposed C3 slice)
 
 The read-only [package inspection contract](../technical/package-inspection-v1.md) reconciles each selected first-party package's exact nested file inventory with the pinned source tree, preserving explicit record-specific refusals. The result remains an unapproved byte receipt. Third-party packages and all target-specific rights, dependency and host authority checks remain blocked. No selected method is admitted into Prism by this inspection.
