@@ -60,7 +60,12 @@ async function main(args){
   assert.equal(args[5],PINNED_HOLO,'only the previously pinned real P0 holo permitted');
  }else assert.equal(args.length,2,'mock mode must not accept extra args');
  const firstParty=args.length>=8;
- if(firstParty)assert.deepEqual(args.slice(6,8),['--pilot','ci-failure-triage']);
+ const pilotId=firstParty?args[7]:null;
+ if(firstParty){
+  assert.equal(args[6],'--pilot');
+  assert.ok(['ci-failure-triage','governance-drift-review'].includes(pilotId),
+   'only two exact-pin original first-party procedures are supported');
+ }
  const evidenceOutput=args.length===10?args[9]:null;
  if(evidenceOutput!==null){
   assert.equal(args[8],'--evidence-output');
@@ -76,11 +81,11 @@ async function main(args){
   // and independent SHA-256 pins by loadFirstPartyPilots().
   const registry=await loadFirstPartyPilots();
   const adapted=createRecipeAdapter(registry)(
-   recipeForPilot('ci-failure-triage',registry));
+   recipeForPilot(pilotId,registry));
   assert.equal(adapted.methods.length,1);
   method=()=>adapted.methods[0];
   recipe=()=>adapted.plan;
-  const original=PILOT_DEFINITIONS.find(x=>x.id==='ci-failure-triage');
+  const original=PILOT_DEFINITIONS.find(x=>x.id===pilotId);
   assert.equal(method().sha256,original.sha256);
   assert.equal(method().commit,PILOT_SOURCE_COMMIT);
   originalMethodSha256=original.sha256;
@@ -357,6 +362,7 @@ async function main(args){
   signedFourFactProofSha256:proofFacts,
   methodSubjectSha256:receipt.assertions[0].subjectSha256,
   selectedMethodId:selectedId,
+  firstPartyPilotSelected:pilotId,
   exportedSealedFirstPartyDevelopmentCandidate:evidenceOutput!==null,
   exportedCandidateManifestSha256:evidenceOutput!==null?verification.packageSha256:null,
   firstPartyOriginalMethodSourceUsed:firstParty,
