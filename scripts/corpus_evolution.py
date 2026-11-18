@@ -221,9 +221,9 @@ def preview_intake(ledger, proposal_root):
     parts = manifest.get("parts")
     require(isinstance(parts, list) and bool(parts),
             "PROPOSAL_PARTS", "at least one pinned shard declaration required")
-    seen_paths, observed_slots = set(), set()
+    seen_paths, observed_slots = set(), {}
     states = Counter()
-    unique = set()
+    proposal_slot_repeats = Counter()
     declared_total = 0
     examples = []
     for part in parts:
@@ -251,10 +251,19 @@ def preview_intake(ledger, proposal_root):
                              record.get("entrypoint_git_blob_sha1"),
                              record.get("package_git_tree_sha1"))
             state = ledger.classify(origin)
-            if origin["source_slot"] in observed_slots:
-                state = "repeated-in-proposal"
-            else:
-                observed_slots.add(origin["source_slot"])
+            slot, placement = origin["source_slot"], origin["fully_specified_observation"]
+            if slot is not None:
+                if slot in observed_slots:
+                    previously = observed_slots[slot]
+                    if placement is not None and placement in previously:
+                        proposal_slot_repeats["same-fingerprint"] += 1
+                    elif placement is not None and previously and None not in previously:
+                        proposal_slot_repeats["contradictory-fingerprint"] += 1
+                    else:
+                        proposal_slot_repeats["unknown-fingerprint"] += 1
+                    previously.add(placement)
+                else:
+                    observed_slots[slot] = {placement}
             states[state] += 1
             if len(examples) < 10:
                 examples.append({"source_path": relative, "row": actual + 1,
@@ -273,6 +282,7 @@ def preview_intake(ledger, proposal_root):
             "observations_declared": declared_total,
             "shards_verified_against_self_declared_hashes": len(parts),
             "classifications": dict(sorted(states.items())),
+            "within_proposal_source_slot_repeats": dict(sorted(proposal_slot_repeats.items())),
             "examples": examples,
             "independently_authenticated_source": False,
             "rights_assessed": False, "publisher_verified": False,
