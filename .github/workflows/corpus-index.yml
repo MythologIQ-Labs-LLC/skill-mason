@@ -57,6 +57,9 @@ jobs:
           python3 -m scripts.catalog_index \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source search "SKILL.md" --family four-source --limit 2 > corpus-four-source-search.json
+          python3 -m scripts.catalog_index \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source references "registry/discovery" --kind discovery --limit 2 > corpus-reference-search.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -70,6 +73,9 @@ jobs:
           y = json.loads(Path("corpus-four-source-search.json").read_text())
           assert y["total_matches"] > 0 and y["returned"] == 2
           assert y["truncated"] and not y["method_eligibility_assessed"]
+          z = json.loads(Path("corpus-reference-search.json").read_text())
+          assert z["total_matches"] > 0 and z["returned"] == 2
+          assert z["truncated"] and not z["method_eligibility_assessed"]
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
           PY
       - name: Upload non-content reconciliation receipt
