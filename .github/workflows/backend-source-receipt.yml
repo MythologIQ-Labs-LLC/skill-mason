@@ -5,6 +5,7 @@ on:
       - 'src/backend/compose.mjs'
       - 'tests/backend_compose.test.mjs'
       - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'tests/integration/strict_source_receipt_fixture.mjs'
       - 'docs/technical/backend-source-approval-receipt-v1.md'
       - '.github/workflows/backend-source-receipt.yml'
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'src/backend/compose.mjs'
       - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'tests/integration/strict_source_receipt_fixture.mjs'
       - '.github/workflows/backend-source-receipt.yml'
   workflow_dispatch:
 permissions:
@@ -25,6 +27,16 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Checkout exact independently developed corpus source guard
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          ref: 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          path: pinned-corpus-gate
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
       - name: Run offline composer and dual proof-digest replay regressions
         shell: bash
         run: |
@@ -32,3 +44,31 @@ jobs:
           test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
           node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/backend_signed_assertions.test.mjs
           git diff --exit-code -- src/backend/compose.mjs tests/backend_source_approval_receipt.test.mjs
+      - name: Cross-branch two-signature P0 fixture through exclusive disk seal (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C pinned-corpus-gate rev-parse HEAD)" = 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" > source-receipt-interop.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("source-receipt-interop.json","utf8"));
+            for(const [key,value] of Object.entries({
+              exactPinnedSourceGateImported:true,
+              sourceApprovalRequiredByComposer:true,
+              bothProofDigestsSealed:true,
+              exclusiveDiskSealVerified:true,
+              tamperedDiskReceiptRefused:true,
+              missingSourceApprovalStoppedBeforeGuest:true,
+              positiveFactsAreFixturesOnly:true,
+              prismGuestIsMock:true,
+              productionEligible:false,
+              hostValidated:false,
+              sourceRightsEstablished:false
+            }))if(r[key]!==value)throw Error("fixture integration failure "+key);
+            console.log("PINNED SOURCE GATE + STRICT P0 COMPOSER: two fixture signatures sealed, missing signature refused, NO PRODUCT AUTHORITY");
+          '
