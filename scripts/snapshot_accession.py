@@ -219,6 +219,30 @@ def _observations(discovery, manifest, source_checkout, counts):
             "SNAPSHOT_COUNT", "first party package entrypoint population differs")
 
     observations = {}
+    stable_content_counts = Counter()
+
+    def _observation_fingerprint(family, source_id, shard_metadata, record):
+        """Source-aware, location-independent observation fingerprint.
+
+        Does not collapse duplicate occurrences or equate independent publishers.
+        G1-G3 raw records carry their own source metadata. For four-source rows,
+        source_id and pinned upstream repository/revision are part of identity.
+        """
+        require((family == "g1-g3" and isinstance(record, dict)) or
+                (family == "four-source" and isinstance(record, list) and
+                 len(record) == 5),
+                "SNAPSHOT_SHARD", "unexpected source-family observation shape")
+        if family == "g1-g3":
+            subject = {"family": family, "record": record}
+        else:
+            subject = {
+                "family": family, "source_id": source_id,
+                "repository": shard_metadata.get("upstream_repository"),
+                "source_pin": (shard_metadata.get("source_pin") or
+                               shard_metadata.get("pinned_commit")),
+                "record": record}
+        return sha256(canonical(subject))
+
     def part_list(parts, family, source_id=None):
         require(isinstance(parts, list) and 0 < len(parts) <= MAX_SHARDS,
                 "SNAPSHOT_SHARD", "shards missing or oversized")
@@ -247,6 +271,8 @@ def _observations(discovery, manifest, source_checkout, counts):
                 require(key not in observations,
                         "SNAPSHOT_DUPLICATE", "duplicate source observation")
                 observations[key] = sha256(canonical(row))
+                fingerprint = _observation_fingerprint(family, source_id, data, row)
+                stable_content_counts[fingerprint] += 1
             tally += n
             require(len(observations) <= MAX_OBSERVATIONS,
                     "SNAPSHOT_COUNT", "observation rows exceeded maximum")
@@ -272,9 +298,12 @@ def _observations(discovery, manifest, source_checkout, counts):
         require(n == frontier.get("record_count"),
                 "SNAPSHOT_COUNT", "four-source frontier count mismatch")
         four += n
-    require(four == counts["four_source_paths"],
-            "SNAPSHOT_COUNT", "four-source observation denominator differs")
-    return {"observations": observations, "discovery": discover,
+    require(four == counts["four_source_paths"] and
+            sum(stable_content_counts.values()) == len(observations),
+            "SNAPSHOT_COUNT", "four-source/stable observation denominator differs")
+    return {"observations": observations,
+            "stable_observation_counts": dict(stable_content_counts),
+            "discovery": discover,
             "evidence": evidence, "taxonomy": taxonomy, "first_party": first,
             "engine": engine}
 
@@ -334,6 +363,80 @@ def _delta(before, after, *, sample=MAX_SAMPLE):
             "changed": receipts(changed)}
 
 
+def _stable_content_delta(old, candidate, *, sample=30):
+    """Reconcile source-aware raw content as a multiset, not a set or row address.
+
+    An observation may move across shards without becoming a new skill. An exact
+    repeated observation remains a repeated occurrence, not silently deduped.
+    """
+    require(isinstance(old, dict) and isinstance(candidate, dict),
+            "SNAPSHOT_DELTA", "missing multiset data")
+    for population in (old, candidate):
+        require(all(isinstance(k, str) and HEX256.fullmatch(k) and
+                    type(v) is int and v > 0
+                    for k, v in population.items()),
+                "SNAPSHOT_DELTA", "malformed or zero-sized content multiplicity")
+    require(type(sample) is int and 0 < sample <= MAX_SAMPLE,
+            "SNAPSHOT_DELTA", "unsafe content-delta sample size")
+    added, removed = [], []
+    retained = 0
+    for key in sorted(set(old) | set(candidate)):
+        a, b = old.get(key, 0), candidate.get(key, 0)
+        retained += min(a, b)
+        if b > a:
+            added.append({"source_aware_content_sha256": key, "occurrences": b-a})
+        if a > b:
+            removed.append({"source_aware_content_sha256": key, "occurrences": a-b})
+    def receipt(entries):
+        return {"distinct_fingerprints": len(entries),
+                "occurrences": sum(x["occurrences"] for x in entries),
+                "sample": entries[:sample], "sample_truncated": len(entries) > sample,
+                "complete_delta_sha256": sha256(canonical(entries))}
+    return {"before_observations": sum(old.values()),
+            "after_observations": sum(candidate.values()),
+            "before_distinct_content_fingerprints": len(old),
+            "after_distinct_content_fingerprints": len(candidate),
+            "unchanged_observation_occurrences": retained,
+            "added": receipt(added), "removed": receipt(removed),
+            "all_duplicate_occurrences_preserved": True,
+            "cross_shard_path_and_row_number_independent": True,
+            "equivalence_is_source_aware_raw_metadata_not_verified_skill_bytes": True,
+            "source_content_reuse_rights_inferred": False,
+            "composition_eligible": False}
+
+
+def _old_stable_content_counts(index):
+    counts = Counter()
+    metadata = {}
+    for item in index.records:
+        family = item["family"]
+        if family not in ("g1-g3", "four-source"):
+            continue
+        record = item["raw"]
+        if family == "g1-g3":
+            require(isinstance(record, dict), "SNAPSHOT_SHARD",
+                    "unexpected original G1-G3 observation shape")
+            identity = {"family": family, "record": record}
+        else:
+            require(isinstance(record, list) and len(record) == 5,
+                    "SNAPSHOT_SHARD", "unexpected original four-source shape")
+            source_path = item["source_file"]
+            if source_path not in metadata:
+                data = parse_json(index._raw_source(source_path))
+                require(isinstance(data, dict) and
+                        data.get("source_id") == item["source_id"],
+                        "SNAPSHOT_SHARD", "original four-source shard identity differs")
+                metadata[source_path] = data
+            source = metadata[source_path]
+            identity = {
+                "family": family, "source_id": item["source_id"],
+                "repository": source.get("upstream_repository"),
+                "source_pin": source.get("source_pin") or source.get("pinned_commit"),
+                "record": record}
+        counts[sha256(canonical(identity))] += 1
+    return dict(counts)
+
+
 def compare_snapshots(old, candidate):
     """Compare all review IDs, source and raw discovery paths. Never auto-accept."""
     old_records = {i["raw"]["record_id"]: i["raw"]
@@ -351,6 +454,11 @@ def compare_snapshots(old, candidate):
     reviewed_new = {k: sha256(canonical(v)) for k, v in new_records.items()}
     review_delta = _delta(reviewed_old, reviewed_new)
     observation_delta = _delta(old_observations, candidate["observations"])
+    stable_delta = _stable_content_delta(
+        _old_stable_content_counts(old), candidate["stable_observation_counts"])
+    require(stable_delta["before_observations"] == len(old_observations) and
+            stable_delta["after_observations"] == len(candidate["observations"]),
+            "SNAPSHOT_DELTA", "source observations lost between pointer and stable ledgers")
     file_delta = _delta(old_files, new_files)
     ref_deltas = {
         "discovery": _delta(
@@ -401,6 +509,11 @@ def compare_snapshots(old, candidate):
                      "source_tree": candidate["manifest"]["source"]["git_tree_sha1"],
                      "manifest_blob": candidate["manifest_blob"]},
         "governed": review_delta, "observed_source_rows": observation_delta,
+        "source_aware_observation_multiset": stable_delta,
+        "source_shard_repacking_may_explain_pointer_delta": (
+            stable_delta["added"]["occurrences"] == 0 and
+            stable_delta["removed"]["occurrences"] == 0 and
+            any(observation_delta[k]["count"] for k in ("added", "removed", "changed"))),
         "tracked_source_files": file_delta,
         "reference_pointers": ref_deltas,
         "review_status_transitions": [
