@@ -53,14 +53,19 @@ const approvalRefusal=async f=>{
 async function main(args){
  assert.equal(args[0],'--source-gate-root');
  assert.equal(isAbsolute(args[1]),true);
- const realGuest=args.length===6||args.length===8;
+ const realGuest=[6,8,10].includes(args.length);
  if(realGuest){
   assert.deepEqual([args[2],args[4]],['--holo','--sha256']);
   assert.ok(isAbsolute(args[3]),'real holo must be absolute');
   assert.equal(args[5],PINNED_HOLO,'only the previously pinned real P0 holo permitted');
  }else assert.equal(args.length,2,'mock mode must not accept extra args');
- const firstParty=args.length===8;
- if(firstParty)assert.deepEqual(args.slice(6),['--pilot','ci-failure-triage']);
+ const firstParty=args.length>=8;
+ if(firstParty)assert.deepEqual(args.slice(6,8),['--pilot','ci-failure-triage']);
+ const evidenceOutput=args.length===10?args[9]:null;
+ if(evidenceOutput!==null){
+  assert.equal(args[8],'--evidence-output');
+  assert.ok(isAbsolute(evidenceOutput),'output path must be absolute');
+ }
  const HOLO=realGuest?PINNED_HOLO:MOCK_HOLO;
  let H='a'.repeat(40),T='b'.repeat(40);
  let route='software-engineering/frontend',host='fixture-host';
@@ -241,6 +246,18 @@ async function main(args){
   assert.equal(diskReplay.methods[0].sourceApprovalProofSha256,proofSource);
   assert.equal(diskReplay.productionEligible,false);
   assert.equal(guestCalls,3);assert.equal(factCalls,3);
+  if(evidenceOutput!==null){
+   // Persist a NEW, verified development candidate outside the tamper
+   // sandbox. Never install/activate it or convey production eligibility.
+   await writePackage(pkg,evidenceOutput);
+   assert.deepEqual(await readPackage(evidenceOutput),pkg);
+   const exportedReplay=await replaySealedSourceReceiptFromDisk(
+    evidenceOutput,replayConfiguration);
+   assert.equal(exportedReplay.diskCompletionSealVerified,true);
+   assert.equal(exportedReplay.productionEligible,false);
+   assert.equal(exportedReplay.hostValidated,false);
+   assert.equal(guestCalls,4);assert.equal(factCalls,4);
+  }
   const changed=JSON.parse(await readFile(join(dest,'RECEIPT.json'),'utf8'));
   changed.assertions[0].sourceBindingSha256='9'.repeat(64);
   await writeFile(join(dest,'RECEIPT.json'),JSON.stringify(changed)+'\n');
@@ -248,7 +265,8 @@ async function main(args){
   await assert.rejects(replaySealedSourceReceiptFromDisk(dest,replayConfiguration),
    signal('PACKAGE_INTEGRITY'));
   // A corrupted disk candidate must never reach even the source signer.
-  assert.equal(guestCalls,3);assert.equal(factCalls,3);
+  assert.equal(guestCalls,evidenceOutput===null?3:4);
+  assert.equal(factCalls,evidenceOutput===null?3:4);
  }finally{await rm(root,{recursive:true,force:true});}
  let deniedGuest=0,deniedFacts=0;
  const noApproval=createSourceBoundAssertionGuard({
@@ -301,7 +319,8 @@ async function main(args){
   rightsDenialComposer(recipe(),[method()]));
  assert.equal(deniedByGuest.code,'PRISM_REFUSED');
  assert.match(deniedByGuest.message,/RIGHTS_UNRESOLVED/);
- assert.equal(guestCalls,4,'signed rights denial reached guest after three accepts');
+ assert.equal(guestCalls,evidenceOutput===null?4:5,
+  'signed rights denial reached guest after all positive and disk replay checks');
  const output={
   schema:'qortara/strict-source-receipt-fixture-integration/1',
   state:'FIXTURE_ONLY_TWO_SIGNATURES_AND_SEALED_DIGESTS',
@@ -310,6 +329,8 @@ async function main(args){
   signedFourFactProofSha256:proofFacts,
   methodSubjectSha256:receipt.assertions[0].subjectSha256,
   selectedMethodId:selectedId,
+  exportedSealedFirstPartyDevelopmentCandidate:evidenceOutput!==null,
+  exportedCandidateManifestSha256:evidenceOutput!==null?verification.packageSha256:null,
   firstPartyOriginalMethodSourceUsed:firstParty,
   firstPartyOriginalMethodSha256:originalMethodSha256,
   firstPartyExactGitBlob:sourceGitBlob,
