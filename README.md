@@ -208,7 +208,7 @@ The [delivery epic #1](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues
 | [`docs/technical/governed-evidence.md`](docs/technical/governed-evidence.md) | Internal governance evidence and audit-record procedures |
 | [`scripts/check_governance_static.py`](scripts/check_governance_static.py) · [tests](tests/test_governance_static.py) | Supplemental read-only layout lint and planted controls |
 
-There are **no released generator packages, deployed host connectors or generated skill artifacts**. A development-only local CLI is documented below. Links to those will be added only when the corresponding code and evidence exist.
+There are **no released generator packages, deployed host connectors or qualified generated skills**. The local CLI and a browser-based starter-draft creator are developer previews, not accepted Prism compiler releases.
 
 ## Develop and validate
 
@@ -250,9 +250,9 @@ See [local CLI usage and explicit P0 limits](docs/technical/local-cli.md). The l
 
 ## GitHub Pages web app
 
-A [static web prototype](web/) is available for local-file Prism output testing. The browser interface uses a version-pinned Prism SDK bundle, verifies the user's selected `.holo` against an independently recorded digest, then dispatches raw bytes to the real Prism guest. The site does **not** generate skills, upload files, keep accounts or host an MCP endpoint. No native holo has yet been accepted here.
+**[Open Qortara Skills](https://mythologiq-labs-llc.github.io/skill-mason/)**. The request-first page accepts a plain-language skill request and returns a **downloadable starter `SKILL.md` draft** produced by a deterministic local template. It is a *request handoff*, not a vetted or Prism-qualified skill generator: no catalog sources, rights, or host behavior are verified. The separate developer panel retains the real pinned `.holo` diagnostic path. The page uses a [pinned Verdant Engine renderer](web/vendor/verdant/NOTICE.md) to animate the visual prism, with accessible CSS fallback. No hosted MCP, accounts, uploads or server are involved.
 
-The [Pages build and deployment workflow](.github/workflows/pages.yml) attempts publishing after the branch merges to `main`; actual deployment and URL remain **NOT_VERIFIED** until GitHub confirms them. See [Pages design and limitations](docs/technical/pages-web.md). A local `stdio` MCP server is the *third* access priority, not a GitHub Pages feature.
+The [Pages workflow](.github/workflows/pages.yml) successfully deployed the initial site in [run 44206841779](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44206841779) (GitHub environment URL confirmed; independent HTTP smoke and native holo execution still outstanding). See [Pages design and limits](docs/technical/pages-web.md). A local `stdio` MCP remains the third access priority.
 
 ## Repository governance
 
