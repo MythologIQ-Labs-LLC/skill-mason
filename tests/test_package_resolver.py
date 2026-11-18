@@ -137,7 +137,9 @@ class PackageInspectionTests(unittest.TestCase):
     def test_review_rights_claim_promotion_not_permitted(self):
         self.fx.records[0]["rights"]["package_redistribution_clearance"] = "approved"
         self.reseal()
-        self.expect("PACKAGE_RIGHTS")
+        # The outer pinned handoff validator should catch forged rights *before*
+        # the selected-package resolver ever sees the record.
+        self.expect("RIGHTS_CLAIM")
 
     def test_missing_local_package_refuses(self):
         del self.fx.records[0]["identity"]["local_package"]
