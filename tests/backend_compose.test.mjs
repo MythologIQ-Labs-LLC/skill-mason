@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp,readFile,rm,stat} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,rm,stat,mkdir,symlink,unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createComposer,verifyPackage,writePackage} from '../src/backend/compose.mjs';
+import {createComposer,verifyPackage,writePackage,readPackage} from '../src/backend/compose.mjs';
 
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const PIN='c'.repeat(64),SOURCE='Review the exact change list and identify missing tests.';
@@ -132,4 +132,91 @@ test('missing assertion value refuses before guest; no default-to-true',async()=
 test('Prism cannot admit denied rights even if guest falsely returns eligible',async()=>{
  const c=composer(({subjectSha256})=>({...asserted,subjectSha256,rights:false}),guest);
  await assert.rejects(c(recipe(),[source()]),refused('PRISM_REFUSED'));
+});
+
+test('an explicitly completed disk package can be independently read and reverified',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+   const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+   const result=await writePackage(p,dest);
+   assert.ok(result.files.includes('.qortara-complete'));
+   const restored=await readPackage(dest);
+   assert.deepEqual(restored,p);
+   assert.equal(verifyPackage(restored).state,'INTEGRITY_VERIFIED');
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('directory with all four files but no completion seal remains invalid',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'interrupted');
+  await mkdir(dest);
+  for(const [name,bytes] of Object.entries(p.files))await writeFile(join(dest,name),bytes);
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INCOMPLETE'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('added untracked package file refuses to read as a complete candidate',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+  await writePackage(p,dest);await writeFile(join(dest,'INJECTED.md'),'unexpected data');
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INCOMPLETE'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('post-seal source data tampering cannot replay',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+  await writePackage(p,dest);await writeFile(join(dest,'SKILL.md'),'forged skill');
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INTEGRITY'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('post-seal manifest rewrite refuses even if syntactically valid',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+  await writePackage(p,dest);
+  const altered=JSON.parse(p.files['skill-mason.json']);altered.name='different';
+  await writeFile(join(dest,'skill-mason.json'),JSON.stringify(altered)+'\n');
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INTEGRITY'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('symlinked package file is refused even if it targets the original bytes',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+  await writePackage(p,dest);
+  const contents=await readFile(join(dest,'SKILL.md'));
+  const outside=join(root,'outside.md');await writeFile(outside,contents);
+  await unlink(join(dest,'SKILL.md'));await symlink(outside,join(dest,'SKILL.md'));
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INCOMPLETE'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('a symlinked destination parent cannot redirect package output',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const outside=join(root,'outside'),linked=join(root,'linked');
+  await mkdir(outside);await symlink(outside,linked);
+  const p=await composer()(recipe(),[source()]);
+  await assert.rejects(writePackage(p,join(linked,'untrusted')),refused('DESTINATION'));
+  await assert.rejects(stat(join(outside,'untrusted')),{code:'ENOENT'});
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('concurrent candidate writes produce exactly one complete directory',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'contended');
+  const outcomes=await Promise.allSettled([writePackage(p,dest),writePackage(p,dest)]);
+  assert.equal(outcomes.filter(o=>o.status==='fulfilled').length,1);
+  assert.equal(outcomes.filter(o=>o.status==='rejected').length,1);
+  assert.deepEqual(await readPackage(dest),p);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('corrupted completion seal refuses even if source files are unchanged',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-seal-test-'));
+ try{
+  const p=await composer()(recipe(),[source()]),dest=join(root,'sealed');
+  await writePackage(p,dest);
+  await writeFile(join(dest,'.qortara-complete'),'{"status":"DEVELOPMENT_CANDIDATE"}\n');
+  await assert.rejects(readPackage(dest),refused('PACKAGE_INTEGRITY'));
+ }finally{await rm(root,{recursive:true,force:true});}
 });
