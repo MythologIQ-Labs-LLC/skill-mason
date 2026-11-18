@@ -20,6 +20,14 @@ The small rotating prism is rendered using an exact, locally vendored module fro
 
 States are `idle`, `working` (formatting a starter locally), `draft` and `refused`. No state named 'verified' or 'published' exists in the animation. A CSS fallback appears if WebGL2 is unavailable; `prefers-reduced-motion` disables animation.
 
+### Branded presentation and responsive behavior
+
+The visual design presents a short plain-language introduction beside the **complete** canonical Qortara Skills banner, preserving its natural proportions rather than cropping its lower brand line. The canonical icon forms the leading **Q** in the top-bar wordmark, followed by `ortara Skills`; this intentionally does not spell another Q next to the icon.
+
+The task form remains the primary action. The companion Prism illustration is **decorative**, with states limited to actual starter-draft UI outcomes, never proof of Prism eligibility, native verification, or host acceptance. A locally rendered Verdant canvas is softened into the stage; SVG remains the no-WebGL fallback. The developer-only `.holo` controls remain collapsed. The layout switches to a single-column workspace at widths of 980 CSS pixels and below, and stacks the branded introduction at 690 pixels and below. The base focus indicators, skip link, status region and reduced-motion rules remain intact. No remote fonts, assets, telemetry or new runtime dependencies are introduced.
+
+Static layout inspection at desktop, 768px and 390px is a **presentation check**, not behavioral or WebGL acceptance on a production browser.
+
 ## Build and testing
 
 On a disposable, approved Node 22+ checkout:

@@ -18,13 +18,26 @@
     <a class="repo" href="https://github.com/MythologIQ-Labs-LLC/skill-mason" rel="noopener noreferrer">GitHub</a>
   </header>
   <main id="main" class="container">
-    <div class="brand-banner"><img src="./assets/qortara-skills-banner.webp" alt="Qortara Skills"></div>
+    <section class="intro" aria-label="About Qortara Skills">
+      <div class="intro-copy">
+        <p class="intro-kicker"><span class="status-dot" aria-hidden="true"></span> PURPOSE-BUILT AGENT SKILLS</p>
+        <p class="intro-title">Your next skill starts<br><span>with a clear idea.</span></p>
+        <p class="intro-description">Turn a task into a structured starter draft, right here in your browser. Source-qualified generation is the next milestone.</p>
+      </div>
+      <div class="intro-brand">
+        <img src="./assets/qortara-skills-banner.webp" alt="Qortara Skills, capability-driven agent skills">
+        <div class="intro-brandline"><span>SKILLS FIRST</span><span class="brandline-rule" aria-hidden="true"></span><span>BUILT WITH PRISM IN MIND</span></div>
+      </div>
+    </section>
     <section class="workspace" aria-label="Create a skill">
       <div class="composer">
+        <p class="section-kicker"><span class="section-number">01</span> DESCRIBE THE OUTCOME</p>
         <h1>What skill do you need?</h1>
+        <p class="composer-intro">Focus on the result you want. We'll shape it into a draft you can refine.</p>
         <form id="skill-form">
           <label for="skill-request">Describe what it should do.</label>
           <textarea id="skill-request" rows="5" minlength="16" maxlength="1200" placeholder="A skill that reviews pull requests and creates a clear summary of changes, tests, and risks…" required></textarea>
+          <p class="example-label">Try an example</p>
           <div class="examples" aria-label="Example skill requests">
             <button type="button" data-example="Summarize GitHub pull requests into changes, test coverage, and review risks">PR review</button>
             <button type="button" data-example="Turn meeting notes into decisions, owners, and next actions">Meeting notes</button>
@@ -38,6 +51,7 @@
         <p id="request-status" class="request-status" role="status" aria-live="polite">Start with a task. No account or setup required.</p>
       </div>
       <div class="prism-panel">
+        <div class="prism-topline"><span><span class="section-number">02</span> FROM REQUEST TO DRAFT</span><span class="prism-live"><span aria-hidden="true"></span> LOCAL PREVIEW</span></div>
         <div id="prism-visual" class="prism-visual" data-state="idle" data-engine="css-fallback" aria-hidden="true">
           <div class="visual-halo"></div>
           <div class="input-pulse"><span class="sheet-lines"></span></div>
