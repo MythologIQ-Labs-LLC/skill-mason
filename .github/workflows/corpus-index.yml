@@ -205,6 +205,15 @@ jobs:
           assert accession["tracked_source_files"]["before"] == accession["tracked_source_files"]["after"] == 2825
           for family in ("governed", "observed_source_rows", "tracked_source_files"):
               assert all(accession[family][kind]["count"] == 0 for kind in ("added", "removed", "changed"))
+          stable = accession["source_aware_observation_multiset"]
+          assert stable["before_observations"] == stable["after_observations"] == 66139
+          assert stable["unchanged_observation_occurrences"] == 66139
+          assert stable["added"]["occurrences"] == 0
+          assert stable["removed"]["occurrences"] == 0
+          assert stable["all_duplicate_occurrences_preserved"]
+          assert stable["cross_shard_path_and_row_number_independent"]
+          assert not stable["source_content_reuse_rights_inferred"]
+          assert not accession["source_shard_repacking_may_explain_pointer_delta"]
           assert accession["review_status_transitions"] == []
           assert accession["taxonomy_artifacts_changed"] == []
           assert not accession["candidate_snapshot_auto_imported"]
