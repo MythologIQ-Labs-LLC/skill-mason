@@ -225,3 +225,13 @@ jobs:
             console.log("ORIGINAL IMMUTABLE FIRST-PARTY METHOD + STRICT TWO SIGNATURES + FOUR REAL P0 GUEST DECISIONS; AUTHORITY UNQUALIFIED");
           '
 
+
+      - name: Preserve bounded evidence receipts without source or signing secrets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strict-p0-method-replay-receipts
+          path: |
+            strict-p0-real-replay.json
+            strict-p0-first-party.json
+          retention-days: 14
+          if-no-files-found: error
