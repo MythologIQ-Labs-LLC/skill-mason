@@ -8,13 +8,14 @@
  */
 import assert from 'node:assert/strict';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,rm,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute} from 'node:path';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 import {createSignedAssertionAdapter} from '../src/backend/signed-assertions.mjs';
 import {createComposer,canonicalJSON,verifyPackage,writePackage,readPackage} from '../src/backend/compose.mjs';
 import {evaluate,loadPinnedRuntime} from '../bin/qortara-skills.mjs';
+import {runFirstPartyPilot} from '../bin/first-party-pilot.mjs';
 
 const PIN='9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e';
 const DOMAIN='QORTARA-METHOD-ASSERTION-V1\n';
@@ -118,14 +119,33 @@ async function main(argv){
   }
   assert.equal(denied,true,'signed rights denial must not become a package');
   assert.equal(guestCalls,3,'two eligible and one denied call must reach the real guest');
+  // Original, exact Git-blob-pinned procedures now also traverse the actual
+  // guest and produce Agent Skills-shaped candidate folders. They still use
+  // ephemeral synthetic authorization; no host installs or tools are run.
+  const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
+  await mkdir(pilotRoot,{mode:0o700});
+  const firstPartyPilots=[];
+  for(const id of ['ci-failure-triage','governance-drift-review']){
+    const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
+      outputRoot:pilotRoot,devP0Fixture:true});
+    const candidate=await readPackage(join(pilotRoot,id));
+    assert.equal(result.status,'DEVELOPMENT_CANDIDATE');
+    assert.match(candidate.files['SKILL.md'],/#### Procedure/);
+    assert.match(candidate.files['SKILL.md'],/#### Stop conditions/);
+    assert.ok(candidate.files['SKILL.md'].startsWith('---\nname: '+id+'\n'));
+    assert.equal(JSON.parse(candidate.files['RECEIPT.json']).productionEligible,false);
+    firstPartyPilots.push({id,manifestSha256:result.artifactSha256,
+      directory:id,output:'SEALED_UNQUALIFIED_AGENT_SKILL'});
+  }
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
    negativeComposerRefusal:deniedCode,
    candidateManifestSha256:verification.packageSha256,
-   replay:'BYTE_IDENTICAL_WITHIN_RUN',diskReadback:'INTEGRITY_VERIFIED'};
+   replay:'BYTE_IDENTICAL_WITHIN_RUN',diskReadback:'INTEGRITY_VERIFIED',
+   firstPartyPilots};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
  }finally{await rm(dir,{recursive:true,force:true});}
