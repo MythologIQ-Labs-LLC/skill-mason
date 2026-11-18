@@ -34,9 +34,12 @@ test('missing adapters and holo pin refuse before any guest is invoked',()=>{
  assert.throws(()=>createComposer(),refused('ADAPTER_MISSING'));
 });
 test('forged per-source rights or coverage does not become a Prism input',async()=>{
- let called=0;const c=composer(({subjectSha256})=>({...asserted,subjectSha256,rights:false}),()=>{called++;return guest({requestHex:'01010101',holoSha256:PIN});});
- await assert.rejects(c(recipe(),[source()]),refused('UNTRUSTED_ASSERTION'));
- assert.equal(called,0);
+ let called=0;const c=composer(({subjectSha256})=>({...asserted,subjectSha256,rights:false}),x=>{
+  called++;assert.equal(x.requestHex,'01000101');return {...guest(x),response:'refused: RIGHTS_UNRESOLVED',
+  responseHex:Buffer.from('refused: RIGHTS_UNRESOLVED').toString('hex')};
+ });
+ await assert.rejects(c(recipe(),[source()]),refused('PRISM_REFUSED'));
+ assert.equal(called,1);
 });
 test('caller-supplied eligible flag does not override unknown assertion',async()=>{
  const m=source();m.eligible=true;await assert.rejects(composer()(recipe(),[m]),refused('INVALID_METHOD'));
@@ -119,4 +122,14 @@ test('callback may not mutate validated plan or source method while asserting',a
    return {...asserted,subjectSha256};
  });
  await c(recipe(),[source()]);assert.equal(immutable,true);
+});
+test('missing assertion value refuses before guest; no default-to-true',async()=>{
+ let called=0;const c=composer(({subjectSha256})=>({evidence:true,rights:null,authority:true,
+   coverage:true,subjectSha256,issuer:'fixture',proofDigest:'f'.repeat(64)}),()=>{called++;});
+ await assert.rejects(c(recipe(),[source()]),refused('UNTRUSTED_ASSERTION'));
+ assert.equal(called,0);
+});
+test('Prism cannot admit denied rights even if guest falsely returns eligible',async()=>{
+ const c=composer(({subjectSha256})=>({...asserted,subjectSha256,rights:false}),guest);
+ await assert.rejects(c(recipe(),[source()]),refused('PRISM_REFUSED'));
 });
