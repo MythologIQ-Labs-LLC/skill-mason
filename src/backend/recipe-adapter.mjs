@@ -131,8 +131,8 @@ export function createRecipeAdapter({sourceSnapshot,supportedHosts,components}={
       targetHost:publicRecipe.target_host,requiredOutcomes:requested,
       network:false,secrets:false,execution:false,
       sourceSnapshot:pin,
-      packagePins:Object.freeze(pins.sort((a,b)=>a.methodId.localeCompare(b.methodId)||
-                                             a.packageId.localeCompare(b.packageId)))
+      packagePins:Object.freeze(pins.sort((a,b)=>a.methodId<b.methodId?-1:a.methodId>b.methodId?1:
+                   a.packageId<b.packageId?-1:a.packageId>b.packageId?1:0))
     });
     return Object.freeze({plan,methods:Object.freeze([...selected])});
   };
