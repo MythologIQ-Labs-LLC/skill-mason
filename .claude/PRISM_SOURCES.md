@@ -10,6 +10,20 @@
 | [UOR-Foundation/prism](https://github.com/UOR-Foundation/prism/tree/507995bab43c0cb06ec244c96e6fc25b3f502204) | `507995bab43c0cb06ec244c96e6fc25b3f502204` | `README.md`, `AGENTS.md` | Standard-library façade and separate replay façade; **not** the full application template |
 | [afflom/prism-devrel](https://github.com/afflom/prism-devrel/tree/ace153e37c7c29646f3efa6e273c3c4f8c9fb8bc) | `ace153e37c7c29646f3efa6e273c3c4f8c9fb8bc` | `README.md`, `AGENTS.md`, `TEMPLATE-CONTRACT.md` | Worked Prism application and proof/coverage learning reference, not automatic feature authority |
 
+## Drift observed, not adopted (2026-11-18)
+
+`git ls-remote … HEAD` for each source, compared with the pins above. The pins are unchanged: a pin change is a governed PR that reruns the affected gates.
+
+| Source | Upstream `HEAD` on 2026-11-18 | Against the pin |
+| --- | --- | --- |
+| UOR-Foundation/template | `b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b` | equal |
+| UOR-Foundation/PrismPM | `17d3b106f2276047d8c8dbbdb96983a86a7122ac` | **moved**; not read |
+| UOR-Foundation/LexLean | `f0900179937827a0ddb3e069a56a67af0a1a3c79` | **moved**; not read |
+| UOR-Foundation/prism | `5f0cccab724d3146acf35615eac6fb84cf91a1f3` | **moved**; not read |
+| afflom/prism-devrel | `ace153e37c7c29646f3efa6e273c3c4f8c9fb8bc` | equal |
+
+Route A's executed toolchain is fixed by the template pin, whose `prismpm.lock` selects the SDK image by digest. That pin did not move, so the three moved repositories change nothing that ran. They are documentation and library sources here; what their newer commits say is `NOT_RUN` and unread.
+
 ## Executed toolchain identities
 
 Observed on 2026-11-17, `linux/amd64`. The image digest is the identity; version strings are what each binary printed.
