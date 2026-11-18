@@ -204,14 +204,16 @@ jobs:
               --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
               --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
               --pilot ci-failure-triage \
+              --evidence-output "$RUNNER_TEMP/ci-failure-triage" \
             > strict-p0-first-party.json
           node --input-type=module -e '
             import {readFileSync} from "node:fs";
             const r=JSON.parse(readFileSync("strict-p0-first-party.json","utf8"));
             for(const [k,v] of Object.entries({
-              realPinnedPrismGuestExecuted:true,realGuestCalls:4,
+              realPinnedPrismGuestExecuted:true,realGuestCalls:5,
               prismGuestIsMock:false,
               firstPartyOriginalMethodSourceUsed:true,
+              exportedSealedFirstPartyDevelopmentCandidate:true,
               originalFirstPartySourceBytesIndependentlyPinned:true,
               firstPartyOriginalMethodSha256:"9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47",
               firstPartyExactGitBlob:"23bd3a94a3da68996f406892dcbb94be247a6db9",
@@ -233,5 +235,7 @@ jobs:
           path: |
             strict-p0-real-replay.json
             strict-p0-first-party.json
+            ${{ runner.temp }}/ci-failure-triage/**
+          include-hidden-files: true
           retention-days: 14
           if-no-files-found: error
