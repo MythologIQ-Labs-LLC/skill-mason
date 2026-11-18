@@ -1,0 +1,81 @@
+name: Corpus opportunity index (pinned, read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/catalog_index.py'
+      - 'tests/test_catalog_index.py'
+      - 'scripts/catalog_handoff.py'
+      - 'scripts/verify_catalog_source.py'
+      - '.github/workflows/corpus-index.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/catalog_index.py'
+      - 'tests/test_catalog_index.py'
+      - 'scripts/catalog_handoff.py'
+      - 'scripts/verify_catalog_source.py'
+      - '.github/workflows/corpus-index.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  index-snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout Skill Mason (no persisted credentials)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify synthetic omissions, shadowed bytes and refusal controls
+        run: python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
+      - name: Checkout immutable published handoff (no submodules)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Materialize separately pinned original source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Reconcile complete opportunity space and perform cross-family lexical search
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m scripts.catalog_index \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source summary > corpus-index-summary.json
+          python3 -m scripts.catalog_index \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source search "SKILL.md" --family four-source --limit 2 > corpus-four-source-search.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x = json.loads(Path("corpus-index-summary.json").read_text())
+          assert (x["governed"], x["governed_mapped"], x["governed_unmapped"]) == (1043, 122, 921)
+          assert (x["g1_g3_path_observations"], x["four_source_path_observations"]) == (61326, 4813)
+          assert (x["discovery_artifact_pointers"], x["evidence_artifact_pointers"]) == (170, 2322)
+          assert x["total_index_rows_not_unique_skills"] == 67182
+          assert x["source_integrity"] == "PINNED_TREE_AND_SOURCE_BYTES_VERIFIED"
+          assert not x["composition_eligible"] and not x["rights_assessed"]
+          y = json.loads(Path("corpus-four-source-search.json").read_text())
+          assert y["total_matches"] > 0 and y["returned"] == 2
+          assert y["truncated"] and not y["method_eligibility_assessed"]
+          print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
+          PY
+      - name: Upload non-content reconciliation receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pinned-corpus-index-summary
+          path: corpus-index-summary.json
+          retention-days: 14
+          if-no-files-found: error
