@@ -44,6 +44,10 @@ The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produc
 
 The [deterministic candidate comparison receipt](../technical/candidate-comparison-v1.md) lists exact recognized evidence links, name-only review hints and bounded lexical raw observations separately, with no eligibility or chosen method. Rights, dependencies and host authority are unassessed; a comparison is not an automatic recommendation or Prism input.
 
+## External third-party exact-source package byte verification (proposed C3 follow-on)
+
+The separately pinned [external package inspector](../technical/external-package-inspection-v1.md) verifies a governed third-party candidate's complete Git subtree and actual files against its original exact source revision and recorded package tree/blob, without downloading on invocation, running code, granting rights or declaring host fitness. A Git object consistency receipt is only source-byte evidence. Independent publisher, asset licenses, dependency closure, modification/redistribution rights and actual agent-host acceptance remain explicit holds.
+
 ## First-party source-package inspection (proposed C3 slice)
 
 The read-only [package inspection contract](../technical/package-inspection-v1.md) reconciles each selected first-party package's exact nested file inventory with the pinned source tree, preserving explicit record-specific refusals. The result remains an unapproved byte receipt. Third-party packages and all target-specific rights, dependency and host authority checks remain blocked. No selected method is admitted into Prism by this inspection.
