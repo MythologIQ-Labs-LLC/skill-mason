@@ -230,6 +230,41 @@ class CorpusIndex:
                 "prism_qualified": False, "behaviorally_validated": False,
                 "composition_eligible": False}
 
+    def search_references(self, query, *, kind="all", limit=25):
+        """Search all declared pointer families without claiming referenced files are skills."""
+        require(isinstance(query, str) and bool(query.strip()), "QUERY_REQUIRED",
+                "supply a nonempty lexical query")
+        require(kind in ("all", "discovery", "evidence", "first-party", "engine", "taxonomy"),
+                "QUERY_FAMILY", "unknown reference family")
+        require(type(limit) is int and 0 < limit <= MAX_RESULTS,
+                "QUERY_LIMIT", "limit must be between 1 and " + str(MAX_RESULTS))
+        families = {
+            "discovery": self.discovery_paths,
+            "evidence": self.evidence_paths,
+            "first-party": self.first_party_paths,
+            "engine": self.engine_paths,
+            "taxonomy": list(self.taxonomy_paths.values())}
+        tokens = query.casefold().split()
+        total = 0
+        results = []
+        for family in sorted(families):
+            if kind not in ("all", family):
+                continue
+            for path in sorted(families[family]):
+                if all(token in path.casefold() for token in tokens):
+                    total += 1
+                    if len(results) < limit:
+                        src = self.source_files[path]
+                        results.append({"family": family, "source_path": path,
+                                        "sha256": src["sha256"], "bytes": src["bytes"],
+                                        "role_only_not_an_admitted_skill": True})
+        return {"schema": SCHEMA, "query": query,
+                "search_type": "manifest_reference_paths_not_qualified_methods",
+                "source_commit": COMMIT, "kind": kind,
+                "total_matches": total, "returned": len(results),
+                "truncated": total > len(results), "results": results,
+                "rights_assessed": False, "method_eligibility_assessed": False}
+
     def record(self, identity):
         require(identity in self.by_id, "UNKNOWN_ID", "no such exact record identity")
         return {"schema": SCHEMA, "snapshot_commit": COMMIT,
@@ -272,6 +307,10 @@ def main(argv=None):
     find.add_argument("query")
     find.add_argument("--family", choices=["all", "governed", "g1-g3", "four-source"], default="all")
     find.add_argument("--limit", type=int, default=25)
+    refs = cmd.add_parser("references")
+    refs.add_argument("query")
+    refs.add_argument("--kind", choices=["all", "discovery", "evidence", "first-party", "engine", "taxonomy"], default="all")
+    refs.add_argument("--limit", type=int, default=25)
     item = cmd.add_parser("record")
     item.add_argument("identity")
     artifact = cmd.add_parser("artifact")
@@ -283,6 +322,8 @@ def main(argv=None):
             report = index.summary()
         elif args.command == "search":
             report = index.search(args.query, family=args.family, limit=args.limit)
+        elif args.command == "references":
+            report = index.search_references(args.query, kind=args.kind, limit=args.limit)
         elif args.command == "record":
             report = index.record(args.identity)
         else:
