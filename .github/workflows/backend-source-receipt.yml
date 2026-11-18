@@ -228,14 +228,34 @@ jobs:
           '
 
 
+      - name: Stage portable candidate and exact receipts into one review root
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/strict-p0-export"
+          mkdir -p "$stage/receipts"
+          cp -a -- "$RUNNER_TEMP/ci-failure-triage" "$stage/ci-failure-triage"
+          cp -- strict-p0-real-replay.json strict-p0-first-party.json "$stage/receipts/"
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import {readPackage,verifyPackage} from "./src/backend/compose.mjs";
+            const pkg=await readPackage(process.argv[1]);
+            const verified=verifyPackage(pkg);
+            const r=JSON.parse(pkg.files["RECEIPT.json"]);
+            assert.equal(r.productionEligible,false);
+            assert.equal(r.hostValidated,false);
+            assert.equal(r.sourceApprovalRequired,true);
+            assert.equal(verified.sourceAcceptanceSignatureVerified,false);
+            assert.equal(verified.signedFourFactAssertionReverified,false);
+            console.log("PORTABLE FIRST-PARTY CANDIDATE RECHECK",verified.packageSha256);
+          ' "$stage/ci-failure-triage"
+          test "$(find "$stage/ci-failure-triage" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 5
+          test "$(find "$stage/receipts" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 2
       - name: Preserve bounded evidence receipts without source or signing secrets
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: strict-p0-method-replay-receipts
-          path: |
-            strict-p0-real-replay.json
-            strict-p0-first-party.json
-            ${{ runner.temp }}/ci-failure-triage/**
+          path: ${{ runner.temp }}/strict-p0-export/
           include-hidden-files: true
           retention-days: 14
           if-no-files-found: error
