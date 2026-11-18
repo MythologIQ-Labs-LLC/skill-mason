@@ -192,3 +192,36 @@ jobs:
             }))if(r[k]!==v)throw Error("unqualified strict P0 receipt "+k);
             console.log("REAL PINNED P0 PRISM + TWO FIXTURE ED25519 PROOFS + DISK REPLAY; NO RIGHTS OR HOST AUTHORITY");
           '
+      - name: Repeat real strict P0 path with immutable first-party CI procedure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" \
+              --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+              --pilot ci-failure-triage \
+            > strict-p0-first-party.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("strict-p0-first-party.json","utf8"));
+            for(const [k,v] of Object.entries({
+              realPinnedPrismGuestExecuted:true,realGuestCalls:4,
+              prismGuestIsMock:false,
+              firstPartyOriginalMethodSourceUsed:true,
+              originalFirstPartySourceBytesIndependentlyPinned:true,
+              firstPartyOriginalMethodSha256:"9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47",
+              firstPartyExactGitBlob:"23bd3a94a3da68996f406892dcbb94be247a6db9",
+              selectedMethodId:"ci-failure-triage",
+              skillzC4GovernedReviewOrRightsQualified:false,
+              signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              productionEligible:false,hostValidated:false,sourceRightsEstablished:false
+            }))if(r[k]!==v)throw Error("first-party strict P0 scope or provenance mismatch "+k);
+            console.log("ORIGINAL IMMUTABLE FIRST-PARTY METHOD + STRICT TWO SIGNATURES + FOUR REAL P0 GUEST DECISIONS; AUTHORITY UNQUALIFIED");
+          '
+
