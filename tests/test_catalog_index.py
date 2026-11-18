@@ -9,6 +9,7 @@ from scripts.catalog_handoff import (
     COMMIT, TREE, ORIGIN, Refusal, canonical, git_blob, inspect, sha256,
 )
 from scripts.catalog_index import CorpusIndex
+from scripts.capability_graph import CapabilityGraph
 
 
 def review(record_id, source_class, status, mapping):
@@ -254,6 +255,103 @@ class CorpusIndexTests(unittest.TestCase):
                         inspector=lambda p: inspect(p, manifest_pin=self.fx.pin),
                         source_verifier=wrong_verifier)
         self.assertEqual(ex.exception.code, "SOURCE_INTEGRITY")
+
+
+class CapabilityGraphTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.fx = Fixture(Path(self.temp.name))
+        self.domains = []
+        self.outcomes = []
+        for i in range(33):
+            domain_id = "software-engineering" if i == 0 else "domain-%d" % i
+            subdomains = []
+            for j in range(8 if i < 16 else 7):
+                sub_id = "testing" if i == 0 and j == 0 else "sub-%d" % j
+                route = domain_id + "/" + sub_id
+                subdomains.append({
+                    "id": sub_id, "name": "Test route %d %d" % (i, j),
+                    "matched_skill_ids": ["local-skills/alpha"] if i == 0 and j == 0 else [],
+                    "name_only_review_candidate_ids": ["external/beta"] if i == 0 and j == 0 else []})
+                self.outcomes.append({
+                    "path": route, "outcome_definition_status": "needs-workflow-decomposition",
+                    "essential_outcomes": [], "existing_capability_statements": [],
+                    "qualified_essential_outcome_count": None,
+                    "qualification_status": "not-established-from-navigation-links"})
+            self.domains.append({"id": domain_id, "name": "Domain %d" % i, "subdomains": subdomains})
+        self.write_sources()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def write_sources(self):
+        self.fx.paths[self.fx.taxonomy["recognized"]] = canonical({"domains": self.domains})
+        self.fx.paths[self.fx.taxonomy["outcomes"]] = canonical({"rows": self.outcomes})
+        self.fx.paths[self.fx.taxonomy["prior_proposals"]] = canonical({"domains": [
+            {"id": "provisional-only"}]})
+        self.fx.paths[self.fx.taxonomy["new_proposals"]] = canonical({"domains": [
+            {"id": "proposed-only", "status": "proposed-needs-qualification"}]})
+        self.fx.persist()
+
+    def graph(self):
+        return CapabilityGraph(self.fx.index())
+
+    def test_complete_recognized_graph_and_unknown_outcome_denominator(self):
+        g = self.graph()
+        s = g.summary()
+        self.assertEqual((s["recognized_domains"], s["recognized_subdomains"]), (33, 247))
+        self.assertEqual(s["evidence_mapped_governed_identities"], 1)
+        self.assertEqual(s["outcome_definitions_missing"], 247)
+        self.assertEqual(s["unqualified_or_unknown_outcome_routes"], 247)
+        self.assertEqual(s["discovery_path_observations_without_governed_crosswalk"], 18)
+        self.assertFalse(s["composition_eligible"])
+        self.assertTrue(s["unmapped_does_not_mean_absent"])
+
+    def test_matched_and_name_only_are_not_permissions_or_verified_outcomes(self):
+        g = self.graph()
+        row = g.show("software-engineering/testing")
+        self.assertEqual(len(row["evidence_linked_reviews"]), 1)
+        self.assertEqual(row["evidence_linked_reviews"][0]["record_id"], "local-skills/alpha")
+        self.assertEqual(row["evidence_linked_reviews"][0]["review_status"], "verified")
+        self.assertEqual(row["evidence_linked_reviews"][0]["rights_clearance"], "not-established")
+        self.assertEqual(row["name_only_review_leads_not_qualified"], ["external/beta"])
+        self.assertTrue(row["explicit_gaps"]["needs_workflow_decomposition"])
+        self.assertIsNone(row["qualified_essential_outcome_count"])
+        self.assertFalse(row["composition_eligible"])
+
+    def test_defined_but_not_qualified_outcome_remains_a_gap(self):
+        self.outcomes[0]["essential_outcomes"] = [{"expected_output": "audit receipt"}]
+        self.outcomes[0]["outcome_definition_status"] = "defined-not-qualified"
+        self.write_sources()
+        row = self.graph().show("software-engineering/testing")
+        self.assertFalse(row["explicit_gaps"]["needs_workflow_decomposition"])
+        self.assertIsNone(row["qualified_essential_outcome_count"])
+        self.assertFalse(row["composition_eligible"])
+
+    def test_recognized_search_and_proposals_remain_separate(self):
+        g = self.graph()
+        results = g.search("software-engineering/testing")
+        self.assertEqual(results["total_matches"], 1)
+        self.assertTrue(results["unmapped_or_unreviewed_methods_not_proven_absent"])
+        with self.assertRaises(Refusal) as exc:
+            g.show("proposed-only/unknown")
+        self.assertEqual(exc.exception.code, "UNRECOGNIZED_CAPABILITY")
+        self.assertIn("new_proposals", g.summary()["proposals_are_separate"])
+
+    def test_mapped_record_crosswalk_drift_refuses(self):
+        self.fx.records[0]["capability_mapping"]["evidence_linked_paths"] = ["software-engineering/other"]
+        self.write_sources()
+        with self.assertRaises(Refusal) as exc:
+            self.graph()
+        self.assertEqual(exc.exception.code, "CROSSWALK_DRIFT")
+
+    def test_missing_outcome_refuses_instead_of_implicitly_qualifying(self):
+        self.outcomes.pop()
+        self.write_sources()
+        with self.assertRaises(Refusal) as exc:
+            self.graph()
+        self.assertEqual(exc.exception.code, "CAPABILITY_COUNT")
+
 
 
 if __name__ == "__main__":
