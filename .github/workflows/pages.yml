@@ -36,12 +36,26 @@ jobs:
         run: node --test web/tests/*.test.mjs
       - name: Bundle client with local Prism runtime
         run: node web/build.mjs
+      - name: Refuse incomplete Pages application output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s web-dist/index.html
+          test -s web-dist/app.js
+          test -s web-dist/style.css
+          test -s web-dist/assets/qortara-skills-icon.webp
+          test -s web-dist/assets/qortara-skills-banner.webp
+          test -f web-dist/.nojekyll
+          grep -qF './app.js' web-dist/index.html
+          echo "Pages artifact has the built application entrypoint, runtime bundle, stylesheet and brand assets"
       - name: Upload static Pages build
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: web-dist
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Manual dispatch on main is an explicit recovery path for the application artifact.
+    # GitHub Pages must also be set to Source = GitHub Actions (not branch/Jekyll).
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
