@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1930">
+  <meta name="description" content="Qortara Skills, locally verify and test an actual Prism eligibility artifact.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="icon" type="image/webp" href="./assets/qortara-skills-icon.webp">
+  <title>Qortara Skills | Prism output lab</title>
+</head>
+<body>
+  <a href="#main" class="skip">Skip to main content</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Qortara Skills home"><img src="./assets/qortara-skills-icon.webp" alt="" width="40" height="40">Qortara <strong>Skills</strong></a>
+    <span class="pill">Prism developer preview · P0</span>
+    <a href="https://github.com/MythologIQ-Labs-LLC/skill-mason" rel="noopener noreferrer">Source on GitHub</a>
+  </header>
+  <main id="main" class="container">
+    <section class="hero">
+      <img src="./assets/qortara-skills-banner.webp" alt="" class="hero-image">
+      <div class="hero-content">
+        <span class="eyebrow">PRISM-BACKED CAPABILITY ENGINEERING</span>
+        <h1>A clearer picture of what an agent can do.</h1>
+        <p>Inspect a compiled Prism eligibility application and see what it actually returns. Local files, exact digests, explicit refusals.</p>
+        <div class="chips"><span>Client-side</span><span>Version-pinned</span><span>Never silently installs</span></div>
+      </div>
+    </section>
+    <div class="intro">
+      <div><span class="eyebrow">FIRST PUBLIC INTERFACE</span><h2>Prism output lab</h2>
+        <p>Load a real <code>Qortara Skills Eligibility</code> holo and test its rules locally. This is not yet a skill generator, catalog evaluator, or hosted MCP.</p></div>
+      <aside class="privacy"><strong>Private by design</strong><p>The selected holo and input bytes stay in your browser. No upload endpoint, accounts, credentials, telemetry, or model inference.</p></aside>
+    </div>
+    <div class="grid">
+      <section class="panel" aria-labelledby="load-heading">
+        <div class="step"><span>01</span><div><h3 id="load-heading">Verify the artifact</h3><p>Choose the compiled file and an independently recorded SHA-256.</p></div></div>
+        <label for="holo">Local Prism holo <small>Maximum 64 MiB</small></label>
+        <input id="holo" type="file" accept=".holo,application/octet-stream">
+        <label for="sha">Expected SHA-256 <small>Copy from the native gate receipt, not this file</small></label>
+        <input id="sha" type="text" spellcheck="false" autocomplete="off" maxlength="64" placeholder="64 lowercase hex characters" class="mono">
+        <label class="checkbox"><input id="consent" type="checkbox"><span>I understand this is an unverified <strong>P0 development fixture</strong>, not a qualified product decision.</span></label>
+        <button id="verify" class="primary">Verify using Prism</button>
+        <p id="state" class="status" role="status" aria-live="polite">No artifact loaded. Real holo required.</p>
+      </section>
+      <section class="panel" aria-labelledby="test-heading">
+        <div class="step"><span>02</span><div><h3 id="test-heading">Test the decision</h3><p>The four input bytes represent evidence, rights, authority, and coverage.</p></div></div>
+        <label for="request">Raw request bytes <small>Hexadecimal, e.g. <code>01010101</code></small></label>
+        <input id="request" type="text" value="01010101" class="mono" autocomplete="off" spellcheck="false">
+        <div class="presets" role="group" aria-label="Request examples">
+          <button type="button" data-hex="01010101">Eligible fixture</button>
+          <button type="button" data-hex="01000101">Rights refusal</button>
+          <button type="button" data-hex="00010101">Evidence refusal</button>
+        </div>
+        <div class="actions"><button id="evaluate" class="primary" disabled>Run in Prism</button><button id="vectors" disabled>Run all 12 vectors</button></div>
+        <p class="note">These are fixture values, not authenticated claims. The controls stay disabled until a genuine Prism artifact passes verification.</p>
+      </section>
+      <section class="panel results" aria-labelledby="output-heading">
+        <div class="step"><span>03</span><div><h3 id="output-heading">Inspect the output</h3><p>Results shown here must come from the compiled guest, never a JavaScript imitation.</p></div></div>
+        <p id="meta" class="meta">No artifact verified · No runtime evidence</p>
+        <pre id="output" tabindex="0">{"state":"NOT_RUN","productionEligible":false}</pre>
+        <button id="save" disabled>Save JSON report</button>
+      </section>
+    </div>
+    <section class="future"><div><span class="eyebrow">PLANNED PRODUCT</span><h2>The capability spectrum</h2><p>Discovery, qualification, composition, and host compatibility will be built on the same engine. Not yet implemented.</p></div>
+      <div class="stages"><span>Discover <small>Planned</small></span><span>Qualify <small>Pilot</small></span><span>Compose <small>Planned</small></span><span>Validate <small>Planned</small></span></div>
+    </section>
+  </main>
+  <footer class="footer"><span>Qortara Skills · Unreleased developer preview</span><a href="https://github.com/MythologIQ-Labs-LLC/skill-mason/blob/main/docs/technical/local-cli.md">Local CLI guide</a></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
