@@ -201,7 +201,11 @@ export function createSourceBoundAssertionGuard({
        !sha64(result.proofDigest)||typeof result.issuer!=='string'||
        ['evidence','rights','authority','coverage'].some(k=>typeof result[k]!=='boolean'))
       reject('SOURCE_FACT_ASSERTION','independent P0 fact adapter returned malformed evidence');
-    return {...result,sourceAcceptanceProofSha256:accepted.acceptanceProofSha256};
+    // Preserve the independently verified source identity alongside the
+    // operator's approval proof. The strict P0 composer requires BOTH fields
+    // and matches this binding against its operator-pinned per-method map.
+    return {...result,sourceBindingSha256:accepted.sourceBindingSha256,
+      sourceAcceptanceProofSha256:accepted.acceptanceProofSha256};
   };
 }
 
