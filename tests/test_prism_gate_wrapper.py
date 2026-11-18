@@ -3,7 +3,8 @@
 No container and no SDK image is involved. These tests show that the wrapper
 refuses unsafe conditions before it would start a container, never touches the
 source checkout, and builds the `docker run` arguments it documents. They do
-not show that the real gate passes under this wrapper: that is NOT_RUN.
+not show that the real gate passes under this wrapper: only a run's own log,
+committed under docs/evidence/, can show that.
 """
 from pathlib import Path
 import hashlib
@@ -329,8 +330,8 @@ class GateWrapperTests(unittest.TestCase):
         self.assertNotIn("--privileged", text)
         self.assertEqual(text.count("chown "), 1, "exactly one chown, of the throwaway work directory")
         self.assertIn('chown -R "$uid" "$work"', text)
-        self.assertIn("has NOT been run", text)
-        self.assertIn("NOT_RUN", text)
+        self.assertIn("This header claims no result.", text)
+        self.assertIn("say nothing about this one", text)
         self.assertIn(f"DEFAULT_IMAGE='{IMAGE}'", text)
 
 

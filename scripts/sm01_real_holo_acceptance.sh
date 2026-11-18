@@ -205,5 +205,81 @@ rc=$?
 check cli-refuses-wrong-digest "exit 2, DIGEST_MISMATCH" "exit $rc" \
   "$([[ $rc -eq 2 ]] && grep -q 'DIGEST_MISMATCH' "$out/cli-wrong-digest.out"; echo $?)"
 
+# --- assurance: what would leaving P0 take? Recorded, never asserted ------------
+# `prism-code check` grades a holo from statements carried inside it and signed
+# by a signer the caller names. This block looks at what the gate left beside the
+# receipts and tries the checker's own signing path on a COPY of the holo, with
+# the network off and a key made and discarded here. That key is not a trusted
+# signer, so whatever grade this prints changes no claim about the artifact. No
+# row is added to results.tsv and the exit status is unaffected.
+experiment=$out/assurance-experiment.txt
+receipts=$(cd "$(dirname "$manifest")" && pwd -P)
+prism_code --help >"$out/prism-code-help.txt" 2>&1
+{
+  echo "EXPERIMENT ONLY. Outcomes are recorded as observed and assert nothing."
+  echo "The key below is generated here and thrown away: it is not a trusted signer."
+  echo "The original holo is never modified; only a copy is."
+  echo
+  echo "## files the gate wrote beside the receipts"
+  ls -la "$receipts"
+  echo
+} >"$experiment"
+attempt() { # <command...>: record a command, its output and its exit status
+  {
+    echo "\$ ${*/#offline_prism_code/prism-code (network off)}"
+    "$@" 2>&1
+    echo "[exit $?]"
+    echo
+  } >>"$experiment"
+}
+if sudo -n true 2>/dev/null && command -v unshare >/dev/null && command -v openssl >/dev/null; then
+  offline_prism_code() {
+    sudo -n unshare --net -- sudo -n -u "$(id -un)" env "PATH=$PATH" "HOME=$HOME" \
+      bash -c 'cd "$1" && shift && exec npx --no-install prism-code "$@"' _ "$root" "$@"
+  }
+  keys=$(mktemp -d)
+  copy=$keys/copy.holo
+  cp "$holo" "$copy"
+  openssl ecparam -name prime256v1 -genkey -noout -out "$keys/private.pem" 2>/dev/null
+  openssl ec -in "$keys/private.pem" -pubout -out "$keys/public.pem" 2>/dev/null
+  echo "## the unmodified holo, judged with a named key it was never signed with" >>"$experiment"
+  attempt offline_prism_code check "$copy" --key "$keys/public.pem"
+  statements=()
+  while IFS= read -r -d '' file; do statements+=("$file"); done < <(find "$receipts" -maxdepth 1 -type f -name '*statement*.json' -print0 | sort -z)
+  echo "## statement files beside the receipts: ${#statements[@]}" >>"$experiment"
+  if [[ ${#statements[@]} -eq 0 ]]; then
+    echo "none: this SDK wrote no proof, provenance or replay statement to sign" >>"$experiment"
+    echo >>"$experiment"
+    echo "## signing whatever unsigned statements the copy itself carries" >>"$experiment"
+    attempt offline_prism_code attest "$copy" --unsigned --key "$keys/private.pem" --output "$keys/attested.holo"
+  else
+    cp "$copy" "$keys/attested.holo"
+    for statement in "${statements[@]}"; do
+      echo "## signing $(basename "$statement") into the copy" >>"$experiment"
+      attempt offline_prism_code attest "$keys/attested.holo" --statement "$statement" --key "$keys/private.pem" --output "$keys/attested.next.holo"
+      [[ -s $keys/attested.next.holo ]] && mv "$keys/attested.next.holo" "$keys/attested.holo"
+    done
+  fi
+  if [[ -s $keys/attested.holo ]] && ! cmp -s "$keys/attested.holo" "$copy"; then
+    {
+      echo "## the signed copy"
+      echo "sha256 original: $actual"
+      echo "sha256 signed copy: $(sha256sum "$keys/attested.holo" | cut -d' ' -f1)"
+      echo
+    } >>"$experiment"
+    attempt offline_prism_code check "$keys/attested.holo" --key "$keys/public.pem"
+    attempt offline_prism_code check "$keys/attested.holo"
+    attempt offline_prism_code vectors "$keys/attested.holo"
+    attempt offline_prism_code inspect "$keys/attested.holo"
+  else
+    echo "no signed copy was produced, so there is nothing further to judge" >>"$experiment"
+  fi
+  rm -rf "$keys"
+  echo "assurance_experiment=recorded in assurance-experiment.txt; it changes no claim" | tee -a "$out/identity.txt"
+else
+  echo "skipped: needs passwordless sudo, unshare and openssl to run the checker with the network off" >>"$experiment"
+  echo "assurance_experiment=skipped (no way to run it with the network off here)" | tee -a "$out/identity.txt"
+fi
+
 echo "failures=$failures" | tee -a "$out/identity.txt"
 exit $((failures > 0))

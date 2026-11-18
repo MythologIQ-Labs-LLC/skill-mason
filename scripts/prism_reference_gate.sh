@@ -59,11 +59,12 @@
 # The copy is identified by commit and tree hash, recorded at the top of the log.
 #
 # Status: the refusals and the argument construction are tested with a stand-in
-# for `docker` (tests/test_prism_gate_wrapper.py). This revision has NOT been run
-# against the real SDK image. The runs in docs/evidence/prism-phase0-20261117/
-# used the earlier revision, which mounted and chowned the checkout directly and
-# always bound the socket. Whether the complete gate passes without the socket
-# is NOT_RUN.
+# for `docker` (tests/test_prism_gate_wrapper.py). This header claims no result.
+# Every run against the real SDK image keeps its own log, which opens with the
+# GATE_SOURCE and GATE_RUN lines written below; committed runs are under
+# docs/evidence/. The runs in docs/evidence/prism-phase0-20261117/ used an
+# earlier revision, which mounted and chowned the checkout directly and always
+# bound the socket, so they say nothing about this one.
 set -uo pipefail
 
 DEFAULT_IMAGE='ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3'
@@ -74,7 +75,7 @@ refuse() {
 }
 
 if [[ $# -lt 3 ]]; then
-  sed -n '2,62p' "$0" >&2
+  sed -n '2,63p' "$0" >&2
   exit 64
 fi
 

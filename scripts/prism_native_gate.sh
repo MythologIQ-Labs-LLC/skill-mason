@@ -106,7 +106,13 @@ collect() { # <label> <project-dir-in-staged-copy> <name>
     found=$((found + 1))
     local id
     id=$(basename "$dir")
-    cp "$dir/manifest.json" "$dir/application-acceptance.json" "$dir/lexlean-attestation.json" "$dest/"
+    # Everything prismpm wrote beside the receipts, not a chosen subset.
+    find "$dir" -maxdepth 1 -type f -size -8M -exec cp -t "$dest" {} +
+    (cd "$dir" && find . -printf '%y %s %p\n' | sort -k3) >"$dest/verified-directory-listing.txt"
+    [[ -f $dest/manifest.json && -f $dest/application-acceptance.json && -f $dest/lexlean-attestation.json ]] || {
+      echo "the verified directory lacks one of the three receipts" >&2
+      return 1
+    }
     dir_manifest=$dir/manifest.json
     note "$label $name attestation_id=$id manifest_sha256=$(sha "$dir/manifest.json")"
   done

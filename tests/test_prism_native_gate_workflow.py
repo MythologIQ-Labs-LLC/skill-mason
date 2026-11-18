@@ -136,6 +136,15 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertNotRegex(acceptance, r"EVIDENCE_UNQUALIFIED|RIGHTS_UNRESOLVED|AUTHORITY_EXCEEDED|OUTCOME_UNCOVERED",
                             "the acceptance script must hold no eligibility logic or expected decisions of its own")
 
+    def test_the_assurance_experiment_runs_offline_on_a_copy_and_asserts_nothing(self):
+        block = ACCEPTANCE.read_text().split("# --- assurance:", 1)[1]
+        self.assertIn("EXPERIMENT ONLY", block)
+        self.assertIn("sudo -n unshare --net", block)
+        self.assertIn('cp "$holo" "$copy"', block)
+        self.assertNotRegex(block, r"(?m)^\s*check \S", "the experiment must add no row to the results")
+        self.assertNotIn("failures=$((failures + 1))", block)
+        self.assertNotRegex(block, r"attest[^\n]*\"\$holo\"", "the original holo must never be signed in place")
+
 
 if __name__ == "__main__":
     unittest.main()
