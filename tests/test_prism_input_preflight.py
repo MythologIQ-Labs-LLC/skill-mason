@@ -83,6 +83,14 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertIsNone(report["selected_method_for_composition"])
         self.assertFalse(report["production_eligible"])
         self.assertFalse(report["composition_eligible"])
+        refusal = report["typed_generation_refusal"]
+        self.assertEqual(refusal["state"], "REFUSED_PRE_ADMISSION")
+        self.assertEqual(refusal["stage"], "source-method-qualification")
+        self.assertFalse(refusal["not_a_prism_guest_verdict"] is False)
+        self.assertTrue(refusal["no_method_composed"])
+        self.assertEqual(refusal["codes"], [
+            "EVIDENCE_UNQUALIFIED", "RIGHTS_UNRESOLVED",
+            "AUTHORITY_EXCEEDED", "OUTCOME_UNCOVERED"])
 
     def test_source_and_host_bound_into_distinct_receipt_digests(self):
         report = self.preflight()
@@ -113,6 +121,19 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertFalse(report["host_authority_verified"])
         self.assertFalse(report["composition_eligible"])
         self.assertEqual(report["negative_test_vector_hex"], "00000000")
+
+    def test_missing_package_bytes_produce_typed_refusal_not_a_skill(self):
+        def refused(*_args):
+            raise Refusal("PACKAGE_BYTES", "source missing")
+        report = prepare_preflight(
+            self.graph, "software-engineering/frontend", "ChatGPT",
+            "governed:first/example", package_inspector=refused)
+        refusal = report["typed_generation_refusal"]
+        self.assertEqual(refusal["state"], "REFUSED_PRE_ADMISSION")
+        self.assertFalse(refusal["original_source_bytes_proven"])
+        self.assertEqual(refusal["codes"][0], "SOURCE_PACKAGE_BYTES_UNVERIFIED")
+        self.assertFalse(refusal["not_a_host_success_or_failure"] is False)
+        self.assertTrue(refusal["no_method_composed"])
 
     def test_source_content_mutation_changes_exact_selection_binding(self):
         old = self.preflight()["binding_sha256"]
