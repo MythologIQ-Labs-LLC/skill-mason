@@ -218,6 +218,23 @@ class CorpusIndexTests(unittest.TestCase):
         path.write_bytes(path.read_bytes().replace(b"rejected", b"verified"))
         self.refuses("ARTIFACT_INTEGRITY")
 
+    def test_every_manifest_pointer_family_is_searchable_without_admission(self):
+        index = self.fx.index()
+        evidence = index.search_references("pointer", kind="evidence", limit=2)
+        self.assertEqual(evidence["total_matches"], 2322)
+        self.assertEqual(len(evidence["results"]), 2)
+        self.assertTrue(evidence["truncated"])
+        self.assertFalse(evidence["method_eligibility_assessed"])
+        self.assertTrue(all(row["role_only_not_an_admitted_skill"]
+                            for row in evidence["results"]))
+        discovery = index.search_references("pointer", kind="discovery", limit=1)
+        self.assertEqual(discovery["total_matches"], 170)
+        first_party = index.search_references("original", kind="first-party")
+        self.assertEqual(first_party["total_matches"], 1)
+        taxonomy = index.search_references("capability", kind="taxonomy")
+        self.assertGreaterEqual(taxonomy["total_matches"], 2)
+        self.assertEqual(index.search_references("no-such-path")["total_matches"], 0)
+
     def test_required_lexical_query_and_bounds(self):
         index = self.fx.index()
         for query, limit, code in [("", 25, "QUERY_REQUIRED"),
