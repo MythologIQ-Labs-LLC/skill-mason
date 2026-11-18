@@ -279,18 +279,25 @@ jobs:
           cd "$RUNNER_TEMP/sm"
           npm install --no-save --ignore-scripts --omit=optional --package-lock=false "$RUNNER_TEMP/runtime/prism-code-0.9.5.tgz"
           npm ls --all >"$RUNNER_TEMP/npm-ls.txt" 2>&1 || true
+          # A second, separate install that keeps the runtime's optional Sigstore
+          # packages. Only the offline assurance experiment uses it.
+          mkdir "$RUNNER_TEMP/experiment-runtime"
+          npm install --prefix "$RUNNER_TEMP/experiment-runtime" --no-save --ignore-scripts --package-lock=false "$RUNNER_TEMP/runtime/prism-code-0.9.5.tgz"
+          npm ls --prefix "$RUNNER_TEMP/experiment-runtime" --all >"$RUNNER_TEMP/npm-ls-experiment.txt" 2>&1 || true
 
       - name: Run the real holo through the independent runtime, the probe and the CLI
         shell: bash
         run: |
           set +e -uo pipefail
           cd "$RUNNER_TEMP/sm"
+          export PRISM_CODE_EXPERIMENT_BIN="$RUNNER_TEMP/experiment-runtime/node_modules/.bin/prism-code"
           bash scripts/sm01_real_holo_acceptance.sh \
             "$RUNNER_TEMP/gate/nested/out/holo/eligibility.holo" \
             "$RUNNER_TEMP/gate/nested/out/receipts/eligibility/manifest.json" \
             "$RUNNER_TEMP/evidence/real-output"
           rc=$?
-          cp "$RUNNER_TEMP/npm-ls.txt" "$RUNNER_TEMP/evidence/real-output/npm-ls.txt" 2>/dev/null || true
+          cp "$RUNNER_TEMP/npm-ls.txt" "$RUNNER_TEMP/npm-ls-experiment.txt" "$RUNNER_TEMP/evidence/real-output/" 2>/dev/null || true
+          echo "::group::assurance experiment (recorded, asserts nothing)"; cat "$RUNNER_TEMP/evidence/real-output/assurance-experiment.txt"; echo "::endgroup::"
           echo "::group::independent runtime"; cat "$RUNNER_TEMP/evidence/real-output/independent-prism-code.txt"; echo "::endgroup::"
           echo "::group::CLI evaluate, actual guest responses"; cat "$RUNNER_TEMP/evidence/real-output/cli-evaluate.tsv"; echo "::endgroup::"
           echo "::group::probe report"; cat "$RUNNER_TEMP/evidence/real-output/sm01-probe-report.json"; echo "::endgroup::"

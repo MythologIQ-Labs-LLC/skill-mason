@@ -233,9 +233,20 @@ attempt() { # <command...>: record a command, its output and its exit status
   } >>"$experiment"
 }
 if sudo -n true 2>/dev/null && command -v unshare >/dev/null && command -v openssl >/dev/null; then
+  # Signing needs the runtime's optional Sigstore packages, which the probe and the
+  # CLI are deliberately installed without. PRISM_CODE_EXPERIMENT_BIN may name a
+  # second, separate install that has them; it is used for this experiment only.
+  experiment_bin=${PRISM_CODE_EXPERIMENT_BIN:-}
+  if [[ -n $experiment_bin && -x $experiment_bin ]]; then
+    echo "experiment runtime: $experiment_bin (separate install with optional packages)" >>"$experiment"
+  else
+    experiment_bin=
+    echo "experiment runtime: the probe's own install, without optional packages" >>"$experiment"
+  fi
+  echo >>"$experiment"
   offline_prism_code() {
     sudo -n unshare --net -- sudo -n -u "$(id -un)" env "PATH=$PATH" "HOME=$HOME" \
-      bash -c 'cd "$1" && shift && exec npx --no-install prism-code "$@"' _ "$root" "$@"
+      bash -c 'cd "$1" && bin=$2 && shift 2 && if [[ -n $bin ]]; then exec "$bin" "$@"; else exec npx --no-install prism-code "$@"; fi' _ "$root" "$experiment_bin" "$@"
   }
   keys=$(mktemp -d)
   copy=$keys/copy.holo
