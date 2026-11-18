@@ -1,0 +1,45 @@
+# Composer source-approval proof persistence (P0 development extension)
+
+**Proposed feature on a branch based on PR #28**, with no changes to either the existing PR #28 branch or the independent source-ingestion PR #37. The implementation lives in [compose.mjs](../../src/backend/compose.mjs) and [source-proof receipt tests](../../tests/backend_source_approval_receipt.test.mjs).
+
+## Exact evidence and authority boundary
+
+The existing P0 composer obtains an independently signed four-fact result from an injected trusted `assertMethod` adapter, then calls the actual pinned Prism guest. Its original assertion receipt records the `subjectSha256` and the signed four-fact `proofDigest`. It did **not** preserve the source-selection operator approval and source/asset inventory binding introduced in the separate corpus lane.
+
+The new **strict source-approval mode** is selected **only** by the trusted coordinator constructor:
+
+```js
+createComposer({
+  assertMethod: sourceBoundSignedAssertionGuard,
+  runPrism: exactPinnedPrismGuest,
+  holoSha256: exactPin,
+  sourceApprovalBindings: {
+    'operator-reviewed-method-id': '64-lowercase-hex-source-binding-sha256'
+  }
+})
+```
+
+This configuration must originate from authenticated operator state. It is **not** a user recipe field, source-skill declaration, catalog metadata label or caller-supplied optional `eligible` flag.
+
+When the trusted coordinator opts in:
+
+1. Every selected method must have its own operator-pinned exact source binding, a pinned source snapshot and package pin. Extra/missing or malformed binding inputs refuse before any Prism call.
+2. The independent `assertMethod` adapter must provide `sourceBindingSha256`, `sourceAcceptanceProofSha256`, exact `subjectSha256`, and its existing separate four-fact `proofDigest`. Missing or mismatched source proof refuses **before** invoking the guest.
+3. The sealed `RECEIPT.json` retains both distinct proof digests in the correct method assertion row, alongside the subject digest and source binding. `skill-mason.json` stores the canonical receipt hash. The existing exclusive disk writer stores these files and writes its completion seal last.
+4. `verifyPackage` and `readPackage` reject missing, partial, malformed or cross-method source approval records and verify the original receipt/disk hashes. They always return `sourceAcceptanceSignatureVerified:false` and `signedFourFactAssertionReverified:false`. Hash matching is not independent signature replay, license verification or production clearance.
+5. When the coordinator does *not* configure this strict mode, the existing fixture-only P0 path remains byte-compatible with prior candidate receipts; it **refuses** unexpected source-approval claims rather than silently dropping them. Legacy output remains `DEVELOPMENT_CANDIDATE`, never a qualified skill.
+
+## Important limitation
+
+The independent source-bound signer currently lives on [corpus PR #37](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/37) and the P0 composer on [PR #28](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/28). The expected source binding must be independently supplied by the operator's trusted coordinator. This PR does **not** import or ship a signing key, issue an operator approval, certify permissions, or change the four Prism facts. A source approval signature itself authenticates who signed an assertion, not whether it is legally/behaviorally true.
+
+The 13 new tests use synthetic positive fixture facts and mock Prism responses to exercise deterministic receipt recording, strict pin coverage, missing proofs, binding substitution, malformed records, corrupt disk-sealed receipts and legacy receipt behavior. The actual positive Prism guest and authentic source/host approval require separate qualification. Host skill behavior has not been observed.
+
+## Qualification and integration path
+
+1. Independently qualify the source-bound gate and native Qortara governance. Add `sourceBindingSha256` to the trusted guard return, passing the exact independently verified binding through to this composer. Do not import a digest from an unauthenticated recipe.
+2. Wire a trusted, operator-owned coordinator to both authentic source acceptance and the existing signed four-fact evidence adapter. Record and replay the two actual signed envelopes from operator-controlled evidence storage; raw receipt hashes alone cannot verify either signature.
+3. Run the real pinned guest, then test at least two actual host/task journeys. Retain P0 assurance and `productionEligible:false` until independently accepted release criteria are met.
+4. Run exact-head backend CI, native Qortara, adversarial review, and explicit owner GO before merging the dependent branches.
+
+**The production method-qualification and release gates remain HOLD.**
