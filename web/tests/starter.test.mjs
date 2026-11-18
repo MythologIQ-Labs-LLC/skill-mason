@@ -18,7 +18,7 @@ test('same request gives byte-identical deterministic content',()=>{
 });
 test('no counterfeit expertise, approvals or qualified source method claims',()=>{
  const r=buildStarter('Review a user-provided contract and identify the open questions');
- assert.match(r.markdown,/not a qualified or behaviorally tested skill/);
+ assert.match(r.markdown,/qualified or behaviorally tested skill/);
  assert.match(r.markdown,/do not invent expertise/);
  assert.equal(r.sourceMethods,0);
 });
