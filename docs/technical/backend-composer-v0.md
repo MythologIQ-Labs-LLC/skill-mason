@@ -37,6 +37,10 @@ The pinned `skillz` handoff still labels composition eligibility `not-assessed` 
 
 The [development-only Ed25519 verifier](signed-assertions-v0.md) can now implement the **structural** `assertMethod` callback: it requires an operator-pinned signing key, exact composition subject, current signed assertion, non-revoked proof digest and independently recomputed bytes for each positive evidence reference. In negative scenarios it returns signed denied facts so the real Prism guest, not host glue, still decides refusal. The signer and evidence fixture in unit tests are not production authorities. A valid signature or content hash does not independently establish source rights or host behavior, so the existing `DEVELOPMENT_CANDIDATE` status and native-Prism integration holds are unchanged.
 
+## Production-code Prism adapter (development-only)
+
+The [bounded real Prism CLI adapter](prism-guest-adapter-v0.md) now supplies a digest-pinned `runPrism` callback under explicit P0 consent. It delegates all eligibility decisions to the existing consumer without `allowUnverified`; real holo execution was separately demonstrated in the [P0 pilot](real-holo-pilot.md). This does not establish a trusted SDK publisher, real method reuse rights, production proof, or actual host behavior.
+
 ## Unresolved production dependencies
 
 - Trusted, authenticated source roots and bytes for chosen `skillz` methods, including nested asset rights, issuer identity, freshness and revocation.
