@@ -9,7 +9,7 @@ import posixpath
 import re
 from urllib.parse import unquote, urlsplit
 
-from scripts.catalog_handoff import Refusal, canonical, require, sha256
+from scripts.catalog_handoff import Refusal, canonical, git_blob, require, sha256
 
 SCHEMA = "qortara/package-reference-inventory/1"
 LINK = re.compile(r"!?\[[^\]\n]{0,300}\]\(([^)\n]{1,500})\)")
@@ -117,8 +117,9 @@ def build_reference_inventory(verified_bytes, source_files):
         raw = verified_bytes.get(path)
         require(isinstance(raw, bytes) and
                 len(raw) == item["bytes"] and
-                sha256(raw) == item["sha256"],
-                "PACKAGE_INVENTORY", "source bytes do not match verified file receipt")
+                sha256(raw) == item["sha256"] and
+                git_blob(raw) == item["git_blob_sha1"],
+                "PACKAGE_INVENTORY", "source bytes do not match original SHA-256 and Git blob receipt")
         paths.append(path)
         review_files.append({
             "relative_path": path, "sha256": item["sha256"],
