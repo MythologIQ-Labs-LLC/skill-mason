@@ -138,6 +138,7 @@ def _directory_inventory(root, dirname):
 
 def inspect_external(index, record_id, checkout, *, expected_repo_tree):
     """Inspect an existing exact-pinned external clone. Never fetch or execute it."""
+    checkout = Path(checkout)
     require(isinstance(record_id, str) and record_id.startswith("governed:"),
             "EXTERNAL_ID", "select an exact governed source record")
     item = index.by_id.get(record_id)
