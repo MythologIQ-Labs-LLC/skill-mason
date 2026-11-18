@@ -6,7 +6,7 @@
  * Nothing in RECEIPT.json may bootstrap its own signer or authority.
  * This module does not know whether an external callback is trustworthy.
  */
-import {verifyPackage} from './compose.mjs';
+import {verifyPackage,readPackage} from './compose.mjs';
 
 const HEX=/^[a-f0-9]{64}$/;
 const sha=x=>typeof x==='string'&&HEX.test(x);
@@ -94,6 +94,23 @@ export async function replaySealedSourceReceipt(pkg,{
   rightsOrBehavioralTruthEstablishedByThisModule:false,
   replayResultIsNotP2Proof:true,
   productionEligible:false,hostValidated:false,
-  sourcePackageInstalled:false
+  sourcePackageInstalled:false,
+  diskCompletionSealVerified:false
+ };
+}
+
+
+/**
+ * Disk-backed replay must independently validate the exclusive completion
+ * seal before invoking any operator signature, evidence or Prism adapters.
+ * The in-memory replay above does not establish a completed disk package.
+ */
+export async function replaySealedSourceReceiptFromDisk(destination,configuration={}){
+ const pkg=await readPackage(destination);
+ const result=await replaySealedSourceReceipt(pkg,configuration);
+ return {
+  ...result,
+  diskCompletionSealVerified:true,
+  verifiedDiskManifestSha256:verifyPackage(pkg).packageSha256
  };
 }
