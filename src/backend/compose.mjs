@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {mkdir,open,lstat,readdir,rm} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {resolve,basename,dirname,parse,relative,join,sep} from 'node:path';
+import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PACKAGE_SCHEMA='qortara/skill-package-candidate/1';
 export class CompositionRefusal extends Error {
@@ -15,7 +16,8 @@ export class CompositionRefusal extends Error {
 }
 function refuse(code,message){throw new CompositionRefusal(code,message);}
 const hex64=/^[a-f0-9]{64}$/;
-const slug=/^[a-z][a-z0-9-]{2,79}$/;
+// Agent Skills name: 1-64 lowercase letters/numbers/hyphens, no double or trailing hyphen.
+const slug=/^(?!.*--)[a-z][a-z0-9-]{1,62}[a-z0-9]$/;
 const commit=/^[0-9a-f]{40}$/;
 const safePath=/^[a-zA-Z0-9._/-]{1,160}$/;
 const SHA=b=>createHash('sha256').update(b).digest('hex');
@@ -94,6 +96,7 @@ function validateMethod(method){
      new Set(method.covers).size!==method.covers.length)
     refuse('INVALID_METHOD','invalid covered outcomes');
   if(method.containsAssets!==false)refuse('RIGHTS_UNRESOLVED','nested assets require a separate rights gate');
+  if(method.methodVersion===PROCEDURE_VERSION)parseTextProcedure(method.methodText);
   const allowed=new Set(['id','origin','sourcePath','commit','sha256','methodVersion','methodText','covers','containsAssets']);
   if(Object.keys(method).some(k=>!allowed.has(k)))refuse('INVALID_METHOD','unrecognized method field');
   return Object.freeze({...method,covers:Object.freeze([...method.covers].sort())});
@@ -109,16 +112,33 @@ function render(recipe,methods){
     '---','name: '+recipe.name,'description: '+JSON.stringify(recipe.description),
     '---','','# '+mdLine(recipe.title),'',
     '> **Development candidate.** This package is NOT a qualified or host-tested skill.',
-    '> Each method below is a bounded, source-pinned handoff. Review before use.','',
+    '> The steps below are source-pinned candidate instructions, not authorization to install or run tools.','',
     '## Intended outcomes','',...recipe.requiredOutcomes.map(o=>'- '+mdLine(o)),'',
     '## Target host','',mdLine(recipe.targetHost),'',
-    '## Source-backed method excerpts','',
+    '## Source-backed methods','',
   ];
   for(const m of methods){
     text.push('### '+mdLine(m.id),'',
       'Source: '+mdLine(m.origin)+' @ '+m.commit+' ('+mdLine(m.sourcePath)+')',
-      'Version: '+mdLine(m.methodVersion),'',
-      ...m.methodText.split('\n').map(line=>'> '+mdLine(line)), '');
+      'Version: '+mdLine(m.methodVersion),'');
+    if(m.methodVersion===PROCEDURE_VERSION){
+      const procedure=parseTextProcedure(m.methodText);
+      text.push('**Use when:** '+mdLine(procedure.useWhen),'',
+        '**Do not use when:** '+mdLine(procedure.doNotUseWhen),'',
+        '#### Inputs','',...procedure.inputs.map(x=>'- '+mdLine(x)),'',
+        '#### Procedure','');
+      for(const [i,step] of procedure.steps.entries()){
+        text.push(String(i+1)+'. '+mdLine(step.action),
+          '   - Required evidence: '+mdLine(step.evidenceRequired));
+      }
+      text.push('','#### Output fields','',...procedure.outputFields.map(x=>'- '+mdLine(x)),'',
+        '#### Stop conditions','',...procedure.stopConditions.map(x=>'- '+mdLine(x)),'');
+    } else {
+      // Unknown method versions stay inert, never silently promoted to
+      // executable agent instructions.
+      text.push('#### Uninterpreted source excerpt (not instructions)','',
+        ...m.methodText.split('\n').map(line=>'> '+mdLine(line)), '');
+    }
   }
   text.push('## Validation and authority','',
     '- Verify all required outcomes in the actual host; this package has no host-test evidence.',
