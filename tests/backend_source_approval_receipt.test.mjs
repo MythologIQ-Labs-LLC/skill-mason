@@ -6,7 +6,7 @@ import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createComposer,verifyPackage,writePackage,readPackage} from '../src/backend/compose.mjs';
-import {replaySealedSourceReceipt} from '../src/backend/source-proof-replay.mjs';
+import {replaySealedSourceReceipt,replaySealedSourceReceiptFromDisk} from '../src/backend/source-proof-replay.mjs';
 
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const holo='c'.repeat(64),sourceText='Read a test fixture and report the evidence.';
@@ -279,4 +279,67 @@ test('retrofitted receipt hashes cannot forge a valid original approval proof re
  await assert.rejects(replaySealedSourceReceipt(pkg,opts),
   rejection('SOURCE_REPLAY_MISMATCH'));
  assert.equal(checked,1);
+});
+
+
+test('strict source bindings accept real corpus-style governed method IDs',async()=>{
+ // The operator approval and four positive facts remain fixture-only in this test.
+ const id='anthropic-skills/frontend-design';
+ const m=method();m.id=id;
+ const p=plan();p.packagePins[0].methodId=id;
+ calls=0;
+ const pkg=await strict(assertions,{[id]:approvalBinding})(p,[m]);
+ assert.equal(calls,1);
+ assert.equal(JSON.parse(pkg.files['RECEIPT.json']).assertions[0].methodId,id);
+ assert.equal(verifyPackage(pkg).sourceAcceptanceSignatureVerified,false);
+});
+test('source binding maps reject prototype-reserved and control-character IDs',()=>{
+ for(const id of ['__proto__','constructor','prototype','source\nwith-control']){
+  assert.throws(()=>strict(assertions,{[id]:approvalBinding}),
+   rejection('SOURCE_ACCEPTANCE_CONFIG'));
+ }
+});
+test('disk-backed replay checks completed seal before independent configured adapters',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-source-disk-replay-'));
+ try{
+  const pkg=await strict()(plan(),[method()]),dest=join(root,'output');
+  await writePackage(pkg,dest);
+  calls=0;
+  const result=await replaySealedSourceReceiptFromDisk(dest,replayOpts(pkg));
+  assert.equal(result.diskCompletionSealVerified,true);
+  assert.equal(result.verifiedDiskManifestSha256,sha(pkg.files['skill-mason.json']));
+  assert.equal(result.productionEligible,false);
+  assert.equal(result.hostValidated,false);
+  assert.equal(calls,1);
+  const inMemory=await replaySealedSourceReceipt(pkg,replayOpts(pkg));
+  assert.equal(inMemory.diskCompletionSealVerified,false);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('missing disk completion seal refuses before any proof callback or guest',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-unsealed-replay-'));
+ try{
+  const pkg=await strict()(plan(),[method()]),dest=join(root,'output');
+  await writePackage(pkg,dest);
+  await rm(join(dest,'.qortara-complete'));
+  let approvals=0;
+  calls=0;
+  const options=replayOpts(pkg,{verifySourceAcceptance:async()=>{approvals++;}});
+  await assert.rejects(replaySealedSourceReceiptFromDisk(dest,options),
+   rejection('PACKAGE_INCOMPLETE'));
+  assert.equal(approvals,0);assert.equal(calls,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('tampered completion seal refuses before any proof callback or guest',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-tampered-seal-replay-'));
+ try{
+  const pkg=await strict()(plan(),[method()]),dest=join(root,'output');
+  await writePackage(pkg,dest);
+  await writeFile(join(dest,'.qortara-complete'),'{}\n');
+  let approvals=0;
+  calls=0;
+  const options=replayOpts(pkg,{verifySourceAcceptance:async()=>{approvals++;}});
+  await assert.rejects(replaySealedSourceReceiptFromDisk(dest,options),
+   rejection('PACKAGE_INTEGRITY'));
+  assert.equal(approvals,0);assert.equal(calls,0);
+ }finally{await rm(root,{recursive:true,force:true});}
 });
