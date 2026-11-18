@@ -142,6 +142,14 @@ jobs:
           assert bridge['facts_verified'] == {
               'evidence': False, 'rights': False, 'authority': False, 'coverage': False}
           assert bridge['negative_test_vector_hex'] == '00000000'
+          refusal = bridge['typed_generation_refusal']
+          assert refusal['state'] == 'REFUSED_PRE_ADMISSION'
+          assert refusal['source_record_id'] == 'anthropic-skills/frontend-design'
+          assert refusal['original_source_bytes_proven'] is True
+          assert refusal['codes'] == [
+              'EVIDENCE_UNQUALIFIED', 'RIGHTS_UNRESOLVED',
+              'AUTHORITY_EXCEEDED', 'OUTCOME_UNCOVERED']
+          assert refusal['no_method_composed'] and refusal['not_a_prism_guest_verdict']
           assert bridge['expected_guest_refusals'] == [
               'EVIDENCE_UNQUALIFIED', 'RIGHTS_UNRESOLVED',
               'AUTHORITY_EXCEEDED', 'OUTCOME_UNCOVERED']
