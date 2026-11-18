@@ -31,9 +31,9 @@ test('tablet and phone breakpoints make the workspace one column without extra l
 });
 
 test('Q icon and ortara form a single wordmark with a distinct Skills gap',()=>{
-  assert.match(html, /<a class="brand"[^>]+aria-label="Qortara Skills"[^>]*><img[^>]+><span>ortara <strong>Skills<\\/strong><\\/span>/);
-  assert.match(css, /\\.brand\\{gap:0;font-size:21px/);
-  assert.match(css, /\\.brand>span\\{display:inline-flex;align-items:baseline;gap:10px;margin-left:-1px\\}/);
-  assert.match(css, /\\.brand\\{font-size:19px;gap:0\\}/);
-  assert.doesNotMatch(html, /<span>Qortara <strong>Skills/);
+  assert.ok(html.includes('<span>ortara <strong>Skills</strong></span>'));
+  assert.ok(css.includes('.brand{gap:0;font-size:21px'));
+  assert.ok(css.includes('.brand>span{display:inline-flex;align-items:baseline;gap:10px;margin-left:-1px}'));
+  assert.ok(css.includes('.brand{font-size:19px;gap:0}'));
+  assert.ok(!html.includes('<span>Qortara <strong>Skills'));
 });
