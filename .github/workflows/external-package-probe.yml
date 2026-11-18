@@ -145,6 +145,13 @@ jobs:
           assert len(matches) == 1
           assert matches[0]['package_bytes']['status'] == 'EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED'
           assert matches[0]['package_bytes']['package_files'] == 2
+          from scripts.catalog_handoff import canonical, sha256
+          source_assets = matches[0]['package_bytes']
+          assert source_assets['asset_files_requiring_review'] == 2
+          assert source_assets['source_license_pointer_evidence_present'] is True
+          assert source_assets['source_asset_rights_review_queue_sha256'] == sha256(canonical(inventory))
+          assert source_assets['source_asset_rights_and_dependencies_still_unqualified'] is True
+
           assert matches[0]['package_bytes']['historical_export_identity_gap_requires_upstream_correction']
           assert matches[0]['eligible'] is False and cmp['eligible_candidate_count'] == 0
           assert cmp['chosen_method'] is None and cmp['composition_eligible'] is False
@@ -155,6 +162,8 @@ jobs:
           assert bridge['binding']['requested_route'] == 'software-engineering/frontend'
           assert bridge['source_package_bytes_verified'] is True
           assert bridge['binding']['package_bytes_verified'] is True
+          assert bridge['binding']['package_inspection_sha256'] == sha256(canonical(source_assets))
+
           assert bridge['facts_verified'] == {
               'evidence': False, 'rights': False, 'authority': False, 'coverage': False}
           assert bridge['negative_test_vector_hex'] == '00000000'
