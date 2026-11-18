@@ -17,7 +17,7 @@ const fail=(code,message)=>{
 };
 const fields=['evidence','rights','authority','coverage'];
 export async function replaySealedSourceReceipt(pkg,{
- expectedSourceBindings,expectedHoloSha256,
+ expectedSourceBindings,expectedHoloSha256,expectedPackageSha256,
  verifySourceAcceptance,verifySignedMethod,runPrism
 }={}){
  // Reject malformed package/digest before invoking any independently
@@ -25,10 +25,16 @@ export async function replaySealedSourceReceipt(pkg,{
  const shape=verifyPackage(pkg);
  if(shape.sourceAcceptanceProofRecorded!==true)
   fail('SOURCE_REPLAY_REQUIRED','strict source approval receipt is missing');
- if(!sha(expectedHoloSha256)||!plain(expectedSourceBindings)||
+ if(!sha(expectedHoloSha256)||!sha(expectedPackageSha256)||!plain(expectedSourceBindings)||
     typeof verifySourceAcceptance!=='function'||
     typeof verifySignedMethod!=='function'||typeof runPrism!=='function')
-  fail('REPLAY_CONFIG','operator trust, revocations, guest and exact source bindings required');
+  fail('REPLAY_CONFIG','independent operator package hash, source bindings, trust, revocations and guest required');
+ // An attacker can rewrite SKILL.md, recalculate the unsigned receipt,
+ // manifest and disk seal, then reuse both authentic signature digests.
+ // Compare against the separately custodied original package identity BEFORE
+ // any verifier, evidence loader or real Prism guest is invoked.
+ if(shape.packageSha256!==expectedPackageSha256)
+  fail('REPLAY_PACKAGE_MISMATCH','package differs from independently pinned original manifest SHA-256');
  const receipt=JSON.parse(pkg.files['RECEIPT.json']);
  const entries=receipt.assertions;
  if(Object.keys(expectedSourceBindings).length!==entries.length||
@@ -89,6 +95,8 @@ export async function replaySealedSourceReceipt(pkg,{
   schema:'qortara/source-receipt-p0-replay/1',
   state:'P0_DEVELOPMENT_RECEIPT_REPLAYED_BY_CONFIGURED_ADAPTERS',
   receiptMethodCount:reviews.length,methods:reviews,
+  verifiedOriginalManifestSha256:expectedPackageSha256,
+  exactPackageIdentityPinnedExternallyByCaller:true,
   proofBytesNotStoredInPackage:true,
   independentOperatorTrustStillRequired:true,
   rightsOrBehavioralTruthEstablishedByThisModule:false,
@@ -104,6 +112,7 @@ export async function replaySealedSourceReceipt(pkg,{
  * Disk-backed replay must independently validate the exclusive completion
  * seal before invoking any operator signature, evidence or Prism adapters.
  * The in-memory replay above does not establish a completed disk package.
+ * External config MUST pin original manifest SHA-256 independently of disk bytes.
  */
 export async function replaySealedSourceReceiptFromDisk(destination,configuration={}){
  const pkg=await readPackage(destination);
