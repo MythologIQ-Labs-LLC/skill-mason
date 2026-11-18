@@ -444,24 +444,54 @@ plant nc-stale-conformance
 edit prism/CONFORMANCE.md 'coverage codes are each the single admitted code |' 'coverage codes are each an admitted code |' || exit 70
 control nc-stale-conformance 'CONFORMANCE\.md is stale' just model
 
-plant nc-ratchet-new-test
-printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism/crates/conformance/tests/added_later.rs"
-control nc-ratchet-new-test 'new non-Prism file' just model
+# --- the shrink-only ratchet, in both layouts ---------------------------------
+# audit-prism finds its ceiling by reading xtask/src/audit.rs from the parent
+# commit, at that path from the repository root (template xtask/src/audit.rs,
+# `audit`). In an instance at a repository's root the parent is found, and a
+# hand-written file added after installation must be refused: that is the
+# control. In a nested instance the file is at prism/xtask/src/audit.rs, the
+# lookup misses, and every commit is treated as the installing one. Run
+# 44217491838 showed exactly that. So the nested cases are observations: what
+# `just model` says is recorded, not judged, and the consequence is the owner's.
+rootrepo=$base/rootrepo
+"$sm/scripts/prism_instance.sh" "$template" "$rootrepo" >/dev/null || exit 70
+git init --quiet --initial-branch=main "$rootrepo"
+git -C "$rootrepo" add -A
+git -C "$rootrepo" commit --quiet -m "install: the same instance at a repository root"
+printf '#[test]\nfn added_after_installation() {}\n' >"$rootrepo/crates/conformance/tests/added_later.rs"
+git -C "$rootrepo" add -A
+git -C "$rootrepo" commit --quiet -m "planted defect: hand-written test added after installation, root layout"
+ratchet_rc=0
+ratchet_result=PASS
+sdk nc-ratchet-root-layout "$rootrepo" allowlist "$seed" just model || ratchet_rc=$?
+if [[ $ratchet_rc -eq 0 ]]; then
+  ratchet_result="FAIL(accepted)"
+elif ! grep -Eq -- 'new non-Prism file' "$base/logs/nc-ratchet-root-layout.log"; then
+  ratchet_result="FAIL(wrong diagnostic)"
+fi
+record nc-ratchet-root-layout allowlist "refusal: new non-Prism file" "$ratchet_rc" "$ratchet_result" just model
+rm -rf "$base/work/nc-ratchet-root-layout" "$rootrepo"
 
-# An observation, not a control: nobody has shown whether the nested ratchet
-# measures hand-written code outside prism/. A shell file is added at the
-# repository root in a commit after installation, and whatever `just model`
-# says is recorded. Either answer is a design fact for the installing commit.
+observe() { # <label> <command...>   (the change is already in the working tree)
+  local label=$1
+  shift
+  git -C "$repo" add -A
+  git -C "$repo" commit --quiet -m "observation: $label"
+  local rc=0
+  sdk "$label" "$instance" allowlist "$seed" "$@" || rc=$?
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$label" allowlist "recorded, not judged" "$rc" OBSERVED "$*" >>"$summary"
+  note "observation $label: $* exit=$rc; $(grep -F 'audit-prism' "$base/logs/$label.log" | tail -1)"
+  rm -rf "$base/work/$label"
+  git -C "$repo" checkout --quiet --force main
+}
+
+plant obs-nested-test-added-after-install
+printf '#[test]\nfn added_after_installation() {}\n' >"$repo/prism/crates/conformance/tests/added_later.rs"
+observe obs-nested-test-added-after-install just model
+
 plant obs-root-file-added-after-install
 printf '#!/usr/bin/env bash\necho added after installation, outside prism\n' >"$repo/scripts/added_after_install.sh"
-git -C "$repo" add -A
-git -C "$repo" commit --quiet -m "observation: hand-written file added outside prism/ after installation"
-obs_rc=0
-sdk obs-root-file-added-after-install "$instance" allowlist "$seed" just model || obs_rc=$?
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' obs-root-file-added-after-install allowlist "recorded, not judged" "$obs_rc" OBSERVED "just model" >>"$summary"
-note "observation root-file-added-after-install: just model exit=$obs_rc; $(grep -F 'audit-prism' "$base/logs/obs-root-file-added-after-install.log" | tail -1)"
-rm -rf "$base/work/obs-root-file-added-after-install"
-git -C "$repo" checkout --quiet --force main
+observe obs-root-file-added-after-install just model
 
 # One weakened decision per fact: the function stops checking it, the
 # proposition still requires it, so eligible_decides is false and Lean says so.

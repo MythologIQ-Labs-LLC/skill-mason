@@ -49,7 +49,12 @@ class EgressProxy:
     async def handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             head = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), timeout=30)
-        except (asyncio.IncompleteReadError, asyncio.LimitOverrunError, asyncio.TimeoutError, ConnectionError):
+        except asyncio.IncompleteReadError as error:
+            # Nothing was asked for: a port probe that connected and hung up.
+            self.record("DENY" if error.partial else "CLOSED", "-", "unreadable-request" if error.partial else "no-request")
+            await self.close(writer)
+            return
+        except (asyncio.LimitOverrunError, asyncio.TimeoutError, ConnectionError):
             self.record("DENY", "-", "unreadable-request")
             await self.close(writer)
             return

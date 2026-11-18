@@ -127,7 +127,7 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r"(?m)^\s*(?:if )?must_pass \S+ \S+ \S+ \S+ '[^']*' just vv", self.driver)), 2)
         self.assertNotRegex(self.driver, r"just vv\S*\s+--|just --\S+ vv|SKIP|--no-verify")
         controls = re.findall(r"(?m)^control (nc-[a-z-]+) '([^']+)'", self.driver)
-        self.assertGreaterEqual(len(controls), 13)
+        self.assertGreaterEqual(len(controls), 12)
         self.assertEqual(len({name for name, _ in controls}), len(controls))
         for name, diagnostic in controls:
             with self.subTest(control=name):
@@ -137,6 +137,19 @@ class NativeGateWorkflowTests(unittest.TestCase):
                 self.assertIn(f"nc-{fact}-check-dropped", dict(controls))
         self.assertIn('result="FAIL(accepted)"', self.driver)
         self.assertIn('result="FAIL(wrong diagnostic)"', self.driver)
+
+    def test_the_ratchet_is_a_control_only_where_it_can_engage(self):
+        # audit-prism reads its ceiling at a root-relative path, so it is judged in a
+        # root-level instance and only observed in the nested one.
+        self.assertIn('sdk nc-ratchet-root-layout "$rootrepo" allowlist "$seed" just model', self.driver)
+        self.assertIn('record nc-ratchet-root-layout allowlist "refusal: new non-Prism file"', self.driver)
+        self.assertNotRegex(self.driver, r"(?m)^control \S*ratchet")
+        observed = re.findall(r"(?m)^observe (obs-[a-z-]+) ", self.driver)
+        self.assertEqual(observed, ["obs-nested-test-added-after-install", "obs-root-file-added-after-install"])
+        body = self.driver.split("observe() {", 1)[1].split("\n}\n", 1)[0]
+        self.assertIn("OBSERVED", body)
+        self.assertNotIn("PASS", body)
+        self.assertNotIn("failures", body)
 
     def test_tool_owned_files_come_from_the_tools(self):
         self.assertIn("lexlean lock; lexlean fmt; lexlean lock; lexlean fmt --check; lexlean lock --check", self.driver)

@@ -158,6 +158,19 @@ class ProxyBehaviourTests(unittest.TestCase):
         self.assertEqual(self.connected, [])
         self.assertEqual(sum("not-a-connect" in line for line in self.log_lines()), 4)
 
+    def test_a_probe_that_sends_nothing_is_logged_as_closed_and_a_partial_request_as_denied(self):
+        with socket.create_connection(("127.0.0.1", self.port), timeout=5):
+            pass
+        with socket.create_connection(("127.0.0.1", self.port), timeout=5) as client:
+            client.sendall(b"CONNECT allowed.example.org:443 HTT")
+        for _ in range(50):
+            if len(self.log_lines()) >= 3:
+                break
+            threading.Event().wait(0.05)
+        self.assertIn("CLOSED - no-request", self.log_lines())
+        self.assertIn("DENY - unreadable-request", self.log_lines())
+        self.assertEqual(self.connected, [])
+
     def test_the_log_opens_with_the_address_and_the_sorted_allowlist(self):
         self.assertEqual(self.log_lines()[0], f"START 127.0.0.1:{self.port} allow=allowed.example.org")
 
