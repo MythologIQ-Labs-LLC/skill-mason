@@ -88,8 +88,15 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(row["evidence_linked_reviews"][0]["eligible"])
 
     def test_retired_evidence_link_remains_blocked(self):
+        from scripts.catalog_handoff import git_blob
         self.fx.records[0]["review"]["semantic_status"] = "retired"
         self.fx.persist()
+        # This synthetic fixture normally has a fixed one-verified/one-rejected
+        # denominator. Explicitly reseal its manifest for the *new* test state.
+        self.fx.manifest["counts"]["semantic_states"] = {"retired": 1, "rejected": 1}
+        raw = canonical(self.fx.manifest)
+        (self.fx.handoff / "manifest.json").write_bytes(raw)
+        self.fx.pin = git_blob(raw)
         row = self.compare()
         self.assertEqual(row["evidence_linked_reviews"][0]["disposition"], "BLOCKED_RETIRED")
 
