@@ -16,9 +16,11 @@ const source=()=>({id:'method-pr-review',origin:'https://example.org/approved-so
  covers:['review changes'],containsAssets:false});
 const asserted={evidence:true,rights:true,authority:true,coverage:true,issuer:'test-fixture-only',proofDigest:'f'.repeat(64)};
 const guest=({requestHex,holoSha256})=>({schema:'qortara/local-eligibility-result/1',status:'GUEST_COMPLETED',
- response:'eligible',requestHex,engine:'prism-code@0.9.5',artifact:{sha256:holoSha256},
+ application:'Qortara Skills Eligibility',response:'eligible',responseHex:'656c696769626c65',requestHex,
+ engine:'prism-code@0.9.5',artifact:{sha256:holoSha256},
  productionEligible:false,exitCode:0});
-const composer=(a=()=>asserted,p=guest)=>createComposer({assertMethod:a,runPrism:p,holoSha256:PIN});
+const composer=(a=({subjectSha256})=>({...asserted,subjectSha256}),p=guest)=>
+  createComposer({assertMethod:a,runPrism:p,holoSha256:PIN});
 const refused=code=>({code});
 
 test('two identical isolated compositions produce exact canonical bytes and replayable hashes',async()=>{
@@ -32,7 +34,7 @@ test('missing adapters and holo pin refuse before any guest is invoked',()=>{
  assert.throws(()=>createComposer(),refused('ADAPTER_MISSING'));
 });
 test('forged per-source rights or coverage does not become a Prism input',async()=>{
- let called=0;const c=composer(()=>({...asserted,rights:false}),()=>{called++;return guest({requestHex:'01010101',holoSha256:PIN});});
+ let called=0;const c=composer(({subjectSha256})=>({...asserted,subjectSha256,rights:false}),()=>{called++;return guest({requestHex:'01010101',holoSha256:PIN});});
  await assert.rejects(c(recipe(),[source()]),refused('UNTRUSTED_ASSERTION'));
  assert.equal(called,0);
 });
@@ -97,4 +99,24 @@ test('never writes an unverified or modified package',async()=>{
    await assert.rejects(writePackage(p,dest),refused('PACKAGE_INTEGRITY'));
    await assert.rejects(stat(dest),{code:'ENOENT'});
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+test('assertions must bind the exact method and complete plan, not a replayed proof',async()=>{
+ const c=composer(()=>({...asserted,subjectSha256:'0'.repeat(64)}));
+ await assert.rejects(c(recipe(),[source()]),refused('UNTRUSTED_ASSERTION'));
+});
+test('guest output hex and named application must match actual Prism result',async()=>{
+ const c=composer(undefined,x=>({...guest(x),responseHex:'656c696769626c65ff'}));
+ await assert.rejects(c(recipe(),[source()]),refused('PRISM_REFUSED'));
+});
+test('callback may not mutate validated plan or source method while asserting',async()=>{
+ let immutable=false;
+ const c=composer(({recipe,method,subjectSha256})=>{
+   assert.equal(Object.isFrozen(recipe),true);
+   assert.equal(Object.isFrozen(recipe.requiredOutcomes),true);
+   assert.equal(Object.isFrozen(method),true);
+   assert.equal(Object.isFrozen(method.covers),true);
+   try{method.methodText='forged';}catch{immutable=true;}
+   return {...asserted,subjectSha256};
+ });
+ await c(recipe(),[source()]);assert.equal(immutable,true);
 });
