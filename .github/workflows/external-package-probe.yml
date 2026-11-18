@@ -29,6 +29,15 @@ on:
     paths:
       - 'scripts/external_package_resolver.py'
       - 'tests/test_external_package_resolver.py'
+      - 'scripts/package_reference_inventory.py'
+      - 'tests/test_package_reference_inventory.py'
+      - 'scripts/candidate_comparison.py'
+      - 'tests/test_external_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'scripts/source_acceptance_gate.mjs'
+      - 'tests/source_acceptance_gate.test.mjs'
+      - 'tests/integration/source_acceptance_p0_adapters.mjs'
       - '.github/workflows/external-package-probe.yml'
   workflow_dispatch:
 permissions:
@@ -226,9 +235,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C p0-backend rev-parse HEAD)" = 5cbb978e5041eab18d884d0cdd6e01ed61e5cc3b
-          node tests/integration/source_acceptance_p0_adapters.mjs \
-            --preflight "$PWD/external-prism-denial-preflight.json" \
-            --p0-root "$PWD/p0-backend" > source-p0-interop.json
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/source_acceptance_p0_adapters.mjs \
+              --preflight "$PWD/external-prism-denial-preflight.json" \
+              --p0-root "$PWD/p0-backend" > source-p0-interop.json
           python3 - <<'PY'
           import json
           from pathlib import Path
