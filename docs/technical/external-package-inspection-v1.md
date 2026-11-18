@@ -11,7 +11,7 @@ The governed \`skillz\` handoff preserves external repository, source commit, or
 1. Exact governed record ID, third-party source class, original recorded source repository, full 40-character commit and source \`SKILL.md\` path.
 2. Canonical HTTPS GitHub source repository and the checkout's local remote identity (consistency only, **not** independent publisher authentication).
 3. Exact checkout Git HEAD and **independently supplied source repository tree SHA-1**. A later upstream HEAD is not substituted.
-4. Exact package subtree Git tree SHA-1 and SKILL.md Git blob SHA-1 from the pinned governed review.
+4. Exact package subtree Git tree SHA-1 and SKILL.md Git blob SHA-1 from the pinned governed review. The historical combined tree/blob review exporter sometimes omitted the explicit entrypoint field; **only** when the recorded algorithm is exactly `git-tree-and-blob-sha1`, permit `identity.recorded_fingerprint` as an explicit, marked fallback SKILL.md blob. It must still equal the exact Git checkout blob. Unknown algorithms and conflicts are refused. The result exposes an upstream exporter gap; see [skillz #726](https://github.com/Knapp-Kevin/skillz/issues/726).
 5. Complete recursive tracked file inventory in that subtree, including nested assets, with regular Git blob modes only; reject Gitlinks, symlinks and unsupported modes.
 6. Actual on-disk files match the full Git inventory with no extra ignored/untracked files, missing files or symlinks. Hash each actual file against its exact Git blob and report its SHA-256 and byte count. Accept bounded empty regular files.
 7. Read-only, incomplete inline Markdown reference leads. Report unresolved within-package, out-of-package and remote URL references as unqualified; do not fetch them. This is **not** evidence of transitive dependency closure.
@@ -33,7 +33,7 @@ The CI job checks the reviewed exact-version \`anthropic-skills/frontend-design\
 - Original SKILL.md blob: \`a5333457c414d20d625f307df945842c0952ecc3\`
 - Original source package has \`SKILL.md\` and \`LICENSE.txt\`. **Presence of a license file is not a rights decision.**
 
-GitHub upstream object inspection established the tree and blob pin values. The CI checkouts use fixed exact revisions, no stored credentials and no submodules; they do **not** execute source repository code.
+GitHub upstream object inspection established the tree and blob pin values. The old export's dedicated `entrypoint_git_blob_sha1` is absent for this combined-algorithm review; the verified `recorded_fingerprint` fallback is reported as such, not silently accepted as a complete export. The CI checkouts use fixed exact revisions, no stored credentials and no submodules; they do **not** execute source repository code.
 
 ## Example
 
