@@ -4,6 +4,8 @@ on:
     paths:
       - 'scripts/external_package_resolver.py'
       - 'tests/test_external_package_resolver.py'
+      - 'scripts/candidate_comparison.py'
+      - 'tests/test_external_comparison.py'
       - 'scripts/catalog_index.py'
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
@@ -32,8 +34,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Check synthetic third-party Git-object and worktree refusals
-        run: python3 -m unittest discover -s tests -p 'test_external_package_resolver.py' -v
+      - name: Check synthetic third-party Git-object, worktree and comparison refusals
+        run: |
+          python3 -m unittest discover -s tests -p 'test_external_package_resolver.py' -v
+          python3 -m unittest discover -s tests -p 'test_external_comparison.py' -v
       - name: Checkout exact immutable skillz handoff
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -74,6 +78,14 @@ jobs:
             --external-checkout external-source \
             --expected-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
             governed:anthropic-skills/frontend-design > external-package-receipt.json
+          python3 -m scripts.candidate_comparison \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route software-engineering/frontend --host ChatGPT --no-lexical \
+            --external-record governed:anthropic-skills/frontend-design \
+            --external-checkout external-source \
+            --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+            > external-comparison-receipt.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -96,11 +108,27 @@ jobs:
               assert r[key] is False, key
           print('PINNED EXTERNAL PACKAGE BYTES: PASS; rights, host, execution and composition unapproved')
           print('Observed exact files:', [x['relative_path'] for x in r['files']])
+          cmp = json.loads(Path('external-comparison-receipt.json').read_text())
+          assert cmp['route'] == 'software-engineering/frontend'
+          assert cmp['evidence_linked_review_count'] == 2
+          assert cmp['externally_inspected_governed_id'] == 'governed:anthropic-skills/frontend-design'
+          matches = [r for r in cmp['evidence_linked_reviews']
+                     if r['governed_id'] == 'anthropic-skills/frontend-design']
+          assert len(matches) == 1
+          assert matches[0]['package_bytes']['status'] == 'EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED'
+          assert matches[0]['package_bytes']['package_files'] == 2
+          assert matches[0]['package_bytes']['historical_export_identity_gap_requires_upstream_correction']
+          assert matches[0]['eligible'] is False and cmp['eligible_candidate_count'] == 0
+          assert cmp['chosen_method'] is None and cmp['composition_eligible'] is False
+          assert cmp['prism_invoked'] is False
+          print('PINNED EXTERNAL-TO-C4 COMPARISON: PASS; 2 evidence links, 1 full external byte receipt, 0 eligible methods')
           PY
       - name: Preserve bounded metadata-only evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: verified-external-package-meta-no-source-copy
-          path: external-package-receipt.json
+          path: |
+            external-package-receipt.json
+            external-comparison-receipt.json
           retention-days: 14
           if-no-files-found: error
