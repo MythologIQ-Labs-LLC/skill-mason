@@ -39,6 +39,14 @@ node scripts/source_acceptance_gate.mjs --preflight "$PWD/external-prism-denial-
 
 The 24 Node tests use a **disposable, generated Ed25519 test-only key** and constructed source-preflight fixtures to verify correct signature handling plus hostile cases: fake positive facts, altered source bytes or rights-ledger hashes, changed host/route, alternate composer subject, forged policy/issuer/key, bad signing key, stale/revoked acceptance, and mutation after guard bootstrap. The positive fixture is **only** proof that cryptographic verification works. It is neither legal clearance nor production source approval.
 
+## Exact-pinned P0 backend interoperability in isolated CI
+
+The [cross-branch integration test](../../tests/integration/source_acceptance_p0_adapters.mjs) uses a **real full-byte-verified external corpus selection receipt** generated earlier in the same CI job. It checks out the existing P0 signed-fact implementation from [PR #28](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/28) at **exact commit `5cbb978e5041eab18d884d0cdd6e01ed61e5cc3b`** into an isolated secondary workspace, without persisted credentials or submodules. Its Node tests execute inside a separate network namespace.
+
+The interop test creates **two independent ephemeral fixture signing keys**, one for source acceptance and another for the actual P0 `createSignedAssertionAdapter` module. It verifies the real Python-generated C4 selection hash under JavaScript canonicalization, obtains a signed operator-selection **fixture** for a deliberately fixture-only P0 subject, and checks that the separately signed four-fact adapter returns **four false facts**. Removing the acceptance or changing the package/license evidence SHA stops the process **before** the four-fact verifier is invoked. The metadata-only receipt keeps *separate* source-acceptance and four-fact proof digests. Neither private test key, source text nor license bytes are exported.
+
+This proves the two adapters' cryptographic and ordering interoperability. It **does not** sign a real composable method, invoke the P0 guest, test a target agent host, or prove real legal authorization. The fixture P0 subject must never be reported as a generated skill or production acceptance. The remaining composer source-acceptance proof persistence boundary is still open.
+
 ## Remaining production gates
 
 1. Owner accepts authentic publisher custody, complete source/asset rights, dependency closure and exact method-level outcome/host behavior.
