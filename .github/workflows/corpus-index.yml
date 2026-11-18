@@ -155,7 +155,7 @@ jobs:
           assert gaps["unqualified_or_unknown_outcome_routes"] == 247
           assert gaps["reviewed_identities_with_evidence_links"] == 122
           assert gaps["governed_reviews_unmapped"] == 921
-          assert gaps["draft_workflow_proposals_pending_review"] == 10
+          assert gaps["draft_workflow_proposals_pending_review"] == 13
           assert gaps["work_queue_total"] == 247
           assert len(set(row["domain"] for row in gaps["queue_sample"][:33])) == 33
           assert not gaps["composition_eligible"] and gaps["methods_admitted"] == 0
