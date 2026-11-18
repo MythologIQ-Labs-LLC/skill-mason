@@ -38,7 +38,7 @@ The read-only catalog stage is now proposed for implementation in [scripts/catal
 
 ## Full capability gap analysis and draft essential workflow specifications (proposed C2 workbench)
 
-The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produces an exact 247-route, domain-diversified review queue and separately retains original testable workflow proposals for ten recognized routes. This is human-review intake, not changed upstream outcomes, rights clearance, method selection or proven host behavior. Publication into a future governed skillz snapshot requires separate owner/source acceptance.
+The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produces an exact 247-route, domain-diversified review queue and separately retains original testable workflow proposals for thirteen recognized routes. This is human-review intake, not changed upstream outcomes, rights clearance, method selection or proven host behavior. Publication into a future governed skillz snapshot requires separate owner/source acceptance.
 
 ## Recognized-route source comparison (proposed C4 exploration)
 
