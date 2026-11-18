@@ -1,0 +1,8 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=163ae4039b7ccc4cb628b4921f3351723a4d6074 tree=845cc002e12a22e7a73dbed954ac0858a9bc215e subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none egress_network=none egress_proxy=none uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/sm01-eligibility-offline
+(cd eligibility && lexlean fmt --check && lexlean lock --check)
+3 modules are canonical
+lexlean.lock is current
+prismpm --project eligibility verify
+verified attestation: cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=425s cmd=just eligibility

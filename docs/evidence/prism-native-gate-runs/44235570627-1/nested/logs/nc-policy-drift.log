@@ -1,0 +1,4 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=d9d1c7419a485a06a7263b9a4585cff0c40a6190 tree=2131173746fb0c9edf9a861153fbeb7e85e9e646 subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-policy-drift
+PP1101: template policy path changed: AGENTS.md
+GATE_EXIT=2 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=4s cmd=prismpm template check

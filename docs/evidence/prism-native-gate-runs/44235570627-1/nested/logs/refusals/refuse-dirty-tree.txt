@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: the working tree at /opt/prism-gate/run/work/refusal-clone is not clean. Commit or remove changes first; the gate runs an exact commit.
