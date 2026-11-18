@@ -137,12 +137,30 @@ class EvolutionTests(unittest.TestCase):
         self.assertEqual(report["shards_verified_against_self_declared_hashes"], 1)
         self.assertEqual(report["classifications"]["duplicate-exact-placement-claim"], 1)
         self.assertEqual(report["classifications"]["new-source-placement-lead"], 1)
-        self.assertEqual(report["classifications"]["repeated-in-proposal"], 1)
+        self.assertEqual(report["classifications"]["changed-or-contradictory-at-same-pin"], 1)
         self.assertEqual(report["classifications"]["unresolved-evidence"], 1)
+        self.assertEqual(report["within_proposal_source_slot_repeats"]["contradictory-fingerprint"], 1)
         self.assertFalse(report["independently_authenticated_source"])
         self.assertFalse(report["catalog_snapshot_updated"])
         self.assertFalse(report["rights_assessed"])
         self.assertTrue(report["needs_governed_skillz_handoff"])
+
+    def test_unknown_source_slots_are_not_mislabeled_repeated(self):
+        self.records.append({"path": "../../more/invalid",
+                             "entrypoint_git_blob_sha1": None,
+                             "package_git_tree_sha1": None})
+        self.write_proposal()
+        report = preview_intake(self.ledger(), self.root)
+        self.assertEqual(report["classifications"]["unresolved-evidence"], 2)
+        self.assertEqual(report["within_proposal_source_slot_repeats"]["contradictory-fingerprint"], 1)
+
+    def test_identical_claim_repeated_in_proposal_is_separately_accounted(self):
+        self.records.append(dict(self.records[0]))
+        self.write_proposal()
+        report = preview_intake(self.ledger(), self.root)
+        self.assertEqual(report["classifications"]["duplicate-exact-placement-claim"], 2)
+        self.assertEqual(report["within_proposal_source_slot_repeats"]["same-fingerprint"], 1)
+        self.assertEqual(report["within_proposal_source_slot_repeats"]["contradictory-fingerprint"], 1)
 
     def test_refuse_authority_promotion(self):
         self.manifest["rights_state"] = "approved"
