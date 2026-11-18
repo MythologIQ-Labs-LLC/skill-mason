@@ -2,7 +2,7 @@
 
 # Qortara Skills
 
-**Portable agent skills are the product. [UOR Prism](https://github.com/UOR-Foundation/prism) is the model-driven decision and verification foundation.** The zero-inference-token compiler remains a development target, not a qualified release.
+**Portable agent skills are the product. [UOR Prism](https://github.com/UOR-Foundation/prism) is the model-driven decision and verification foundation.** The zero-inference-token compiler is a development target, not yet a qualified release.
 
 Qortara Skills is building an evidence-driven compiler for portable AI-agent skills. It already has a **local development CLI**, a **GitHub Pages browser client**, and a **request-to-starter-draft workflow**. The browser application has passed its custom build/deploy pipeline, but the live site's publishing source is under remediation in [issue #13](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/13). The product goal remains reproducible packages composed from eligible, version-pinned source methods, with explicit refusals when evidence, rights, permissions or coverage are insufficient.
 
