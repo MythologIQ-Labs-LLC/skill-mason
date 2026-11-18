@@ -1,0 +1,16 @@
+{
+  "name": "@qortara/skills-cli",
+  "version": "0.1.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Development-only Prism-backed Qortara Skills local CLI",
+  "bin": {
+    "qortara-skills": "bin/qortara-skills.mjs"
+  },
+  "scripts": {
+    "test:cli": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
