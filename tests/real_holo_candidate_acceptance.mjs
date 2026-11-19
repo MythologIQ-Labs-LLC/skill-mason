@@ -16,6 +16,7 @@ import {createSignedAssertionAdapter} from '../src/backend/signed-assertions.mjs
 import {createComposer,canonicalJSON,verifyPackage,writePackage,readPackage} from '../src/backend/compose.mjs';
 import {evaluate,loadPinnedRuntime} from '../bin/qortara-skills.mjs';
 import {runFirstPartyPilot} from '../bin/first-party-pilot.mjs';
+import {generateFirstPartyRequest} from '../bin/request-first-party-pilot.mjs';
 
 const PIN='9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e';
 const DOMAIN='QORTARA-METHOD-ASSERTION-V1\n';
@@ -137,15 +138,42 @@ async function main(argv){
     firstPartyPilots.push({id,manifestSha256:result.artifactSha256,
       directory:id,output:'SEALED_UNQUALIFIED_AGENT_SKILL'});
   }
+  // The ordinary free-form user request now reaches the ORIGINAL first-party
+  // source, exactly pinned real P0 guest, and complete sealed package through
+  // the same compiler route. It is explicitly MANUALLY selected and P0 only.
+  const requestRoot=join(process.env.RUNNER_TEMP??dir,'first-party-request-candidates');
+  await mkdir(requestRoot,{mode:0o700});
+  const userRequest='Triage the supplied failing CI job and propose the smallest evidence based verification.';
+  const requested=await generateFirstPartyRequest({
+    request:userRequest,capability:'triage CI failure',
+    methodId:'ci-failure-triage',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requested.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requested.requestSha256,SHA(Buffer.from(userRequest)));
+  assert.equal(requested.selectedMethod,'ci-failure-triage');
+  assert.equal(requested.requestSemanticMatchVerified,false);
+  assert.equal(requested.sourceRightsVerified,false);
+  assert.equal(requested.productionEligible,false);
+  assert.equal(requested.prismInvoked,true);
+  const fromRequest=await readPackage(join(requestRoot,'ci-failure-triage'));
+  const earlier=await readPackage(join(pilotRoot,'ci-failure-triage'));
+  assert.equal(fromRequest.files['SKILL.md'],earlier.files['SKILL.md']);
+  assert.equal(fromRequest.files['SOURCES.json'],earlier.files['SOURCES.json']);
+  assert.equal(JSON.parse(fromRequest.files['RECEIPT.json']).hostValidated,false);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+1,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
    negativeComposerRefusal:deniedCode,
    candidateManifestSha256:verification.packageSha256,
    replay:'BYTE_IDENTICAL_WITHIN_RUN',diskReadback:'INTEGRITY_VERIFIED',
-   firstPartyPilots};
+   firstPartyPilots,firstPartyUserRequest:{requestSha256:requested.requestSha256,
+     selectedMethod:requested.selectedMethod,requestedOutcome:requested.requestedOutcome,
+     packageManifestSha256:requested.packageManifestSha256,
+     state:requested.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+     productionEligible:false}};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
  }finally{await rm(dir,{recursive:true,force:true});}

@@ -108,6 +108,7 @@ jobs:
           path: |
             ${{ runner.temp }}/candidate-pilot.json
             ${{ runner.temp }}/first-party-pilot-candidates/**
+            ${{ runner.temp }}/first-party-request-candidates/**
           # Only these verified output directories are included; the completion
           # seal begins with a dot and would otherwise be silently omitted.
           include-hidden-files: true
