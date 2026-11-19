@@ -28,7 +28,7 @@ test('Gherkin: real user intent explicitly selects original CI triage capability
  assert.notEqual(other.requestSha256,binding.requestSha256);
 });
 test('Gherkin: two distinct original methods can be chosen, never guessed',()=>{
- assert.equal(PILOT_DEFINITIONS.length,5);
+ assert.equal(PILOT_DEFINITIONS.length,6);
  const q=bindFirstPartyRequest({...OPTIONS,
   request:'Review canonical governance requirements against supplied implementation proof and report drift.',
   capability:'review governance drift',methodId:'governance-drift-review'});
@@ -50,6 +50,11 @@ test('Gherkin: two distinct original methods can be chosen, never guessed',()=>{
   capability:'triage provenance-sensitive CI failure logs',methodId:'ci-failure-triage-v4'});
  assert.equal(successor.methodId,'ci-failure-triage-v4');
  assert.equal(successor.admittedSourceRights,false);
+ const v5=bindFirstPartyRequest({...OPTIONS,
+  request:'Analyze CI failures without invented causes and distinguish independent jobs and post-fix verification.',
+  capability:'triage causally grounded CI failure evidence',methodId:'ci-failure-triage-v5'});
+ assert.equal(v5.methodId,'ci-failure-triage-v5');
+ assert.equal(v5.admittedSourceRights,false);
  assert.throws(()=>bindFirstPartyRequest({...OPTIONS,
   capability:'triage sensitive CI failure logs',methodId:'ci-failure-triage-v2'}),{code:'METHOD_MISMATCH'});
  assert.throws(()=>bindFirstPartyRequest({...OPTIONS,methodId:'governance-drift-review'}),

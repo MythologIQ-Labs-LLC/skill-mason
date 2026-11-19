@@ -22,7 +22,7 @@ test('original v1, v2 and new v3 source blobs remain independently pinned',async
   assert.equal(SHA(sources[1]),V2_SOURCE);
   assert.equal(SHA(sources[2]),V3_SOURCE);
   assert.equal(GIT_BLOB(sources[2]),V3_BLOB);
-  assert.equal(PILOT_DEFINITIONS.length,5);
+  assert.equal(PILOT_DEFINITIONS.length,6);
   const registry=await loadFirstPartyPilots();
   const byId=Object.fromEntries(registry.components.map(x=>[x.method_id,x]));
   assert.equal(byId['ci-failure-triage'].method.commit,PILOT_SOURCE_COMMIT);
