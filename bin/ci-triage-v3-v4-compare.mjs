@@ -157,7 +157,7 @@ export async function main(args=process.argv.slice(2)){
   const token=process.env.OPENAI_API_KEY;
   if(typeof token!=='string'||token.length<10)
     refuse('PAIR_AUTH','owner-approved provider key required');
-  const raw=await readFile(new URL('../tests/fixtures/ci-triage-quality-spectrum-v4.json',import.meta.url));
+  const raw=await readFile(new URL('../tests/fixtures/ci-triage-quality-spectrum-v2.json',import.meta.url));
   const cases=JSON.parse(raw.toString('utf8'));
   const report=resolve(values['--report']);
   const partial=report+'.partial.jsonl';
