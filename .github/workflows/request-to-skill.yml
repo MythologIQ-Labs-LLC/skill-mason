@@ -349,6 +349,52 @@ jobs:
               assert x[k] is False, k
           print('REAL PINNED SOURCE SCOPE GAP: original MCP vetting bytes verified, broad release coverage NOT QUALIFIED')
           PY
+      - name: Gherkin ordinary CLI binds the same original negative method scope review
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python3 -m scripts.request_to_skill \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Assess a proposed MCP server before connection using source evidence" \
+            --route security/supply-chain \
+            --host ChatGPT \
+            --method governed:local-skills/mcp-vetting \
+            > request-evidence/scope-create-python.json
+          python_rc=$?
+          node bin/qortara-skills.mjs create \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Assess a proposed MCP server before connection using source evidence" \
+            --route security/supply-chain \
+            --host ChatGPT \
+            --method governed:local-skills/mcp-vetting \
+            > request-evidence/scope-create-node.json
+          node_rc=$?
+          set -e
+          test "$python_rc" -eq 2
+          test "$node_rc" -eq 2
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=Path('request-evidence')
+          a=json.loads((d/'scope-create-python.json').read_text())
+          b=json.loads((d/'scope-create-node.json').read_text())
+          assert a == b, 'ordinary Node CLI and source-bound Python admission differ'
+          assert a['refusal']['code']=='RIGHTS_UNRESOLVED'
+          assert 'OUTCOME_DEFINITION_MISSING' in a['refusal']['codes']
+          assert 'METHOD_SCOPE_UNESTABLISHED' in a['refusal']['codes']
+          scope=a['reviewed_method_scope_gap']
+          assert scope['state']=='NONADMITTING_SOURCE_SCOPE_GAP_RECORDED'
+          assert scope['rights_qualified'] is False
+          assert scope['composition_eligible'] is False
+          assert len(scope['unestablished_requested_outcomes'])==3
+          assert scope['review_sha256']==json.loads((d/'source-outcome-scope.json').read_text())['review_sha256']
+          for key in ('prism_invoked','composer_invoked','output_package_created','host_validated','production_eligible'):
+              assert a[key] is False, key
+          print('REAL CREATE SCOPE PARITY PASS: original bytes, negative scope, rights refusal and Node/Python parity')
+          PY
       - name: Upload bounded user-visible original-source route discovery results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
