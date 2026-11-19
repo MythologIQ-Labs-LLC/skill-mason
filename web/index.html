@@ -23,6 +23,7 @@
         <p class="intro-kicker"><span class="status-dot" aria-hidden="true"></span> PURPOSE-BUILT AGENT SKILLS</p>
         <p class="intro-title">Your next skill starts<br><span>with a clear idea.</span></p>
         <p class="intro-description">Turn a task into a structured starter draft, right here in your browser. Source-qualified generation is the next milestone.</p>
+        <p class="trial-link">Want to try an actual Prism-generated development candidate? <a href="https://github.com/MythologIQ-Labs-LLC/skill-mason/tree/main/trials/ci-failure-triage-v5" rel="noopener noreferrer">Try CI Failure Triage v5</a>. This is separate from the starter-draft tool.</p>
       </div>
       <div class="intro-brand">
         <img src="./assets/qortara-skills-banner.webp" alt="Qortara Skills, capability-driven agent skills">
@@ -81,6 +82,46 @@
         </div>
       </div>
       <pre id="skill-preview" tabindex="0"></pre>
+    </section>
+    <section id="trial-panel" class="trial-panel" hidden aria-labelledby="trial-title">
+      <div class="trial-summary">
+        <p class="eyebrow">EXTERNAL PREVIEW TESTING</p>
+        <h2 id="trial-title">Tell us what actually happened</h2>
+        <p>Test the starter draft in an agent you control, or rate the browser draft alone. This is a development preview, not a qualified skill. A negative result is useful evidence.</p>
+      </div>
+      <div class="trial-fields">
+        <div><label for="feedback-host">Where did you try it?</label>
+          <select id="feedback-host">
+            <option value="browser-only">Browser draft only</option>
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
+            <option value="other">Other agent host</option>
+          </select></div>
+        <div><label for="feedback-outcome">What was the actual result?</label>
+          <select id="feedback-outcome">
+            <option value="not-tested-in-host">Not yet tested in an agent</option>
+            <option value="useful-as-is">Useful as-is</option>
+            <option value="useful-with-edits">Useful, but needed edits</option>
+            <option value="not-useful">Not useful or incorrect</option>
+            <option value="host-refused">Host could not load or use it</option>
+          </select></div>
+        <div><label for="feedback-gap">Biggest quality gap</label>
+          <select id="feedback-gap">
+            <option value="not-rated">Not rated</option>
+            <option value="too-generic">Too generic</option>
+            <option value="wrong-or-missing-steps">Wrong or missing steps</option>
+            <option value="unsupported-host">Unsupported in my host</option>
+            <option value="safety-concern">Safety or permission concern</option>
+            <option value="other">Other</option>
+          </select></div>
+      </div>
+      <p class="trial-disclosure">Your request, skill contents, model responses and identity are <strong>not included</strong> in the local feedback report. Nothing is automatically sent. Review any public GitHub issue before posting, and never publish credentials or private logs.</p>
+      <div class="trial-actions">
+        <button id="download-feedback" type="button" class="secondary">Download feedback JSON</button>
+        <a id="report-trial" href="https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml" rel="noopener noreferrer">Report your result on GitHub</a>
+      </div>
+      <p id="trial-feedback-status" class="request-status" role="status" aria-live="polite"></p>
     </section>
     <details id="developer" class="advanced">
       <summary><span>Developer tools</span><span class="advanced-subtitle">Test a compiled Prism artifact</span></summary>

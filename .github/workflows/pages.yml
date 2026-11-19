@@ -5,12 +5,18 @@ on:
       - 'web/**'
       - '.github/workflows/pages.yml'
       - 'assets/brand/**'
+      - 'trials/ci-failure-triage-v5/**'
+      - 'tests/external_trial_kit.test.mjs'
+      - '.github/ISSUE_TEMPLATE/skill-trial-feedback.yml'
   push:
     branches: [main]
     paths:
       - 'web/**'
       - '.github/workflows/pages.yml'
       - 'assets/brand/**'
+      - 'trials/ci-failure-triage-v5/**'
+      - 'tests/external_trial_kit.test.mjs'
+      - '.github/ISSUE_TEMPLATE/skill-trial-feedback.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +39,7 @@ jobs:
       - name: Install exact browser dependencies, no lifecycle scripts
         run: npm install --no-save --ignore-scripts --package-lock=false prism-code@0.9.5 esbuild@0.25.12
       - name: Test client-side contract and refusal cases
-        run: node --test web/tests/*.test.mjs
+        run: node --test web/tests/*.test.mjs tests/external_trial_kit.test.mjs
       - name: Bundle client with local Prism runtime
         run: node web/build.mjs
       - name: Refuse incomplete Pages application output

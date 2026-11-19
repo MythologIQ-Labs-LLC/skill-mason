@@ -1,0 +1,86 @@
+name: External skill trial feedback
+description: Report what actually happened when testing the public starter preview or CI triage v5 candidate
+title: "[External trial] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Qortara Skills. **These are development prototypes, not production-qualified skills.**
+        This issue is public. Do not paste secrets, private CI logs, personal information, access tokens, or copyrighted material you cannot disclose.
+        A negative result is useful. Report only what you actually observed, not what the generated instructions claim they could do.
+  - type: dropdown
+    id: trial-path
+    attributes:
+      label: What did you test?
+      options:
+        - GitHub Pages browser starter draft
+        - CI Failure Triage v5 generated SKILL.md (native host installation)
+        - CI Failure Triage v5 generated SKILL.md (pasted instructions / emulation)
+        - Other development candidate
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Consuming host or environment
+      options:
+        - Browser preview only
+        - ChatGPT
+        - Claude
+        - Codex
+        - Other model or agent host
+        - Could not run
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Actual outcome
+      options:
+        - Useful as-is for the intended task
+        - Partially useful, required edits or corrections
+        - Not useful or materially incorrect
+        - Host would not load or execute it
+        - Generated/downloaded only, not executed in a host
+        - Could not generate or download
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: What outcome were you trying to achieve?
+      description: Short, sanitized summary of your intended task. Do not include private prompts or confidential logs.
+      placeholder: "Review two independent CI failures and propose separate checks."
+    validations:
+      required: true
+  - type: textarea
+    id: concrete-results
+    attributes:
+      label: What did the skill or starter actually do?
+      description: Describe the observed result, including specific errors, corrections or missing diagnostic information. Distinguish actual host execution from a hypothetical run.
+      placeholder: "The agent identified Linux lint but missed the independent Windows test failure."
+    validations:
+      required: true
+  - type: textarea
+    id: qualitative-review
+    attributes:
+      label: Qualitative assessment
+      description: Optional. Evidence grounding, first-failure accuracy, revision identity, separate blockers, safety, discriminating checks and next steps.
+      placeholder: "Evidence grounding: good. Causal check: generic rerun instead of a differentiating probe."
+    validations:
+      required: false
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproduction details (sanitized)
+      description: Optional. Model/version if known, device/browser, whether SKILL.md was installed or pasted, anonymized synthetic case IDs, and needed edits.
+      placeholder: "ChatGPT, pasted SKILL.md, sample case B, no tools authorized."
+    validations:
+      required: false
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Disclosure and evidence confirmation
+      options:
+        - label: I checked this public report for sensitive information and have separated observed outcomes from predictions or unexecuted actions.
+          required: true
