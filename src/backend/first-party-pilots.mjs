@@ -8,8 +8,9 @@ import {canonicalJSON} from './compose.mjs';
 import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
-// Snapshot of all three first-party methods; originals retain their historical commit.
-export const PILOT_SNAPSHOT_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
+// Each immutable method retains its own historical source commit; the snapshot includes v3.
+export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
+export const PILOT_SNAPSHOT_COMMIT='776604fe13258844e3da9ae358f0bbe0dadf18f5';
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -24,9 +25,16 @@ export const PILOT_DEFINITIONS=Object.freeze([
     description:'Diagnose multi-job and ambiguous CI failures with untrusted-log boundaries and discriminating verifications.',
     outcome:'triage complex CI failures',
     path:'pilots/first-party/ci-failure-triage-v2/procedure.json',
-    sourceCommit:PILOT_SNAPSHOT_COMMIT,
+    sourceCommit:PILOT_V2_SOURCE_COMMIT,
     gitBlob:'fa036a2fa7ffc2e95e2bb79523321e583d65f045',
     sha256:'0b3350725eee7c5ef8c6d7bff5db7538ba546a8597c35c601499c85434cbe2c1'}),
+  Object.freeze({id:'ci-failure-triage-v3',title:'CI failure triage v3',
+    description:'Evidence-grounded CI triage with safe redaction of credentials and personal identifiers in logs.',
+    outcome:'triage sensitive CI failure logs',
+    path:'pilots/first-party/ci-failure-triage-v3/procedure.json',
+    sourceCommit:PILOT_SNAPSHOT_COMMIT,
+    gitBlob:'9e3cedf7d2d412a5be819fe826cccd3b4f9e109f',
+    sha256:'ec03d3c1c9703fcbf70df2f8a9da1b198786abf8a99885ec064bd327eed139ba'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
