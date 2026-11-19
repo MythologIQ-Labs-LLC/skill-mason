@@ -8,11 +8,12 @@ import {canonicalJSON} from './compose.mjs';
 import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
-// Each immutable method retains its own historical source commit; the current snapshot includes v4.
+// Each immutable method retains its own historical source commit; the current snapshot includes v5.
 export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
 export const PILOT_V4_SOURCE_COMMIT='de2be11765ede34be59d9a64c2a1b434b0ca4bcc';
-export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_V4_SOURCE_COMMIT;
+export const PILOT_V5_SOURCE_COMMIT='0661fca47499ed78b999b71b88becdd38157fa29';
+export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_V5_SOURCE_COMMIT;
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -44,6 +45,13 @@ export const PILOT_DEFINITIONS=Object.freeze([
     sourceCommit:PILOT_V4_SOURCE_COMMIT,
     gitBlob:'d4669d434bc00aa07ca6d06be140ad661b8ac7dc',
     sha256:'2aae2a88a499cf7d65f70d03e619f25ca8e790f07481c3b2eb05ed563faaf761'}),
+  Object.freeze({id:'ci-failure-triage-v5',title:'CI failure triage v5',
+    description:'Apply evidence-gated revision-aware CI triage without invented alternative causes or conflated jobs.',
+    outcome:'triage causally grounded CI failure evidence',
+    path:'pilots/first-party/ci-failure-triage-v5/procedure.json',
+    sourceCommit:PILOT_V5_SOURCE_COMMIT,
+    gitBlob:'02fb50e813242b6017116076e38cd44846ab6332',
+    sha256:'58a3e5c1479e8b4e0f944ada48f686337e1f116d335061f202ffeb1e59ca1b6f'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
