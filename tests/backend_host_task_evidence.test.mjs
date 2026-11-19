@@ -259,3 +259,69 @@ test('CLI refuses symlinked source transcript files and no remote execution occu
   ]),refusal('EVIDENCE_PATH'));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('operator matrix CLI rereads four original-source captures and writes no approval',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-host-matrix-'));
+ try{
+  const ci=await packageFor('ci-failure-triage'),gov=await packageFor('governance-drift-review');
+  const dirs={ci:join(root,'ci-failure-triage'),gov:join(root,'governance-drift-review')};
+  await writePackage(ci,dirs.ci);await writePackage(gov,dirs.gov);
+  const combos=[
+   ['ci','ci-failure-triage','positive','chatgpt'],
+   ['ci','ci-failure-triage','negative','chatgpt'],
+   ['gov','governance-drift-review','positive','claude'],
+   ['gov','governance-drift-review','negative','claude']
+  ];
+  const entries=[];
+  for(let i=0;i<combos.length;i++){
+   const [key,id,polarity,provider]=combos[i];
+   const prefix=join(root,'case-'+i),data=materials(id,polarity);
+   const files={candidateDir:dirs[key],
+    expectedPackageSha256:verifyPackage(key==='ci'?ci:gov).packageSha256,
+    prompt:prefix+'-prompt.txt',reference:prefix+'-reference.txt',
+    response:prefix+'-response.txt',record:prefix+'-record.json'};
+   await Promise.all(['prompt','reference','response']
+    .map(name=>writeFile(files[name],data[name])));
+   await execute(['capture',
+    '--candidate-dir',files.candidateDir,
+    '--expected-package-sha256',files.expectedPackageSha256,
+    '--prompt',files.prompt,'--reference',files.reference,
+    '--response',files.response,
+    '--host',provider,'--model','operator-model',
+    '--session',provider+'-trial-'+i,
+    '--observed-at','2026-11-18T23:00:00Z',
+    '--polarity',polarity,'--out',files.record]);
+   entries.push(files);
+  }
+  const manifest=join(root,'operator-matrix.json'),output=join(root,'matrix-result.json');
+  await writeFile(manifest,JSON.stringify({
+   schema:'qortara/operator-host-matrix-input/1',cases:entries
+  })+'\n');
+  const matrix=await execute(['matrix','--manifest',manifest,'--out',output]);
+  assert.equal(matrix.state,'CAPTURE_MATRIX_COMPLETE_AWAITING_INDEPENDENT_REVIEW');
+  assert.equal(matrix.captures.length,4);
+  assert.equal(matrix.hostValidated,false);
+  assert.equal(matrix.independentObserverAttested,false);
+  assert.equal(matrix.hostOriginCryptographicallyVerified,false);
+  assert.equal(JSON.parse(await readFile(output,'utf8')).productionEligible,false);
+  // An altered witness transcript must abort before writing a new matrix.
+  await writeFile(entries[0].response,'an injected fabricated completion');
+  await assert.rejects(execute(['matrix','--manifest',manifest,'--out',
+   join(root,'matrix-after-tamper.json')]),refusal('RECORD_TAMPERED'));
+  await assert.rejects(execute(['matrix','--manifest',manifest,'--out',output]),
+   refusal('RECORD_TAMPERED'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('operator matrix CLI refuses self-reported row without four custodied transcript paths',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'qortara-host-matrix-bad-'));
+ try{
+  const manifest=join(root,'manifest.json');
+  await writeFile(manifest,JSON.stringify({
+   schema:'qortara/operator-host-matrix-input/1',
+   cases:[{record:'fake.json'}]
+  }));
+  await assert.rejects(execute(['matrix','--manifest',manifest,
+   '--out',join(root,'result.json')]),refusal('MATRIX_SCHEMA'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
