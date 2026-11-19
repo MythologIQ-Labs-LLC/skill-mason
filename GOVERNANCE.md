@@ -2,7 +2,7 @@
 
 **Status:** Source baseline published in [merged PR #2](https://github.com/MythologIQ-Labs-LLC/skill-mason/pull/2) under a bounded documentation-only exception. The owner selected closed pre-alpha contributions and repository-specific GitHub private vulnerability reporting on 2026-11-17; see [SECURITY.md](SECURITY.md) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4). Native Qortara qualification remains on HOLD until executed evidence exists. This policy does not authenticate GitHub security-setting state, relax permissions, or prove native host gates ran.
 
-## Owner, roles and intent
+## Roles, ownership and authority
 
 - **Accountable project owner:** MythologIQ Labs, LLC retains product direction, repository governance, security posture, legal/licensing, merge, release and deployment decisions.
 - **Maintainer model:** Solo-developer owner workflow is the stated working context. Owner-authorized adversarial review is an acceptable form of challenge; do not invent a second required human. Actual GitHub protections and host permissions remain separately authoritative.
@@ -12,7 +12,7 @@
 
 This project implements a skill generator. It consumes `Knapp-Kevin/skillz` as a read-only upstream source and does not gain authority over that repository.
 
-## Canonical architecture and decision flow
+## Decisions and canonical architecture flow
 
 1. Start from [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md) and its **one** [owner register](docs/README.md).
 2. Read the accepted ADR or contract that owns the particular subject. The current foundation ADRs are **proposed**, not silently accepted because they exist in Git.
@@ -26,7 +26,7 @@ This project implements a skill generator. It consumes `Knapp-Kevin/skillz` as a
 
 Make governance, architectural or security changes reviewable on a branch/PR. Adversarial review records the reviewer/model/method, exact revision, findings and limitations; it is not mislabeled as a non-author GitHub approval.
 
-An exception or amendment must identify the current rule, proposed difference, owner, scope, reason, risk, compensating measures, expiry/rollback where applicable and required verification. **No repository-editable opt-out** may suppress mandatory `GOVERNANCE.md`, `SECURITY.md`, root architecture-index or canonical-register requirements. On unresolved authority, security contact or missing assurance, record `NOT_ESTABLISHED` and block the protected action.
+An exception or amendment must identify the current rule, proposed difference, owner, scope, reason, risk, compensating measures, expiry/rollback where applicable and required verification. **No repository-editable opt-out** may suppress mandatory `GOVERNANCE.md`, `SECURITY.md`, root architecture-index or canonical-register requirements. On unresolved authority, security contact or missing assurance, record the unresolved qualification status explicitly and block the protected action.
 
 ## Evidence and learning
 
