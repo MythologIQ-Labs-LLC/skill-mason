@@ -2,10 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
-import {join} from 'node:path';
+import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
-import {parseCommand,localStatus,evaluate,run,createRequest} from '../bin/qortara-skills.mjs';
+import {parseCommand,localStatus,evaluate,run,createRequest,requestPythonArgs} from '../bin/qortara-skills.mjs';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function withHolo(fn){
@@ -156,4 +156,27 @@ test('Gherkin: request evaluation report is exclusive and never overwrites evide
   assert.deepEqual(JSON.parse(await readFile(file,'utf8')),REFUSED);
   await assert.rejects(run(args,deps),{code:'EEXIST'});
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+
+test('Gherkin: Python source paths resolve against invoking caller, not checked-in CLI cwd',()=>{
+ const caller=join(tmpdir(),'operator workspace','nested');
+ const f={...parseCommand(REQUEST_ARGS).flags,
+   '--handoff':'../original skillz handoff',
+   '--source-checkout':'../original skillz source',
+   '--external-checkout':'../separate external checkout',
+   '--external-repository-tree':'f'.repeat(40),
+   '--method':'governed:anthropic-skills/frontend-design'};
+ const argv=requestPythonArgs(f,caller);
+ for(const [flag,input] of [
+  ['--handoff','../original skillz handoff'],
+  ['--source-checkout','../original skillz source'],
+  ['--external-checkout','../separate external checkout']
+ ]) {
+  assert.equal(argv[argv.indexOf(flag)+1],resolve(caller,input));
+ }
+ assert.equal(argv[argv.indexOf('--external-repository-tree')+1],'f'.repeat(40));
+ assert.equal(argv[argv.indexOf('--method')+1],f['--method']);
+ assert.equal(argv[argv.indexOf('--request')+1],f['--request']);
+ assert.ok(argv.every(x=>typeof x==='string'),'all inputs remain literal shell-free argv');
 });
