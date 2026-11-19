@@ -74,6 +74,39 @@ node bin/host-task-evidence.mjs verify \
 
 Only `CAPTURE_HASHES_MATCH_UNATTESTED` is returned, even on perfect byte equality. The [four-case matrix function](../../src/backend/host-task-evidence.mjs) `inspectHostTaskMatrix` checks coverage, distinct session labels, two hosts, matching candidate pins, and all original response byte hashes; its strongest output is `CAPTURE_MATRIX_COMPLETE_AWAITING_INDEPENDENT_REVIEW`.
 
+### Run the complete four-case matrix offline
+
+Create an **operator-controlled** `matrix-input.json` with the exact schema `qortara/operator-host-matrix-input/1` and `cases` array of **four** records, one for each trial above. Every case must carry six fields: `candidateDir`, `expectedPackageSha256`, `record`, `prompt`, `reference`, and `response`. All local file paths must be absolute. The package digest must come from independently retained, original-generation custody, **not** from the candidate directory, record or a response produced by the model.
+
+Example of one array entry (repeat for the other positive/negative cases):
+
+```json
+{
+  "schema": "qortara/operator-host-matrix-input/1",
+  "cases": [
+    {
+      "candidateDir": "/absolute/path/ci-failure-triage",
+      "expectedPackageSha256": "693a48ae77ed93bcc431efc583852fa700f65f03d65142745f60cb03ac058c54",
+      "record": "/absolute/path/host-evidence-ci-positive.json",
+      "prompt": "/absolute/path/prompt.txt",
+      "reference": "/absolute/path/reference.txt",
+      "response": "/absolute/path/response.txt"
+    }
+  ]
+}
+```
+
+The one-entry JSON above is **illustrative and intentionally insufficient**: it must be expanded to the exact four cases before running. No placeholder or invented provider session can be treated as actual host evidence.
+
+```bash
+node bin/host-task-evidence.mjs matrix \
+  --manifest /absolute/path/matrix-input.json \
+  --out /absolute/path/host-matrix-evidence.json
+```
+
+The command independently rereads each completed disk seal, original package pin, local prompt/reference/response bytes and associated capture record. It rejects modified responses, swapped packages, duplicate sessions, missing negative controls, wrong provider distribution and mismatch between positive/negative package revisions. It writes a new metadata-only report using exclusive create and `0600`; it does not contact either provider. Even when all four structural captures pass, the result is **`CAPTURE_MATRIX_COMPLETE_AWAITING_INDEPENDENT_REVIEW`** and `hostValidated:false`.
+
+
 ## Independent adjudication and release hold
 
 An independent observer must evaluate the actual host, its loaded skill bytes, input/transcript provenance, outcome accuracy, exact source citations, uncertainty, negative-case stop behavior, and absence of unauthorized tool use. Compare the observed candidate digest to a separately custodied original. False-positive model responses, invented citations, unsupported success claims and ungrounded policy acceptance are failures. CI cannot attest to this.
