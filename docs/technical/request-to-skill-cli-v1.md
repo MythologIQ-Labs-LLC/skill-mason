@@ -33,15 +33,15 @@ Optional on-demand **external** package inspection requires all of \`--method\`,
 
 ## What “done” looks like in this slice
 
-<escape><table>
-<tr><th>Condition</th><th>Actual result</th></tr>
-<tr><td>Known reviewed method but missing genuine rights</td><td><code>RIGHTS_UNRESOLVED</code> + all missing facts, no composition</td></tr>
-<tr><td>Missing evidence-linked review</td><td><code>MAPPING_GAP</code>, not “source does not exist”</td></tr>
-<tr><td>Multiple reviewed alternatives</td><td><code>METHOD_SELECTION_REQUIRED</code>, no fictional winner</td></tr>
-<tr><td>Rejected source</td><td><code>STATIC_REVIEW_REJECTED</code>, no candidate promotion</td></tr>
-<tr><td>Operator tries to supply fixture authority</td><td><code>UNTRUSTED_PROMOTION</code> or CLI <code>USAGE</code>, no P0 bypass</td></tr>
-<tr><td>Exact accepted rights, host, outcomes</td><td><strong>Not yet independently available</strong>. No false positive skill</td></tr>
-</table></escape>
+| Condition | Expected actual result |
+|---|---|
+| Known reviewed method but missing genuine rights | `RIGHTS_UNRESOLVED` and all missing facts; no composition |
+| Missing evidence-linked review | `MAPPING_GAP`, not “source does not exist” |
+| Multiple reviewed alternatives | `METHOD_SELECTION_REQUIRED`, no fictional winner |
+| Rejected source | `STATIC_REVIEW_REJECTED`, no candidate promotion |
+| Attempted fixture authority bypass | `UNTRUSTED_PROMOTION` or CLI `USAGE`, no P0 bypass |
+| Actual independently authorized source and host | **Not established yet.** No false positive skill |
+
 
 The CLI's negative output says \`inference_calls_observed_in_this_python_entrypoint:0\`, but \`end_to_end_inference_tokens_measured:false\`: this slice performs no model inference, yet does not falsely certify the whole pipeline's zero-token accounting.
 
