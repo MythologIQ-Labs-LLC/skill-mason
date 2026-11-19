@@ -4,15 +4,19 @@
  * No skill generation, installation, inference, or alternate eligibility engine.
  */
 import { createRequire } from 'node:module';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL,fileURLToPath } from 'node:url';
 import { artifact, main as probeMain, ProbeError } from '../scripts/sm01_probe.mjs';
 
 export const VERSION='0.1.0-dev.0';
 const MAX_BYTES=512;
 const shaPattern=/^[0-9a-f]{64}$/;
-const FLAG_VALUES=new Set(['--holo','--sha256','--hex','--case','--report']);
+const FLAG_VALUES=new Set(['--holo','--sha256','--hex','--case','--report',
+  '--request','--route','--host','--handoff','--source-checkout','--method',
+  '--external-checkout','--external-repository-tree']);
 const FLAG_BOOLEAN=new Set(['--allow-p0','--json']);
 const USAGE=[
  'Qortara Skills '+VERSION+' | local development-only Prism client',
@@ -21,12 +25,15 @@ const USAGE=[
  '  qortara-skills status [--holo FILE --sha256 SHA256] [--json]',
  '  qortara-skills evaluate --holo FILE --sha256 SHA256 --hex HEX --allow-p0 [--report NEW.json]',
  '  qortara-skills probe --holo FILE --sha256 SHA256 --allow-p0 [--case ID] [--report NEW.json]',
+ '  qortara-skills create --request TEXT --route DOMAIN/SUBDOMAIN --host HOST --handoff DIR --source-checkout DIR [--method governed:ID] [--external-checkout DIR --external-repository-tree GIT_TREE] [--report NEW.json]',
  '  qortara-skills version',
  '  qortara-skills help',
  '',
  'Requires Node.js 22+ and exact prism-code@0.9.5 to run a real holo.',
  '--allow-p0 is fixture-only consent, not trusted production assurance.',
- 'No SKILL.md generation, skill installation, or catalog verification.'
+ 'Create verifies the exact pinned corpus and issues an actionable refusal until genuine approval exists.',
+ 'Create requires Python 3.11+ and the separately pinned local skillz source checkout.',
+ 'No approved SKILL.md generation, skill installation, or source-rights self-authorization.'
 ].join('\n');
 
 export function parseCommand(argv) {
@@ -34,7 +41,7 @@ export function parseCommand(argv) {
     return {command:'help',flags:{}};
   if (argv[0]==='version' && argv.length===1) return {command:'version',flags:{}};
   const [command,...args]=argv;
-  if (!['status','evaluate','probe'].includes(command))
+  if (!['status','evaluate','probe','create'].includes(command))
     throw new ProbeError('USAGE','Unknown command: '+command);
   const flags={};
   for (let i=0;i<args.length;i++) {
@@ -51,6 +58,9 @@ export function parseCommand(argv) {
   }
   const allowed=command==='status'
     ? ['--holo','--sha256','--json']
+    : command==='create'
+      ? ['--request','--route','--host','--handoff','--source-checkout',
+         '--method','--external-checkout','--external-repository-tree','--report']
     : command==='probe'
       ? ['--holo','--sha256','--case','--report','--allow-p0']
       : ['--holo','--sha256','--hex','--report','--allow-p0'];
@@ -59,7 +69,16 @@ export function parseCommand(argv) {
   }
   if (command==='status' && Boolean(flags['--holo'])!==Boolean(flags['--sha256']))
     throw new ProbeError('USAGE','status requires both --holo and --sha256 when either is specified');
-  if (command!=='status') {
+  if (command==='create') {
+    for (const name of ['--request','--host','--handoff','--source-checkout']) {
+      if (!flags[name]) throw new ProbeError('USAGE','Missing '+name+' for request admission');
+    }
+    if (Boolean(flags['--external-checkout'])!==Boolean(flags['--external-repository-tree']))
+      throw new ProbeError('USAGE','External source checkout and exact repository tree must be supplied together');
+    if (flags['--external-checkout'] && !flags['--method'])
+      throw new ProbeError('USAGE','An external checkout requires an exact governed method ID');
+  }
+  if (command!=='status' && command!=='create') {
     if (!flags['--holo'] || !shaPattern.test(flags['--sha256']??''))
       throw new ProbeError('USAGE','--holo and lowercase 64-character --sha256 required');
     if (!flags['--allow-p0'])
@@ -134,6 +153,55 @@ export async function evaluate(flags,loadRuntime=loadPinnedRuntime) {
     artifact:identity,engine:'prism-code@0.9.5',requestHex:flags['--hex'].toLowerCase(),
     assurance:'P0 unverified; development fixtures only',productionEligible:false,...outcome};
 }
+const execFileAsync=promisify(execFile);
+const SOURCE_ROOT=fileURLToPath(new URL('../',import.meta.url));
+
+/**
+ * Run the checked-in, read-only Python source inspector with bounded flags.
+ * The Python module is the only C4/C5 coordinator; the Node CLI cannot
+ * synthesize an eligible verdict or accept a model's rights self-assertion.
+ */
+export async function createRequest(flags,deps={}) {
+  let outcome;
+  if (deps.requestRunner) outcome=await deps.requestRunner(flags);
+  else {
+    const args=['-m','scripts.request_to_skill',
+      '--request',flags['--request'],
+      '--host',flags['--host'],
+      '--handoff',flags['--handoff'],
+      '--source-checkout',flags['--source-checkout']];
+    if (flags['--route'])args.push('--route',flags['--route']);
+    if (flags['--method'])args.push('--method',flags['--method']);
+    if (flags['--external-checkout'])args.push(
+      '--external-checkout',flags['--external-checkout'],
+      '--external-repository-tree',flags['--external-repository-tree']);
+    let stdout;
+    try {
+      ({stdout}=await execFileAsync(
+        process.platform==='win32'?'python':'python3',args,
+        {cwd:SOURCE_ROOT,shell:false,windowsHide:true,timeout:120_000,
+         maxBuffer:4*1024*1024,
+         env:{...process.env,PYTHONPATH:'',PYTHONNOUSERSITE:'1'}}));
+    } catch(err) {
+      // A correctly refused method deliberately exits 2. Everything else
+      // must still fail closed; it must not turn into a success-shaped result.
+      if (err?.code!==2 || typeof err.stdout!=='string' || !err.stdout.trim())
+        throw new ProbeError('REQUEST_RUNTIME','Pinned corpus inspector unavailable or failed');
+      stdout=err.stdout;
+    }
+    try {outcome=JSON.parse(stdout);}
+    catch {throw new ProbeError('REQUEST_RUNTIME','Inspector produced invalid JSON');}
+  }
+  if (!outcome || outcome.schema!=='qortara/request-to-skill-evaluation/1' ||
+      outcome.state!=='REFUSED_PRE_ADMISSION' ||
+      outcome.refusal?.schema!=='qortara/skill-generation-refusal/1' ||
+      outcome.refusal?.no_method_composed!==true ||
+      outcome.prism_invoked!==false || outcome.composer_invoked!==false ||
+      outcome.output_package_created!==false || outcome.production_eligible!==false)
+    throw new ProbeError('UNTRUSTED_PROMOTION',
+      'The request result tried to bypass source, rights, Prism or host qualification');
+  return outcome;
+}
 export async function run(argv,deps={}) {
   const {command,flags}=parseCommand(argv);
   if (command==='help') return {kind:'text',value:USAGE,exitCode:0};
@@ -141,6 +209,12 @@ export async function run(argv,deps={}) {
   if (command==='status') {
     const value=await localStatus(flags,deps);
     return {kind:'json',value,exitCode:value.preflightReady?0:1};
+  }
+  if (command==='create') {
+    const value=await createRequest(flags,deps);
+    if (flags['--report'])
+      await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
+    return {kind:'json',value,exitCode:2};
   }
   if (command==='evaluate') {
     const value=await evaluate(flags,deps.loadRuntime);
