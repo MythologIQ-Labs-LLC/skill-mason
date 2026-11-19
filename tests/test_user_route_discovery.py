@@ -1,5 +1,5 @@
 """Gherkin route-search, exact route, and fail-closed discovery tests."""
-from types import SimpleNamespace
+from copy import deepcopy
 import unittest
 from scripts.catalog_handoff import COMMIT, TREE, Refusal
 from scripts.user_route_discovery import discover, SCHEMA
@@ -33,13 +33,13 @@ class StubGraph:
         return {"schema":"qortara/capability-opportunity-graph/1",
                 "search_type":
                     "recognized_capability_lexical_routing_not_method_admission",
-                "routes": [dict(ITEM)] if "frontend" in query else [],
+                "routes": [deepcopy(ITEM)] if "frontend" in query else [],
                 "total_matches": 1 if "frontend" in query else 0,
                 "truncated": False, "composition_eligible":False}
     def show(self,path):
         if path != PATH:
             raise Refusal("UNRECOGNIZED_CAPABILITY","route unavailable")
-        return dict(ITEM)
+        return deepcopy(ITEM)
 
 class RouteDiscoveryTests(unittest.TestCase):
     def setUp(self):
@@ -131,7 +131,7 @@ class RouteDiscoveryTests(unittest.TestCase):
         original=self.graph.search
         def forged(*args,**kw):
             x=original(*args,**kw)
-            x["routes"]=[dict(ITEM)]*3
+            x["routes"]=[deepcopy(ITEM)]*3
             return x
         self.graph.search=forged
         with self.assertRaises(Refusal) as exc:
