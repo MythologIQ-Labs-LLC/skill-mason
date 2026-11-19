@@ -31,6 +31,10 @@ python3 -m scripts.candidate_comparison \
 
 Use --no-lexical when a full path-observation sweep is not requested; the receipt explicitly records that reduced search scope.
 
+## Optional exact-pinned third-party package evidence (development follow-on)
+
+When an external source is explicitly selected, the caller supplies `--external-record`, `--external-checkout` and `--external-repository-tree` together. The record must be an exact evidence-linked third-party candidate on the requested recognized capability route. The comparison invokes the source-tree and actual-file verifier directly; it never accepts a caller-supplied byte-receipt JSON as proof. Any mismatch refuses the comparison. A successful source byte check does **not** change the categorical rights/host/behavior hold or set a chosen method. See [real Git acceptance](external-package-inspection-v1.md).
+
 ## Remaining completion criteria
 
 C4 must eventually compare **all actual, independently relevant and admissible source methods**, not just evidence links, path keyword matches, and name hints. Necessary future work includes independent cross-snapshot taxonomy alignment, complete third-party source retrieval, evidence-backed essential-outcome decomposition, bounded semantic matching, exact authority/rights verification, transparent policy-restricted ranking, contradiction checks and outcome coverage metrics. The current receipt is explicitly NOT that.
