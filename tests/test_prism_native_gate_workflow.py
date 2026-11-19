@@ -34,8 +34,8 @@ class NativeGateWorkflowTests(unittest.TestCase):
         cls.driver = DRIVER.read_text(encoding="utf-8")
 
     def test_the_four_jobs_keep_sdk_permissions_minimal_and_publisher_only_write(self):
-        self.assertEqual(set(self.jobs), {"sdk", "real-output", "publish-evidence",
-                                          "native-qualification"})
+        self.assertEqual(set(self.jobs), {"sdk", "real-output",
+                                          "publish-evidence", "native-qualification"})
         self.assertRegex(self.text, r"(?m)^permissions: \{\}$")
         for name in ("sdk", "real-output"):
             with self.subTest(job=name):
@@ -44,7 +44,11 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertIn("    permissions: {}\n", decision)
         self.assertIn("needs: [sdk, real-output, publish-evidence]", decision)
         for field in ("SDK_RESULT", "REAL_OUTPUT_RESULT", "EVIDENCE_RESULT"):
-            self.assertIn('test "        self.assertEqual(re.findall(r"(?m)^    permissions:\n((?:      .+\n)+)", publisher), ["      contents: write\n"])
+            self.assertIn('test "' + chr(36) + field + '" = success', decision)
+        publisher = self.jobs["publish-evidence"]
+        self.assertEqual(
+            re.findall(r"(?m)^    permissions:\n((?:      .+\n)+)", publisher),
+            ["      contents: write\n"])
 
     def test_no_secret_token_or_oidc_is_referenced_anywhere(self):
         for forbidden in ("secrets.", "github.token", "GITHUB_TOKEN", "id-token", "ACTIONS_RUNTIME_TOKEN", "docker login"):
