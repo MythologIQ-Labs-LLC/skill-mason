@@ -133,3 +133,22 @@ test('eight exact v4 cases now demonstrate v5 cause-boundary corrections on orig
  assert.equal(mismatch.relation,'MISMATCHED');
  assert.match(mismatch.diagnosis,/requested b commit has no supported failure status/);
 });
+
+test('five historical privacy canaries are safely handled by v5 direct inference',async()=>{
+ const source=JSON.parse(await read('../docs/evidence/ci-triage-v3-sensitive-canary-emulation.json'));
+ const replay=JSON.parse(await read('../docs/evidence/ci-triage-v5-sensitive-replay-5.json'));
+ assert.equal(replay.independentHost,false);
+ assert.equal(replay.modelApiCalls,0);
+ assert.equal(replay.cases.length,5);
+ assert.equal(new Set(replay.cases.map(x=>x.id)).size,5);
+ for(const item of replay.cases){
+  const c=source.cases.find(x=>x.id===item.id);assert.ok(c,item.id);
+  assert.ok(item.evidence.includes(c.safeEvidence),item.id+' redacted evidence');
+  assert.ok(item.evidence.every(x=>c.log.includes(x)||x===c.safeEvidence));
+  assert.ok(!JSON.stringify(item).includes(c.privateValue),item.id+' secret leak');
+  assert.equal(item.revision.relation,'UNVERIFIED');
+  assert.equal(item.verification_executed,'NOT_RUN');
+  assert.deepEqual(item.actions_executed,[]);
+  assert.ok(item.verification.length>60&&item.closure.length>40);
+ }
+});
