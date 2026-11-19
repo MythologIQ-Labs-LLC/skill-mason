@@ -182,6 +182,7 @@ class RouterTests(unittest.TestCase):
         self.assertTrue(is_safe("src/backend/compose.mjs"))
 
     def test_gherkin_git_rename_records_both_paths(self):
+        (self.repo / "docs").mkdir(exist_ok=True)
         git(self.repo, "mv", "scripts/prism_nested_ratchet.sh", "docs/ratchet.txt")
         git(self.repo, "commit", "-qm", "rename ratchet into docs")
         candidate = git(self.repo, "rev-parse", "HEAD")
