@@ -65,7 +65,7 @@ el('download-feedback').addEventListener('click',()=>{
    outcome:el('feedback-outcome').value,
    gap:el('feedback-gap').value
   });
-  download(JSON.stringify(report,null,2)+'\\n','qortara-starter-trial-feedback.json','application/json');
+  download(JSON.stringify(report,null,2)+'\n','qortara-starter-trial-feedback.json','application/json');
   trialStatus.textContent='Feedback file saved locally. You choose whether to share it on GitHub.';
  }catch(err){trialStatus.textContent=err?.message??'Could not export feedback.';}
 });
