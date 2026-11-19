@@ -220,5 +220,47 @@ class RouterTests(unittest.TestCase):
             verify_observed_baseline(self.manifest, truncated)
 
 
+
+class NativeSchedulingContractTests(unittest.TestCase):
+    """Gherkin config regression: defer expensive draft SDK, not qualification."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.workflow = (Path(__file__).resolve().parents[1] /
+                        ".github/workflows/prism-native-gate.yml").read_text()
+        cls.sdk = cls.workflow.split("  sdk:\n", 1)[1].split("  real-output:\n", 1)[0]
+        cls.final = cls.workflow.split("  native-qualification:\n", 1)[1]
+
+    def test_gherkin_draft_sync_does_not_schedule_three_sdk_runners(self):
+        self.assertIn("types: [opened, synchronize, reopened, ready_for_review, labeled]",
+                      self.workflow)
+        self.assertIn("github.event.pull_request.draft == false", self.sdk)
+        self.assertIn("github.event.action == 'labeled'", self.sdk)
+        self.assertIn("github.event.label.name == 'run-prism-native'", self.sdk)
+
+    def test_gherkin_fork_cannot_start_sdk_even_when_labeled(self):
+        self.assertIn(
+            "github.event.pull_request.head.repo.full_name == github.repository",
+            self.sdk)
+        self.assertIn("permissions: {}", self.workflow)
+
+    def test_gherkin_ready_review_and_owner_label_preserve_full_native(self):
+        self.assertIn("github.event_name == 'workflow_dispatch'", self.sdk)
+        self.assertIn("github.event.pull_request.draft == false", self.sdk)
+        self.assertIn("github.event.label.name == 'run-prism-native'", self.sdk)
+        for phase in ("reference", "author", "nested"):
+            self.assertIn(phase, self.sdk)
+        self.assertIn("just vv", self.workflow)
+
+    def test_gherkin_deferred_or_failed_sdk_cannot_be_reported_as_pass(self):
+        self.assertIn("if: >-", self.final)
+        self.assertIn("always() &&", self.final)
+        self.assertIn("needs: [sdk, real-output, publish-evidence]", self.final)
+        for result in ("SDK_RESULT", "REAL_OUTPUT_RESULT", "EVIDENCE_RESULT"):
+            self.assertIn('test " + result + '" = success', self.final)
+        self.assertNotIn("REUSE_PREVIOUS_P0_OBSERVATION", self.final)
+
+
+
 if __name__ == "__main__":
     unittest.main()
