@@ -62,7 +62,7 @@ test('v4 is an exactly pinned fifth source; all earlier method versions keep the
  assert.equal(recipeForPilot('ci-failure-triage-v4',registry).components[0].package_sha256,PIN);
  const adapted=createRecipeAdapter(registry)(recipeForPilot('ci-failure-triage-v4',registry));
  assert.equal(adapted.methods[0].id,'ci-failure-triage-v4');
- assert.equal(adapted.plan.authority?.network,false);
+ assert.equal(adapted.plan.network,false);
 });
 test('v4 remains bounded, executable as text instructions, and requires explicit provenance plus A/B decision signals',()=>{
  const p=parseTextProcedure(v4.toString('utf8'));
