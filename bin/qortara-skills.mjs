@@ -16,8 +16,9 @@ const MAX_BYTES=512;
 const shaPattern=/^[0-9a-f]{64}$/;
 const FLAG_VALUES=new Set(['--holo','--sha256','--hex','--case','--report',
   '--request','--route','--host','--handoff','--source-checkout','--method',
-  '--external-checkout','--external-repository-tree']);
-const FLAG_BOOLEAN=new Set(['--allow-p0','--json']);
+  '--external-checkout','--external-repository-tree',
+  '--search','--path','--limit']);
+const FLAG_BOOLEAN=new Set(['--allow-p0','--json','--summary']);
 const USAGE=[
  'Qortara Skills '+VERSION+' | local development-only Prism client',
  '',
@@ -26,13 +27,15 @@ const USAGE=[
  '  qortara-skills evaluate --holo FILE --sha256 SHA256 --hex HEX --allow-p0 [--report NEW.json]',
  '  qortara-skills probe --holo FILE --sha256 SHA256 --allow-p0 [--case ID] [--report NEW.json]',
  '  qortara-skills create --request TEXT --route DOMAIN/SUBDOMAIN --host HOST --handoff DIR --source-checkout DIR [--method governed:ID] [--external-checkout DIR --external-repository-tree GIT_TREE] [--report NEW.json]',
+ '  qortara-skills routes (--search TEXT [--limit 1..25] | --path DOMAIN/SUBDOMAIN | --summary) --handoff DIR --source-checkout DIR [--report NEW.json]',
  '  qortara-skills version',
  '  qortara-skills help',
  '',
  'Requires Node.js 22+ and exact prism-code@0.9.5 to run a real holo.',
  '--allow-p0 is fixture-only consent, not trusted production assurance.',
  'Create verifies the exact pinned corpus and issues an actionable refusal until genuine approval exists.',
- 'Create requires Python 3.11+ and the separately pinned local skillz source checkout.',
+ 'Create/routes require Python 3.11+ and the separately pinned local skillz source checkout.',
+ 'Routes are lexical/explicit source navigation only, not semantic admission or reuse authorization.',
  'No approved SKILL.md generation, skill installation, or source-rights self-authorization.'
 ].join('\n');
 
@@ -41,7 +44,7 @@ export function parseCommand(argv) {
     return {command:'help',flags:{}};
   if (argv[0]==='version' && argv.length===1) return {command:'version',flags:{}};
   const [command,...args]=argv;
-  if (!['status','evaluate','probe','create'].includes(command))
+  if (!['status','evaluate','probe','create','routes'].includes(command))
     throw new ProbeError('USAGE','Unknown command: '+command);
   const flags={};
   for (let i=0;i<args.length;i++) {
@@ -61,6 +64,8 @@ export function parseCommand(argv) {
     : command==='create'
       ? ['--request','--route','--host','--handoff','--source-checkout',
          '--method','--external-checkout','--external-repository-tree','--report']
+    : command==='routes'
+      ? ['--search','--path','--summary','--limit','--handoff','--source-checkout','--report']
     : command==='probe'
       ? ['--holo','--sha256','--case','--report','--allow-p0']
       : ['--holo','--sha256','--hex','--report','--allow-p0'];
@@ -78,7 +83,17 @@ export function parseCommand(argv) {
     if (flags['--external-checkout'] && !flags['--method'])
       throw new ProbeError('USAGE','An external checkout requires an exact governed method ID');
   }
-  if (command!=='status' && command!=='create') {
+  if (command==='routes') {
+    if (!flags['--handoff'] || !flags['--source-checkout'])
+      throw new ProbeError('USAGE','routes requires --handoff and --source-checkout');
+    const count=Number(Boolean(flags['--search']))+
+      Number(Boolean(flags['--path']))+Number(Boolean(flags['--summary']));
+    if (count!==1) throw new ProbeError('USAGE','routes requires exactly one --search, --path or --summary');
+    if (flags['--limit']!==undefined &&
+        (!flags['--search'] || !/^(?:[1-9]|1\d|2[0-5])$/.test(flags['--limit'])))
+      throw new ProbeError('USAGE','--limit must be 1..25 and valid only with --search');
+  }
+  if (command!=='status' && command!=='create' && command!=='routes') {
     if (!flags['--holo'] || !shaPattern.test(flags['--sha256']??''))
       throw new ProbeError('USAGE','--holo and lowercase 64-character --sha256 required');
     if (!flags['--allow-p0'])
@@ -178,6 +193,67 @@ export function requestPythonArgs(flags,callerDirectory=process.cwd()) {
     '--external-repository-tree',flags['--external-repository-tree']);
   return args;
 }
+/** Caller-relative verified corpus navigation. Does not select methods or grant reuse. */
+export function routePythonArgs(flags,callerDirectory=process.cwd()) {
+  const args=['-m','scripts.user_route_discovery',
+    '--handoff',resolve(callerDirectory,flags['--handoff']),
+    '--source-checkout',resolve(callerDirectory,flags['--source-checkout'])];
+  if (flags['--search']) args.push('--search',flags['--search']);
+  if (flags['--path']) args.push('--path',flags['--path']);
+  if (flags['--summary']) args.push('--summary');
+  if (flags['--limit']) args.push('--limit',flags['--limit']);
+  return args;
+}
+export async function discoverRoutes(flags,deps={}) {
+  let output;
+  if (deps.routeRunner) output=await deps.routeRunner(flags);
+  else {
+    let stdout;
+    try {
+      ({stdout}=await execFileAsync(
+        process.platform==='win32'?'python':'python3',routePythonArgs(flags),
+        {cwd:SOURCE_ROOT,shell:false,windowsHide:true,timeout:120_000,
+         maxBuffer:4*1024*1024,
+         env:{...process.env,PYTHONPATH:'',PYTHONNOUSERSITE:'1'}}));
+    } catch(err) {
+      if (err?.code!==2 || typeof err.stdout!=='string' || !err.stdout.trim())
+        throw new ProbeError('ROUTE_RUNTIME','Pinned capability graph unavailable or failed');
+      stdout=err.stdout;
+    }
+    try {output=JSON.parse(stdout);}
+    catch {throw new ProbeError('ROUTE_RUNTIME','Capability graph did not return valid JSON');}
+  }
+  if (output?.schema!=='qortara/user-route-discovery/1' ||
+      output.production_eligible!==false || output.composition_eligible!==false)
+    throw new ProbeError('ROUTE_PROMOTION','Untrusted capability response cannot establish eligibility');
+  if (output.state==='REFUSED') {
+    if (!/^[A-Z][A-Z0-9_]*$/.test(output.code??''))
+      throw new ProbeError('ROUTE_RUNTIME','Invalid read-only route refusal');
+    return output;
+  }
+  const expectedMode=flags['--summary']?'SUMMARY':flags['--path']?'SHOW':'SEARCH';
+  if (output.state!=='READ_ONLY_RECOGNIZED_CAPABILITIES' ||
+      output.mode!==expectedMode ||
+      output.pinned_source_commit!=='31a8c518dd97b7828adcc728202fa41388a306d7' ||
+      output.pinned_source_tree!=='e6d5dfeb42bcd7777ddff52605922fead62135ff' ||
+      output.recognized_domain_count!==33 ||
+      output.recognized_route_count!==247 ||
+      output.search_is_lexical_not_qualified_semantics!==true ||
+      output.source_rights_established!==false ||
+      output.host_validated!==false ||
+      !Array.isArray(output.routes) ||
+      output.routes.length>(flags['--search']?Number(flags['--limit']??10):flags['--path']?1:0) ||
+      (expectedMode==='SHOW' && (output.routes.length!==1 || output.routes[0].path!==flags['--path'])) ||
+      (expectedMode==='SUMMARY' && output.routes.length!==0) ||
+      !output.routes.every(r=>r?.schema==='qortara/capability-opportunity-graph/1' &&
+        r?.source_commit===output.pinned_source_commit &&
+        r?.recognized===true && r?.composition_eligible===false &&
+        Array.isArray(r.evidence_linked_reviews) &&
+        r.evidence_linked_reviews.every(x=>x?.composition_eligibility==='not-assessed' &&
+          x?.rights_clearance==='not-established')))
+    throw new ProbeError('ROUTE_PROMOTION','Route graph attempted to bypass read-only source boundary');
+  return output;
+}
 export async function createRequest(flags,deps={}) {
   let outcome;
   if (deps.requestRunner) outcome=await deps.requestRunner(flags);
@@ -217,6 +293,12 @@ export async function run(argv,deps={}) {
   if (command==='status') {
     const value=await localStatus(flags,deps);
     return {kind:'json',value,exitCode:value.preflightReady?0:1};
+  }
+  if (command==='routes') {
+    const value=await discoverRoutes(flags,deps);
+    if (flags['--report'])
+      await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
+    return {kind:'json',value,exitCode:value.state==='REFUSED'?2:0};
   }
   if (command==='create') {
     const value=await createRequest(flags,deps);
