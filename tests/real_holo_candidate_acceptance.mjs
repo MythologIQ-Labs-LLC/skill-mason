@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','governance-drift-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','governance-drift-review']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -199,8 +199,32 @@ async function main(argv){
   assert.equal(v3Receipt.productionEligible,false);
   assert.equal(v3Receipt.hostValidated,false);
   assert.equal(v3Receipt.modelCallsMeasured,false);
+  const requestV4='Identify requested and observed CI revisions, compare two plausible causes, and propose a falsifiable verification without exposing credentials.';
+  const requestedV4=await generateFirstPartyRequest({
+    request:requestV4,capability:'triage provenance-sensitive CI failure logs',
+    methodId:'ci-failure-triage-v4',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedV4.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedV4.requestSha256,SHA(Buffer.from(requestV4)));
+  assert.equal(requestedV4.selectedMethod,'ci-failure-triage-v4');
+  assert.equal(requestedV4.productionEligible,false);
+  assert.equal(requestedV4.sourceRightsVerified,false);
+  const fromV4=await readPackage(join(requestRoot,'ci-failure-triage-v4'));
+  assert.match(fromV4.files['SKILL.md'],/REQUESTED:/);
+  assert.match(fromV4.files['SKILL.md'],/RELATION:/);
+  assert.match(fromV4.files['SKILL.md'],/contrasting result under B/);
+  assert.notEqual(fromV4.files['SKILL.md'],fromV3.files['SKILL.md']);
+  const v4Receipt=JSON.parse(fromV4.files['RECEIPT.json']);
+  assert.equal(v4Receipt.productionEligible,false);
+  assert.equal(v4Receipt.hostValidated,false);
+  assert.equal(v4Receipt.modelCallsMeasured,false);
+  // Independently selected paths must seal identical generated instructions.
+  const v4Pilot=await readPackage(join(pilotRoot,'ci-failure-triage-v4'));
+  assert.equal(v4Pilot.files['SKILL.md'],fromV4.files['SKILL.md']);
+  assert.equal(v4Pilot.files['SOURCES.json'],fromV4.files['SOURCES.json']);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+3,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+4,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -221,6 +245,11 @@ async function main(argv){
      selectedMethod:requestedV3.selectedMethod,requestedOutcome:requestedV3.requestedOutcome,
      packageManifestSha256:requestedV3.packageManifestSha256,
      state:requestedV3.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+     productionEligible:false},
+    firstPartyUserRequestV4:{requestSha256:requestedV4.requestSha256,
+     selectedMethod:requestedV4.selectedMethod,requestedOutcome:requestedV4.requestedOutcome,
+     packageManifestSha256:requestedV4.packageManifestSha256,
+     state:requestedV4.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false}};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
