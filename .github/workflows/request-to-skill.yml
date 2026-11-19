@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'scripts/request_to_skill.py'
+      - 'scripts/source_outcome_scope_review.py'
+      - 'tests/test_source_outcome_scope_review.py'
+      - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
       - 'tests/test_request_to_skill.py'
       - 'scripts/user_route_discovery.py'
       - 'tests/test_user_route_discovery.py'
@@ -18,6 +21,9 @@ on:
     branches: [main]
     paths:
       - 'scripts/request_to_skill.py'
+      - 'scripts/source_outcome_scope_review.py'
+      - 'tests/test_source_outcome_scope_review.py'
+      - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
       - 'tests/test_request_to_skill.py'
       - 'scripts/user_route_discovery.py'
       - 'tests/test_user_route_discovery.py'
@@ -52,6 +58,7 @@ jobs:
           python3 --version
           node --version
           python3 -m unittest discover -s tests -p 'test_request_to_skill.py' -v
+          python3 -m unittest discover -s tests -p 'test_source_outcome_scope_review.py' -v
           python3 -m unittest discover -s tests -p 'test_user_route_discovery.py' -v
           python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
           node --test tests/local_cli.test.mjs
@@ -315,6 +322,32 @@ jobs:
           assert wrong["output_package_created"] is False
           print("REAL SINGLE-PASS C3-C4-C5 PASS: two Git-verified files, one license pointer,")
           print("same direct-Python/caller-directory-Node response, no rights approval, wrong-tree refused")
+          PY
+      - name: Check real pinned MCP-vetting method scope without admitting it
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p request-evidence
+          python3 -m scripts.source_outcome_scope_review \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            --review docs/evidence/source-outcome-scope-mcp-vetting-v1.json \
+            > request-evidence/source-outcome-scope.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('request-evidence/source-outcome-scope.json').read_text())
+          assert x['state']=='NONADMITTING_SOURCE_SCOPE_GAP_RECORDED'
+          assert x['route']=='security/supply-chain'
+          assert x['governed_review_id']=='local-skills/mcp-vetting'
+          assert x['entrypoint_git_blob_sha1']=='37a13d7296c7d3d87dc360988bc6aca1f873c4db'
+          assert len(x['source_scope_observations'])==3
+          assert len(x['unestablished_requested_outcomes'])==3
+          for k in ('rights_qualified','host_validated','outcome_coverage_qualified',
+                    'prism_invoked','composer_invoked','composition_eligible'):
+              assert x[k] is False, k
+          print('REAL PINNED SOURCE SCOPE GAP: original MCP vetting bytes verified, broad release coverage NOT QUALIFIED')
           PY
       - name: Upload bounded user-visible original-source route discovery results
         if: always()
