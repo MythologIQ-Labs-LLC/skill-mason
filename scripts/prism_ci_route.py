@@ -101,7 +101,7 @@ def verify_historical_workflow_pins(repo: Path, baseline: str,
     }
     for env_name, record_field in mapping.items():
         matches = re.findall(r"^  " + re.escape(env_name) +
-                             r":\\s*([^\\r\\n#]+?)\\s*$",
+                             r":\s*([^\r\n#]+?)\s*$",
                              source, flags=re.MULTILINE)
         if len(matches) != 1 or matches[0].strip().strip("\"'") != manifest.get(record_field):
             raise RuntimeError(
