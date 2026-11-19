@@ -42,7 +42,7 @@
         "log": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "relation": "MATCHED"
       },
-      "observed_failure": "The matching commit's lint step failed on an unused binding; the downstream test did not execute.",
+      "observed_failure": "The matching commit's npm run lint step failed on an unused binding; the downstream test did not execute.",
       "evidence": [
         "Step: npm run lint => exited 1",
         "src/view.ts:8: unused binding x",
@@ -215,7 +215,7 @@
         "log": "NOT_PROVIDED",
         "relation": "UNVERIFIED"
       },
-      "observed_failure": "Docker overlay write failed with no space left on device; neither byte nor inode exhaustion is established without filesystem metrics.",
+      "observed_failure": "docker build's overlay write failed with no space left on device; neither byte nor inode exhaustion is established without filesystem metrics.",
       "evidence": [
         "Step: docker build => exited 1",
         "write /var/lib/docker/overlay2: no space left on device",
@@ -273,7 +273,7 @@
         "log": "NOT_PROVIDED",
         "relation": "UNVERIFIED"
       },
-      "observed_failure": "Artifact upload returned HTTP 403 insufficient scope. Authorization material spans multiple log lines and must not be repeated; publication was skipped.",
+      "observed_failure": "The upload artifact step returned HTTP 403 insufficient scope. Authorization material spans multiple log lines and must not be repeated; publication was skipped.",
       "evidence": [
         "Step: upload artifact => exited 1",
         "Authorization: Bearer [REDACTED]",
