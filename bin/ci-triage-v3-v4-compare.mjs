@@ -145,6 +145,12 @@ export async function compareSealedSkills({
     scores:results,pairedOutcomes:wins,rows
   };
 }
+export async function loadComparisonCases(){
+  const raw=await readFile(new URL('../tests/fixtures/ci-triage-quality-spectrum-v2.json',import.meta.url));
+  const cases=JSON.parse(raw.toString('utf8'));
+  validateSpectrum(cases);
+  return {cases,raw};
+}
 export async function main(args=process.argv.slice(2)){
   const values={};
   for(let i=0;i<args.length;i+=2){
@@ -157,8 +163,7 @@ export async function main(args=process.argv.slice(2)){
   const token=process.env.OPENAI_API_KEY;
   if(typeof token!=='string'||token.length<10)
     refuse('PAIR_AUTH','owner-approved provider key required');
-  const raw=await readFile(new URL('../tests/fixtures/ci-triage-quality-spectrum-v2.json',import.meta.url));
-  const cases=JSON.parse(raw.toString('utf8'));
+  const {cases,raw}=await loadComparisonCases();
   const report=resolve(values['--report']);
   const partial=report+'.partial.jsonl';
   await writeFile(partial,'',{flag:'wx',mode:0o600});
