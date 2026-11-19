@@ -8,7 +8,7 @@ import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,PILOT_SOURCE_COMMI
   from '../src/backend/first-party-pilots.mjs';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 
-test('four original first-party methods preserve individually pinned historical source commits',async()=>{
+test('five original first-party methods preserve individually pinned historical source commits',async()=>{
  const registry=await loadFirstPartyPilots();
  assert.equal(registry.sourceSnapshot.commit,PILOT_CURRENT_SNAPSHOT_COMMIT);
  assert.equal(registry.components.length,5);
