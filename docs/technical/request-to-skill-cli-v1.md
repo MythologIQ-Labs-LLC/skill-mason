@@ -1,6 +1,6 @@
 # Ordinary request → pinned corpus refusal (development slice 17-A)
 
-**State:** implemented on the request-first development branch; no legitimate production composer approval or host execution is claimed. This is the **first shared local CLI source-admission seam**, not the completed user-facing skill generator.
+**State:** the request-first read-only CLI is integrated on main; this additional C3→C4→C5 same-source binding is a development candidate. No genuine production composer approval or host execution is claimed. This is the **first shared local CLI source-admission seam**, not the completed user-facing skill generator.
 
 ## Command
 
@@ -30,6 +30,41 @@ The command returns a JSON record with \`schema:qortara/request-to-skill-evaluat
 **One explicit route is required.** Free-form semantic routing is not justified by the pinned taxonomy and cannot self-select expert procedures. If omitted, the command refuses \`ROUTE_REQUIRED\`. A route absent from the 247 recognized graph refuses \`UNKNOWN_ROUTE\`; a recognized route with no evidence-linked governed review reports \`MAPPING_GAP\` without claiming no skill exists anywhere. Multiple evidence-linked reviews require \`--method governed:REVIEW_ID\` for **inspection only**, not automatic “best skill” selection or eligibility.
 
 Optional on-demand **external** package inspection requires all of \`--method\`, \`--external-checkout\` and \`--external-repository-tree\`. The inspected Git tree must bind to exactly the selected governed record. Full tracked package bytes, nested source reference leads and license pointers are source evidence; they do **not** grant reuse or host rights. Unknown, rejected or retired material remains blocked. Never read live \`skillz/main\` or bulk-copy third-party skills to fill a missing method.
+
+## Full external source inspection through one ordinary request
+
+The normal `create` command now has one auditable **C3→C4→C5 transaction**. When an exact external Git checkout is supplied with a selected governed review, C4 verifies the source tree, every tracked file and package asset-review leads once. C5 consumes **that same in-process C4 receipt**, rather than repeating the checkout scan and potentially seeing a different worktree. C5's refusal binding includes `comparison_receipt_sha256`, `package_inspection_sha256`, snapshot commit/tree, selected review identity and host/route.
+
+The ordinary request evaluator independently compares the C4 package hash, review hash, source snapshot, route, host and final C5 binding digest. It will refuse `COMPARISON_INTEGRITY`, `EXTERNAL_ASSET_REVIEW` or `SOURCE_BINDING_MISMATCH` if these disagree. This does **not** authenticate publisher rights, close dependency references, or authorize asset redistribution.
+
+```sh
+qortara-skills create \
+  --request "Build an accessible responsive UI component with keyboard interactions" \
+  --route software-engineering/frontend --host ChatGPT \
+  --handoff /pinned/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /pinned/skillz-source \
+  --method governed:anthropic-skills/frontend-design \
+  --external-checkout /pinned/anthropics-skills \
+  --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e
+```
+
+The exact pinned upstream checkout `anthropics/skills@8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4` contains two verified files under the governed frontend-design method, including `LICENSE.txt`. The correct result is **exit 2, `RIGHTS_UNRESOLVED`**, `exact_source_package_bytes_verified:true`, `comparison_reused_for_preflight_without_second_source_scan:true`, `selected_package_comparison_source_bound:true`, and no composer or host invocation. Changed Git tree or missing original bytes must be rejected before the C5 fact vector. CI runs the real source through **both** direct Python and the user-facing Node CLI, checks byte-identical JSON, and exercises the wrong-tree refusal.
+
+```gherkin
+Feature: One source inspection is preserved through user-driven admission
+  Scenario: Complete external bytes are not genuine reuse permission
+    Given the exact verified frontend-design repository and reviewed method
+    When the ordinary CLI evaluates the request through C3, C4 and C5
+    Then C3 runs once and C5 binds the same complete package review receipt
+    And the CLI records the exact source and license-review evidence
+    But it refuses RIGHTS_UNRESOLVED and does not create a skill
+
+  Scenario: A source changes or an intermediate receipt is replaced
+    Given the source commit or package review differs from the selected C4 evidence
+    When C5 is asked to use that evidence
+    Then the request fails with a typed source or receipt mismatch
+    And no Prism, composer or host call occurs
+```
 
 ## What “done” looks like in this slice
 
