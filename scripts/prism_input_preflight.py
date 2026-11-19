@@ -28,16 +28,21 @@ SHA1 = re.compile(r"^[0-9a-f]{40}$")
 
 def prepare_preflight(graph, route, host, governed_id, *,
                       external_selection=None, package_inspector=None,
-                      external_inspector=None):
-    """Standalone C5 preflight; perform an actual fresh C4 source comparison."""
-    opts = {"include_lexical": False, "external_selection": external_selection}
-    if package_inspector is not None:
-        opts["package_inspector"] = package_inspector
-    if external_inspector is not None:
-        opts["external_inspector"] = external_inspector
-    comparison = compare(graph, route, host, **opts)
+                      external_inspector=None, comparison_receipt=None):
+    """Standalone C5 uses actual C4; a coordinator may reuse its same-process object.
+
+    comparison_receipt is an internal transport, never supplied by CLI/JSON.
+    Every positive authority claim remains unqualified irrespective of input.
+    """
+    if comparison_receipt is None:
+        opts = {"include_lexical": False, "external_selection": external_selection}
+        if package_inspector is not None:
+            opts["package_inspector"] = package_inspector
+        if external_inspector is not None:
+            opts["external_inspector"] = external_inspector
+        comparison_receipt = compare(graph, route, host, **opts)
     return preflight_from_comparison(
-        graph, route, host, governed_id, comparison,
+        graph, route, host, governed_id, comparison_receipt,
         external_selection=external_selection)
 
 
@@ -81,8 +86,10 @@ def preflight_from_comparison(graph, route, host, governed_id, comparison, *,
             "COMPARISON_INTEGRITY",
             "C4 did not preserve exact pinned evidence-linked candidates")
     for row in reviewed:
+        require(isinstance(row, dict) and isinstance(row.get("governed_id"), str),
+                "COMPARISON_INTEGRITY", "malformed evidence-linked review row")
         indexed = graph.corpus.by_id.get("governed:" + row["governed_id"])
-        require(isinstance(row, dict) and indexed is not None and
+        require(indexed is not None and
                 indexed["family"] == "governed" and
                 row.get("review_status") == indexed["raw"]["review"]["semantic_status"] and
                 row.get("source_class") == indexed["source_class"] and
