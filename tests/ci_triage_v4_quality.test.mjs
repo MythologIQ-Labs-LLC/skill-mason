@@ -71,7 +71,7 @@ test('v4 remains bounded, executable as text instructions, and requires explicit
  const all=p.steps.map(x=>x.action+' '+x.evidenceRequired).join(' ');
  for(const required of ['REQUESTED:','LOG:','RELATION:','NOT_PROVIDED',
                          'MISMATCHED','UNVERIFIED','hypothesis A','under B',
-                         '[REDACTED]','protoc','PATH'])
+                         '[REDACTED]','tool missing','PATH'])
    assert.ok(all.includes(required),required);
  assert.ok(p.outputFields[0].startsWith('Revision binding:'));
  assert.ok(p.outputFields[6].includes('contrasting B'));
