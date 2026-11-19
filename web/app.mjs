@@ -1,4 +1,5 @@
 import {buildStarter} from './src/starter.mjs';
+import {buildFeedbackReport} from './src/trial-feedback.mjs';
 import {startPrismMotion} from './src/prism-motion.mjs';
 import {openHolo,runGuest,runFixtures,WebError} from './src/core.mjs';
 import {CASES} from './src/fixtures.mjs';
@@ -10,6 +11,7 @@ const motion=startPrismMotion(el('prism-visual'),el('verdant-canvas'),window);
 void motion.initialize();
 const form=el('skill-form'),request=el('skill-request'),generate=el('generate');
 const status=el('request-status'),caption=el('motion-caption'),panel=el('result-panel');
+const trialPanel=el('trial-panel'),trialStatus=el('trial-feedback-status');
 let currentDraft=null;
 function state(s,label){motion.setState(s);caption.textContent=label;}
 function download(text,filename,type){
@@ -34,11 +36,12 @@ form.addEventListener('submit',async event=>{
   if(!reduceMotion)await new Promise(resolve=>setTimeout(resolve,420));
   currentDraft=draft;el('skill-preview').textContent=draft.markdown;
   el('result-title').textContent='Your starter skill';panel.hidden=false;
+  trialPanel.hidden=false;trialStatus.textContent='Choose the observed result; save the feedback file locally before sharing.';
   state('draft','Starter draft ready');
   status.textContent='Draft created. Review and download SKILL.md.';
   panel.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'nearest'});
  }catch(err){
-  currentDraft=null;panel.hidden=true;
+  currentDraft=null;panel.hidden=true;trialPanel.hidden=true;
   state('refused','More detail needed');
   status.dataset.error='true';status.textContent=err?.message??'Unable to make a draft.';
  }finally{generate.disabled=false;}
@@ -50,6 +53,21 @@ el('copy-skill').addEventListener('click',async()=>{
  if(!currentDraft)return;
  try{await navigator.clipboard.writeText(currentDraft.markdown);status.textContent='Copied starter draft.';}
  catch{status.textContent='Use Download SKILL.md if clipboard is unavailable.';}
+});
+
+// Public trial feedback is a local-only, fixed-choice report. No user prompt,
+// draft text, model response or credential is included or posted by this page.
+el('download-feedback').addEventListener('click',()=>{
+ if(!currentDraft)return;
+ try{
+  const report=buildFeedbackReport({
+   host:el('feedback-host').value,
+   outcome:el('feedback-outcome').value,
+   gap:el('feedback-gap').value
+  });
+  download(JSON.stringify(report,null,2)+'\\n','qortara-starter-trial-feedback.json','application/json');
+  trialStatus.textContent='Feedback file saved locally. You choose whether to share it on GitHub.';
+ }catch(err){trialStatus.textContent=err?.message??'Could not export feedback.';}
 });
 
 // Engineer-only diagnostics. This does not gate the user-request starter draft.
