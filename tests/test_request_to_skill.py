@@ -51,7 +51,8 @@ def comparator(graph, route, host, *, include_lexical, limit, external_selection
     }
 
 
-def preflight(graph, route, host, selected, *, external_selection):
+def preflight(graph, route, host, selected, *, external_selection,
+              comparison_receipt=None):
     assert route == ROUTE and host == HOST
     assert selected.removeprefix("governed:") in {x["governed_id"] for x in graph.sources}
     return {
