@@ -5,7 +5,7 @@ import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
-import {parseCommand,localStatus,evaluate,run,createRequest,requestPythonArgs,discoverRoutes,routePythonArgs} from '../bin/qortara-skills.mjs';
+import {parseCommand,localStatus,evaluate,run,createRequest,requestPythonArgs,discoverRoutes,routePythonArgs,previewRoutes,previewPythonArgs} from '../bin/qortara-skills.mjs';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function withHolo(fn){
@@ -280,4 +280,70 @@ test('Gherkin: route report uses exclusive write and preserves existing evidence
   assert.deepEqual(JSON.parse(await readFile(file,'utf8')),ROUTE_RESULT);
   await assert.rejects(run(args,deps),{code:'EEXIST'});
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+const PREVIEW_FLAGS={
+ '--request':'Check signed packages and build provenance before shipping a release',
+ '--handoff':'/pinned/export','--source-checkout':'/pinned/original'
+};
+const PREVIEW_RECEIPT={
+ schema:'qortara/manual-route-preview/1',state:'LEADS_REQUIRE_USER_CHOICE',
+ request_sha256:'b'.repeat(64),
+ pinned_source_commit:'31a8c518dd97b7828adcc728202fa41388a306d7',
+ pinned_source_tree:'e6d5dfeb42bcd7777ddff52605922fead62135ff',
+ proposal_source_sha256:'2a9bd2c6efb50cd222c87ce73e787a5fcdccc7a67a278a838d610ba7dddcb345',
+ route_universe:'13_UNGOVERNED_WORKFLOW_DESCRIPTIONS_WITHIN_247_RECOGNIZED_ROUTES',
+ evaluated_route_count:13,recognized_route_count:247,candidate_method_count:0,
+ unapproved_route_leads:[{route:'security/supply-chain',
+   similarity_score_not_confidence:0.42,shared_content_token_count:3,
+   review_status:'UNASSESSED_LEXICAL_LEAD_NOT_A_METHOD_OR_APPROVAL'}],
+ suggestion_quality:'EXPERIMENTAL_AUTHOR_LABELED_REPLAY_FAILED_NEGATED_AMBIGUOUS',
+ semantic_negation_handling_verified:false,
+ user_must_explicitly_select_route:true,selected_route:null,
+ source_rights_established:false,host_authority_established:false,
+ prism_invoked:false,composer_invoked:false,output_package_created:false,
+ composition_eligible:false,production_eligible:false
+};
+
+test('Gherkin: preview accepts natural language but never selects or admits a method',async()=>{
+ const cmd=parseCommand(['preview',...Object.entries(PREVIEW_FLAGS).flat()]);
+ assert.equal(cmd.command,'preview');
+ const outcome=await run(['preview',...Object.entries(PREVIEW_FLAGS).flat()],
+   {previewRunner:async flags=>{
+     assert.equal(flags['--request'],PREVIEW_FLAGS['--request']);
+     return PREVIEW_RECEIPT;
+   }});
+ assert.equal(outcome.exitCode,0,'read-only successful preview, not a build');
+ assert.equal(outcome.value.selected_route,null);
+ assert.equal(outcome.value.composer_invoked,false);
+ assert.equal(outcome.value.user_must_explicitly_select_route,true);
+ assert.ok(outcome.value.unapproved_route_leads[0].route);
+});
+test('Gherkin: misleading or forged preview results cannot promote route eligibility',async()=>{
+ for (const forged of [
+   {...PREVIEW_RECEIPT,production_eligible:true},
+   {...PREVIEW_RECEIPT,selected_route:'security/supply-chain'},
+   {...PREVIEW_RECEIPT,source_rights_established:true},
+   {...PREVIEW_RECEIPT,prism_invoked:true},
+   {...PREVIEW_RECEIPT,unapproved_route_leads:[{...PREVIEW_RECEIPT.unapproved_route_leads[0],
+     review_status:'APPROVED'}]},
+   {...PREVIEW_RECEIPT,state:'ABSTAIN_NO_AUTOMATIC_ROUTE'}
+ ]) {
+   await assert.rejects(previewRoutes(PREVIEW_FLAGS,{previewRunner:async()=>forged}),
+     {code:'PREVIEW_PROMOTION'});
+ }
+});
+test('Gherkin: preview rejects unrelated flags, excessive leads and silent output overwrites',async()=>{
+ const cmd=['preview',...Object.entries(PREVIEW_FLAGS).flat()];
+ assert.throws(()=>parseCommand([...cmd,'--route','security/supply-chain']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...cmd,'--host','ChatGPT']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...cmd,'--limit','4']),{code:'USAGE'});
+ assert.deepEqual(previewPythonArgs({...PREVIEW_FLAGS,'--limit':'2'},'/tmp/consumer').slice(-2),
+   ['--limit','2']);
+ await withHolo(async({dir})=>{
+   const file=join(dir,'preview.json');
+   assert.equal((await run([...cmd,'--report',file],{previewRunner:async()=>PREVIEW_RECEIPT})).exitCode,0);
+   await assert.rejects(run([...cmd,'--report',file],{previewRunner:async()=>PREVIEW_RECEIPT}),
+     {code:'EEXIST'});
+ });
 });
