@@ -43,7 +43,7 @@ test('Gherkin: evaluate every actual authored answer against independently froze
  const passes=[];
  for(const r of emulation.responses){
    const result=scoreSpectrum(JSON.stringify(r.answer),byId.get(r.id));
-   const g=groupTotals[r.group]??{passed:0,total:0};
+   const g=groupTotals[r.group]??(groupTotals[r.group]={passed:0,total:0});
    g.total++;
    if(result.pass){g.passed++;passes.push(r.id);}
    else failures.push({id:r.id,flags:result.flags});
