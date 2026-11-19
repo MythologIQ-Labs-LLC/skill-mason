@@ -4,7 +4,8 @@ from types import SimpleNamespace
 import unittest
 
 from scripts.catalog_handoff import Refusal, canonical, sha256
-from scripts.prism_input_preflight import prepare_preflight
+from scripts.prism_input_preflight import prepare_preflight, preflight_from_comparison
+from scripts.candidate_comparison import compare
 
 
 class PrismInputPreflightTests(unittest.TestCase):
@@ -255,6 +256,79 @@ class PrismInputPreflightTests(unittest.TestCase):
         self.assertEqual(report["additional_blockers"][0]["code"], "SOURCE_RETIRED")
         self.assertFalse(report["composition_eligible"])
 
+
+
+    def test_gherkin_same_external_bytes_are_inspected_once_across_c4_and_c5(self):
+        calls = []
+        def inspected(*args, **kwargs):
+            calls.append((args[1], args[2], kwargs["expected_repo_tree"]))
+            return self.inspect_external(*args, **kwargs)
+        selection = {"record_id": "governed:external/other",
+                     "checkout": "/fixed/source", "repo_tree": "e"*40}
+        comparison = compare(
+            self.graph, "software-engineering/frontend", "ChatGPT",
+            include_lexical=False, package_inspector=self.inspect_first,
+            external_inspector=inspected, external_selection=selection)
+        receipt = preflight_from_comparison(
+            self.graph, "software-engineering/frontend", "ChatGPT",
+            "governed:external/other", comparison, external_selection=selection)
+        self.assertEqual(len(calls), 1, "C5 must not reread the external Git checkout")
+        self.assertTrue(receipt["source_package_bytes_verified"])
+        self.assertEqual(receipt["binding"]["comparison_receipt_sha256"],
+                         sha256(canonical(comparison)))
+        chosen = next(x for x in comparison["evidence_linked_reviews"]
+                      if x["governed_id"] == "external/other")
+        self.assertEqual(receipt["binding"]["package_inspection_sha256"],
+                         sha256(canonical(chosen["package_bytes"])))
+        self.assertEqual(receipt["binding_sha256"],
+                         sha256(canonical(receipt["binding"])))
+        self.assertEqual(receipt["typed_generation_refusal"]["codes"][0],
+                         "STATIC_REVIEW_REJECTED")
+        self.assertFalse(receipt["operator_accepted_rights"])
+        self.assertFalse(receipt["composition_eligible"])
+
+    def test_gherkin_same_process_preflight_rejects_swapped_source_and_authority(self):
+        selection = {"record_id": "governed:external/other",
+                     "checkout": "/fixed/source", "repo_tree": "e"*40}
+        actual = compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                         include_lexical=False,
+                         package_inspector=self.inspect_first,
+                         external_inspector=self.inspect_external,
+                         external_selection=selection)
+        for mutator in [
+            lambda x: x.update({"route": "software-engineering/backend"}),
+            lambda x: x.update({"target_host_requested_not_approved": "Other"}),
+            lambda x: x.update({"externally_inspected_governed_id":
+                                 "governed:external/unknown"}),
+            lambda x: x.update({"composition_eligible": True}),
+            lambda x: x["evidence_linked_reviews"][0].update({"eligible": True}),
+            lambda x: x["evidence_linked_reviews"][0].update(
+                {"source_class": "first-party"}),
+            lambda x: x["evidence_linked_reviews"][0]["package_bytes"].update(
+                {"rights_and_host_still_unapproved": False}),
+        ]:
+            with self.subTest(mutator=str(mutator)):
+                altered = deepcopy(actual)
+                mutator(altered)
+                with self.assertRaises(Refusal) as err:
+                    preflight_from_comparison(
+                        self.graph, "software-engineering/frontend", "ChatGPT",
+                        "governed:external/other", altered,
+                        external_selection=selection)
+                self.assertIn(err.exception.code,
+                              ("COMPARISON_INTEGRITY", "EXTERNAL_ASSET_REVIEW"))
+
+    def test_gherkin_same_process_preflight_requires_exact_source_review_set(self):
+        comparison = compare(self.graph, "software-engineering/frontend", "ChatGPT",
+                             include_lexical=False,
+                             package_inspector=self.inspect_first)
+        comparison["evidence_linked_reviews"].pop()
+        comparison["evidence_linked_review_count"] = 1
+        with self.assertRaises(Refusal) as err:
+            preflight_from_comparison(
+                self.graph, "software-engineering/frontend", "ChatGPT",
+                "governed:first/example", comparison)
+        self.assertEqual(err.exception.code, "COMPARISON_INTEGRITY")
 
 if __name__ == "__main__":
     unittest.main()
