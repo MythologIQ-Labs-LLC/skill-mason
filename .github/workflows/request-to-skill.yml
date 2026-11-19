@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/request_to_skill.py'
       - 'tests/test_request_to_skill.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
       - 'bin/qortara-skills.mjs'
       - 'tests/local_cli.test.mjs'
       - 'docs/technical/request-to-skill-cli-v1.md'
@@ -15,6 +17,8 @@ on:
     paths:
       - 'scripts/request_to_skill.py'
       - 'tests/test_request_to_skill.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
       - 'bin/qortara-skills.mjs'
       - 'tests/local_cli.test.mjs'
       - '.github/workflows/request-to-skill.yml'
@@ -44,6 +48,7 @@ jobs:
           python3 --version
           node --version
           python3 -m unittest discover -s tests -p 'test_request_to_skill.py' -v
+          python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
           node --test tests/local_cli.test.mjs
       - name: Checkout immutable Skillz handoff
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -133,6 +138,100 @@ jobs:
           PY
           git status --porcelain --untracked-files=all > request-evidence/source-status.txt
           test -z "$(git status --porcelain --untracked-files=all | grep -v -e '^?? request-evidence/' -e '^?? skillz-export/' -e '^?? skillz-source/' || true)"
+      - name: Checkout exact external first-party-owned upstream sample without executing its contents
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: anthropics/skills
+          ref: 8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4
+          path: external-source
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Gherkin real ordinary CLI C3-C4-C5 same-source package and tamper controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C external-source rev-parse HEAD)" = 8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4
+          test "$(git -C external-source rev-parse 'HEAD^{tree}')" = d482eba557f7b2035c8a83589809628b96f6f40e
+          set +e
+          python3 -m scripts.request_to_skill \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Build an accessible responsive UI component with keyboard interactions" \
+            --route software-engineering/frontend \
+            --host ChatGPT \
+            --method governed:anthropic-skills/frontend-design \
+            --external-checkout external-source \
+            --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+            > request-evidence/pinned-external-python.json
+          python_rc=$?
+          (
+            cd request-evidence
+            node ../bin/qortara-skills.mjs create \
+              --handoff ../skillz-export/registry/exports/skill-mason-v1 \
+              --source-checkout ../skillz-source \
+              --request "Build an accessible responsive UI component with keyboard interactions" \
+              --route software-engineering/frontend \
+              --host ChatGPT \
+              --method governed:anthropic-skills/frontend-design \
+              --external-checkout ../external-source \
+              --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+              > pinned-external-cli.json
+          )
+          cli_rc=$?
+          node bin/qortara-skills.mjs create \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Build an accessible responsive UI component with keyboard interactions" \
+            --route software-engineering/frontend --host ChatGPT \
+            --method governed:anthropic-skills/frontend-design \
+            --external-checkout external-source \
+            --external-repository-tree 0000000000000000000000000000000000000000 \
+            > request-evidence/external-wrong-tree-denial.json
+          tamper_rc=$?
+          set -e
+          test "$python_rc" -eq 2
+          test "$cli_rc" -eq 2
+          test "$tamper_rc" -eq 2
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("request-evidence")
+          python = json.loads((root / "pinned-external-python.json").read_text())
+          cli = json.loads((root / "pinned-external-cli.json").read_text())
+          wrong = json.loads((root / "external-wrong-tree-denial.json").read_text())
+          assert python == cli, "ordinary Node CLI must faithfully delegate the real pinned external C3-C4-C5 receipt"
+          assert python["state"] == "REFUSED_PRE_ADMISSION"
+          assert python["refusal"]["code"] == "RIGHTS_UNRESOLVED"
+          assert python["exact_source_package_bytes_verified"] is True
+          assert python["selected_package_comparison_source_bound"] is True
+          assert python["comparison_reused_for_preflight_without_second_source_scan"] is True
+          assert python["selected_source_binding_sha256"] and len(python["selected_source_binding_sha256"]) == 64
+          assert python["inspected_governed_record_not_selected_for_composition"] == (
+              "governed:anthropic-skills/frontend-design")
+          rows = [x for x in python["candidates"]
+                  if x["governed_id"] == "anthropic-skills/frontend-design"]
+          assert len(rows) == 1
+          package = rows[0]["package_bytes"]
+          assert package["status"] == "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED"
+          assert package["package_files"] == 2
+          assert package["asset_files_requiring_review"] == 2
+          assert package["source_license_pointer_evidence_present"] is True
+          assert package["source_asset_rights_and_dependencies_still_unqualified"] is True
+          assert package["rights_and_host_still_unapproved"] is True
+          assert package["package_git_tree_sha1"] == "d79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6"
+          assert "SOURCE_PACKAGE_BYTES_UNVERIFIED" not in python["refusal"]["codes"]
+          for key in ("production_eligible","method_rights_established","host_validated",
+                      "prism_invoked","composer_invoked","output_package_created"):
+              assert python[key] is False, key
+          assert wrong["state"] == "REFUSED_PRE_ADMISSION"
+          assert wrong["refusal"]["code"] in ("EXTERNAL_SOURCE_PIN","EXTERNAL_PIN")
+          assert wrong["composer_invoked"] is False
+          assert wrong["output_package_created"] is False
+          print("REAL SINGLE-PASS C3-C4-C5 PASS: two Git-verified files, one license pointer,")
+          print("same direct-Python/caller-directory-Node response, no rights approval, wrong-tree refused")
+          PY
       - name: Upload bounded real source and refusal evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
