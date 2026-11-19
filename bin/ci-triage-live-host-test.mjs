@@ -112,6 +112,8 @@ export async function runHostTrial({packageDir,cases,model,token,
      !Array.isArray(sources.methods)||sources.methods.length!==1||
      sources.methods[0].id!=='ci-failure-triage')
     refuse('HOST_SKILL','unqualified candidate cannot promote its own rights');
+  // Test injection can exercise scoring, never impersonate a real provider call.
+  const observedLive = live===true && completion===openAiCompletion;
   const rows=[];
   for(const item of validateCases(cases)){
     const arms={};
@@ -126,15 +128,15 @@ export async function runHostTrial({packageDir,cases,model,token,
   const scores=Object.fromEntries(['baseline','generated_skill'].map(arm=>
     [arm,rows.filter(r=>r.arms[arm].passed).length]));
   return {schema:'qortara/ci-triage-real-host-trial/1',
-    state:live?'LIVE_HOST_RESPONSES_OBSERVED':'TEST_DOUBLE_NO_HOST_OBSERVATION',
+    state:observedLive?'LIVE_HOST_RESPONSES_OBSERVED':'TEST_DOUBLE_NO_HOST_OBSERVATION',
     model,manifestSha256:verified.packageSha256,
     cases:rows.length,downstreamModelCalls:rows.length*2,
     assemblyInference:'NOT_MEASURED_BY_HOST_TRIAL',
-    hostInstalledSkill:false,hostBehaviorObserved:live,
+    hostInstalledSkill:false,hostBehaviorObserved:observedLive,
     legalReuseQualified:false,operatorAcceptanceReplayed:false,prismProofReplayed:false,
     productionEligible:false,scores,
-    skillImprovedOverBaseline:live&&scores.generated_skill>scores.baseline,
-    skillPassedAllTasks:live&&scores.generated_skill===rows.length,rows};
+    skillImprovedOverBaseline:observedLive&&scores.generated_skill>scores.baseline,
+    skillPassedAllTasks:observedLive&&scores.generated_skill===rows.length,rows};
 }
 export async function main(argv=process.argv.slice(2)){
   const f={};
