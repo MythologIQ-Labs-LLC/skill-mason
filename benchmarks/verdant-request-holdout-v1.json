@@ -1,0 +1,281 @@
+{
+  "schema": "qortara/heldout-request-benchmark/1",
+  "purpose": "evaluate_request_interpretation_not_method_qualification",
+  "status": "EXPERIMENTAL_AUTHOR_LABELED_NOT_INDEPENDENT_GOLD",
+  "source_of_candidate_route_descriptions": "docs/technical/essential-workflow-proposals-v1.json",
+  "expected_recognized_routes": 13,
+  "case_count": 45,
+  "label_caveat": "Outside the thirteen evaluated routes is not globally absent from Skillz. Expected route is not proof of rights or skill correctness.",
+  "cases": [
+    {
+      "id": "IN-01-1",
+      "prompt": "Make a web signup form usable by keyboard on narrow phone screens",
+      "expected_route": "software-engineering/frontend",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-01-2",
+      "prompt": "Implement responsive navigation that works on touch devices and large desktop browsers",
+      "expected_route": "software-engineering/frontend",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-01-3",
+      "prompt": "Produce a reusable interface widget with screen reader labels and sensible focus behavior",
+      "expected_route": "software-engineering/frontend",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-02-1",
+      "prompt": "Check whether blind users can finish checkout with only a screen reader",
+      "expected_route": "testing/accessibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-02-2",
+      "prompt": "Find focus traps and broken tab ordering in a multi step onboarding flow",
+      "expected_route": "testing/accessibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-02-3",
+      "prompt": "Audit missing alternative text and keyboard regressions against a declared accessibility standard",
+      "expected_route": "testing/accessibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-03-1",
+      "prompt": "Can this release ship if transitive dependencies lack signed build attestations?",
+      "expected_route": "security/supply-chain",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-03-2",
+      "prompt": "Trace artifact origin, build manifests and package provenance before deployment",
+      "expected_route": "security/supply-chain",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-03-3",
+      "prompt": "Inspect a lockfile and dependency integrity evidence before approving a software shipment",
+      "expected_route": "security/supply-chain",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-04-1",
+      "prompt": "Balance resource generation and action points in competitive turn based combat",
+      "expected_route": "game-design/systems-balancing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-04-2",
+      "prompt": "Determine whether one player faction has unfair turn economy compared with another",
+      "expected_route": "game-design/systems-balancing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-04-3",
+      "prompt": "Compare damage output and cost for symmetrical teams under tabletop combat rules",
+      "expected_route": "game-design/systems-balancing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-05-1",
+      "prompt": "Show where an agent recalled a statement from and whether its original record was deleted",
+      "expected_route": "memory-context/provenance",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-05-2",
+      "prompt": "Audit long term conversation facts against the revision of their original source",
+      "expected_route": "memory-context/provenance",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-05-3",
+      "prompt": "Trace why remembered information was retrieved and its original scope restrictions",
+      "expected_route": "memory-context/provenance",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-06-1",
+      "prompt": "Repeat a journal numerical experiment using the disclosed input dataset",
+      "expected_route": "science/reproducibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-06-2",
+      "prompt": "Check whether an independent analysis reproduces published confidence intervals",
+      "expected_route": "science/reproducibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-06-3",
+      "prompt": "Rebuild a research result using the stated method and measure numerical drift",
+      "expected_route": "science/reproducibility",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-07-1",
+      "prompt": "Observe participants completing an agreed consented task study",
+      "expected_route": "ux-ui/usability-testing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-07-2",
+      "prompt": "Conduct a user interview and record task completion issues during the session",
+      "expected_route": "ux-ui/usability-testing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-07-3",
+      "prompt": "Report friction points while participants navigate a product onboarding journey",
+      "expected_route": "ux-ui/usability-testing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-08-1",
+      "prompt": "Compare four bit and eight bit inference for a fixed neural model under the same accuracy budget",
+      "expected_route": "ml-accelerators/model-quantization",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-08-2",
+      "prompt": "Benchmark compressed weights against GPU memory constraints and output quality",
+      "expected_route": "ml-accelerators/model-quantization",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-08-3",
+      "prompt": "Select a precision profile for local text inference under a strict VRAM ceiling",
+      "expected_route": "ml-accelerators/model-quantization",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-09-1",
+      "prompt": "Define exactly which remote actions an AI agent tool can invoke",
+      "expected_route": "agent-mcp-development/tool-design",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-09-2",
+      "prompt": "Audit an MCP tool input schema, output contract and filesystem permissions",
+      "expected_route": "agent-mcp-development/tool-design",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-09-3",
+      "prompt": "Test agent API functions for authority escalation and unapproved side effects",
+      "expected_route": "agent-mcp-development/tool-design",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-10-1",
+      "prompt": "Blend dialogue tracks with ambience to meet broadcast loudness targets",
+      "expected_route": "audio-voice-sound/mixing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-10-2",
+      "prompt": "Check spectral masking and intelligibility in a multitrack sound delivery",
+      "expected_route": "audio-voice-sound/mixing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-10-3",
+      "prompt": "Master a podcast episode to specified LUFS values without clipping",
+      "expected_route": "audio-voice-sound/mixing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-11-1",
+      "prompt": "Verify drawing dimensions and machining tolerances against the design revision",
+      "expected_route": "3d-cad-animation/technical-drawing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-11-2",
+      "prompt": "Inspect a mechanical blueprint for consistent units and missing annotations",
+      "expected_route": "3d-cad-animation/technical-drawing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-11-3",
+      "prompt": "Review a CAD export against reference geometry and dimension callouts",
+      "expected_route": "3d-cad-animation/technical-drawing",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-12-1",
+      "prompt": "Build a hazard checklist for a simulated robot without activating real motors",
+      "expected_route": "robotics-iot/safety",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-12-2",
+      "prompt": "Evaluate emergency stop and safe operating bounds inside an IoT sandbox",
+      "expected_route": "robotics-iot/safety",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-12-3",
+      "prompt": "Prepare safety tests for mocked actuator failures in a robotics workflow",
+      "expected_route": "robotics-iot/safety",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-13-1",
+      "prompt": "Summarize the evidence quality of randomized clinical trials about a narrowly defined question",
+      "expected_route": "medicine/evidence-appraisal",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-13-2",
+      "prompt": "Compare research bias and confidence intervals without making patient care recommendations",
+      "expected_route": "medicine/evidence-appraisal",
+      "kind": "in_scope"
+    },
+    {
+      "id": "IN-13-3",
+      "prompt": "Critically appraise dated health studies and systematic review evidence",
+      "expected_route": "medicine/evidence-appraisal",
+      "kind": "in_scope"
+    },
+    {
+      "id": "OUT-1",
+      "prompt": "Write a funny birthday poem for my colleague",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    },
+    {
+      "id": "OUT-2",
+      "prompt": "Where is the nearest seafood lunch spot to me?",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    },
+    {
+      "id": "OUT-3",
+      "prompt": "Which stocks will make me rich next week?",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    },
+    {
+      "id": "OUT-4",
+      "prompt": "What is the best way to bypass an authentication gate and take another person's browser cookies?",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    },
+    {
+      "id": "OUT-5",
+      "prompt": "What is the password to my personal account?",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    },
+    {
+      "id": "OUT-6",
+      "prompt": "Give me driving directions from the airport to my home",
+      "expected_route": null,
+      "kind": "outside_13_route_experiment"
+    }
+  ]
+}

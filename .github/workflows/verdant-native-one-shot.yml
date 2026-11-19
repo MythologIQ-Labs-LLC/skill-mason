@@ -1,0 +1,86 @@
+name: Verdant actual native intent trial (one-shot, not a merge gate)
+
+on:
+  pull_request:
+    types: [opened]
+    paths:
+      - 'benchmarks/verdant-request-holdout-v1.json'
+
+permissions:
+  contents: read
+
+jobs:
+  native-verdant-45-requests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: '0'
+      RUSTUP_TOOLCHAIN: '1.97.1'
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout evaluation data (no persisted auth)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout original Verdant pinned revision (not production trusted)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: afflom/verdant-engine
+          ref: 9e356f25dce15ae15dfd87169baf0fb0fba549a5
+          path: verdant-evaluation-source
+          persist-credentials: false
+          submodules: false
+      - name: Build pinned Verdant CLI in isolated runner, with bounded budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C verdant-evaluation-source rev-parse HEAD)" = 9e356f25dce15ae15dfd87169baf0fb0fba549a5
+          rustup toolchain install 1.97.1 --profile minimal
+          cargo build --locked --manifest-path verdant-evaluation-source/Cargo.toml --package verdant-cli
+          test -x verdant-evaluation-source/target/debug/verdant
+      - name: Execute all original requests through native Verdant, no guessed route mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          from scripts.evaluate_request_language import validate_inputs
+          from scripts.verdant_fit_eval import run_native_cli
+          cases=json.loads(Path('benchmarks/verdant-request-holdout-v1.json').read_text())
+          proposals=json.loads(Path('docs/technical/essential-workflow-proposals-v1.json').read_text())
+          validate_inputs(cases,proposals)
+          slugs={'focus-observer','drive-vehicle','render-tile-wasm','render-webgl2',
+                 'stream-uorc-lod3','stream-uorc-lod4','stitch-shard-sync','inspect-formal-ui',
+                 'step-xpbd-physics','open-role-dashboard','open-role-code','open-role-design',
+                 'open-role-audio','open-role-director','open-role-gameplay','narrative-interact'}
+          prompts=[{'route': x['expected_route'] or 'OUTSIDE_13_ROUTE_SCOPE',
+                    'objective': x['prompt']} for x in cases['cases']]
+          raw=run_native_cli(str(Path('verdant-evaluation-source/target/debug/verdant').resolve()),prompts,slugs)
+          assert len(raw)==45
+          assert all(x['state']!='EXECUTION_UNAVAILABLE' for x in raw)
+          outcome={
+            'schema':'qortara/native-verdant-intent-trial/1',
+            'upstream_commit':'9e356f25dce15ae15dfd87169baf0fb0fba549a5',
+            'execution':'ACTUAL_NATIVE_CODED_SLM_DIRECTOR',
+            'route_mapping':'NONE_NO_SKILLZ_ROUTE_APPROVAL',
+            'interpreted_skill_outcomes':'NOT_MEASURED',
+            'rights_approval':False,
+            'task_success':'NOT_MEASURED',
+            'case_count':45,
+            'engine_intent_outputs':sum(x['state']=='ENGINE_INTENT_UNMAPPED_TO_SKILLZ' for x in raw),
+            'refusals_or_unexpected':sum(x['state']=='UPSTREAM_REFUSAL_OR_UNEXPECTED_RESPONSE' for x in raw),
+            'results':raw}
+          dest=Path('/tmp/native-verdant-45.json')
+          dest.write_text(json.dumps(outcome,indent=2,sort_keys=True))
+          print(json.dumps({k:v for k,v in outcome.items() if k!='results'},indent=2,sort_keys=True))
+          print('NATIVE VERDANT 45-REQUEST TRIAL RECORDED; engine intents are NOT Skillz route predictions')
+          PY
+      - name: Retain exact original native engine outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: verdant-native-intents-45-cases
+          path: /tmp/native-verdant-45.json
+          if-no-files-found: ignore
+          retention-days: 14

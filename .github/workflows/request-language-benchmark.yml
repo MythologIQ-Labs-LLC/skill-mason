@@ -1,0 +1,73 @@
+name: Request understanding benchmark (pinned source, no model)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/evaluate_request_language.py'
+      - 'tests/test_evaluate_request_language.py'
+      - 'benchmarks/verdant-request-holdout-v1.json'
+      - 'docs/technical/verdant-request-benchmark-v1.md'
+      - '.github/workflows/request-language-benchmark.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  original-pinned-route-comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout Skill Mason without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check held-out author labels and refusal boundaries
+        run: python3 -m unittest discover -s tests -p 'test_evaluate_request_language.py' -v
+      - name: Checkout exact original Skillz export and historical source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          submodules: false
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Independent source-worktree pin and benchmark execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+          python3 -m scripts.evaluate_request_language \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > /tmp/request-language-benchmark.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/request-language-benchmark.json').read_text())
+          assert d['pinned_source_commit']=='31a8c518dd97b7828adcc728202fa41388a306d7'
+          assert len(d['records'])==45
+          assert d['native_verdant']=='NOT_RUN'
+          assert d['source_rights_assessed'] is False if 'source_rights_assessed' in d else not d['rights_assessed']
+          assert d['composition_eligible'] is False
+          assert d['essential_outcome_precision_recall']=='NOT_MEASURED'
+          assert d['ground_truth_quality']=='EXPERIMENTAL_AUTHOR_LABELED'
+          for arm in ('baseline_metrics','grounded_metrics'):
+            m=d[arm]
+            assert m['top1_correct_of_39']+m['incorrect_nonabstaining_of_39']+m['in_scope_abstentions_of_39']==39
+            assert m['out_of_13_scope_false_positive_of_6']+m['out_of_13_scope_abstentions_of_6']==6
+          print('ACTUAL PINNED CORPUS BENCHMARK COMPLETE: 45 original task prompts, 13 draft routes, 6 out-of-scope controls')
+          print(json.dumps({key:d[key] for key in ('schema','baseline','candidate','baseline_metrics','grounded_metrics','ground_truth_quality','native_verdant','essential_outcome_precision_recall','rights_assessed','host_validated','composition_eligible','evidence_sha256')},indent=2,sort_keys=True))
+          PY
+      - name: Retain raw case-by-case result from original pinned source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: request-understanding-45-cases
+          path: /tmp/request-language-benchmark.json
+          if-no-files-found: ignore
+          retention-days: 14
