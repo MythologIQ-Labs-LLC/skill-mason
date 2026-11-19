@@ -3,10 +3,19 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/snapshot_accession.py'
+      - 'tests/test_snapshot_accession.py'
+      - 'docs/technical/snapshot-accession-v1.md'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
+      - 'scripts/live_capability_probe.py'
+      - 'tests/test_live_capability_probe.py'
+      - 'docs/technical/live-capability-evaluation-v1.md'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
       - 'docs/technical/essential-workflow-proposals-v1.json'
@@ -29,10 +38,19 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/snapshot_accession.py'
+      - 'tests/test_snapshot_accession.py'
+      - 'docs/technical/snapshot-accession-v1.md'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
+      - 'scripts/live_capability_probe.py'
+      - 'tests/test_live_capability_probe.py'
+      - 'docs/technical/live-capability-evaluation-v1.md'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
       - 'docs/technical/essential-workflow-proposals-v1.json'
@@ -71,6 +89,9 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
+          python3 -m unittest discover -s tests -p 'test_live_capability_probe.py' -v
+          python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
+          python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -111,6 +132,11 @@ jobs:
             --source-checkout skillz-source \
             --proposals docs/technical/essential-workflow-proposals-v1.json \
             summary --limit 40 > corpus-capability-gaps.json
+          python3 -m scripts.live_capability_probe \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            > corpus-live-capability-probe.json
           python3 -m scripts.capability_gap_backlog \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
@@ -120,9 +146,24 @@ jobs:
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
             --route "software-engineering/frontend" --host ChatGPT --limit 5 > corpus-comparison-example.json
+          python3 -m scripts.prism_input_preflight \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route software-engineering/frontend --host ChatGPT \
+            --governed-record governed:anthropic-skills/frontend-design \
+            > corpus-prism-denial-preflight.json
           python3 -m scripts.package_resolver \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source first-party-scan > corpus-package-scan.json
+          python3 -m scripts.snapshot_accession \
+            --old-handoff skillz-export/registry/exports/skill-mason-v1 \
+            --old-source-checkout skillz-source \
+            --candidate-handoff skillz-export/registry/exports/skill-mason-v1 \
+            --candidate-source-checkout skillz-source \
+            --candidate-manifest-blob 55974d44fdfde36bd537a552feac933c341e1895 \
+            --candidate-source-commit 31a8c518dd97b7828adcc728202fa41388a306d7 \
+            --candidate-source-tree e6d5dfeb42bcd7777ddff52605922fead62135ff \
+            > corpus-accession-noop.json
           python3 -m scripts.corpus_evolution \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source summary > corpus-evolution-summary.json
@@ -165,6 +206,26 @@ jobs:
           assert not focus["actual_registered_essential_outcomes"] and not focus["composition_eligible"]
           print("Recognized capability gap categories:", gaps["gap_categories"])
           print("Cross-domain draft outcomes pending upstream review:", gaps["draft_workflow_proposals_pending_review"])
+          bridge = json.loads(Path("corpus-prism-denial-preflight.json").read_text())
+          assert bridge["state"] == "UNSIGNED_P0_DENIAL_VECTOR_NOT_READY_FOR_COMPOSITION"
+          assert bridge["binding"]["governed_id"] == "anthropic-skills/frontend-design"
+          assert bridge["binding"]["requested_route"] == "software-engineering/frontend"
+          assert bridge["source_package_bytes_verified"] is False
+          assert bridge["negative_test_vector_hex"] == "00000000"
+          refusal = bridge["typed_generation_refusal"]
+          assert refusal["state"] == "REFUSED_PRE_ADMISSION"
+          assert refusal["source_record_id"] == "anthropic-skills/frontend-design"
+          assert refusal["codes"][0] == "SOURCE_PACKAGE_BYTES_UNVERIFIED"
+          assert refusal["no_method_composed"] and refusal["not_a_prism_guest_verdict"]
+          assert all(v is False for v in bridge["facts_verified"].values())
+          assert bridge["expected_guest_refusals"] == [
+              "EVIDENCE_UNQUALIFIED", "RIGHTS_UNRESOLVED",
+              "AUTHORITY_EXCEEDED", "OUTCOME_UNCOVERED"]
+          assert bridge["independently_authenticated_method_assertion"] is False
+          assert bridge["prism_invoked"] is False and bridge["prism_guest_decision"] is None
+          assert bridge["production_eligible"] is False
+          assert bridge["composition_eligible"] is False
+          print("Exact pinned source-to-Prism negative input: bound source, zero unsigned facts, NO ADMISSION")
           cmp = json.loads(Path("corpus-comparison-example.json").read_text())
           assert cmp["route"] == "software-engineering/frontend"
           assert cmp["declared_observation_rows_swept"] == 66139
@@ -181,6 +242,30 @@ jobs:
           assert not pkg["rights_assessed"] and not pkg["host_qualified"]
           assert not pkg["composition_eligible"] and not pkg["third_party_complete_packages_assessed"]
           print("First-party package inspection outcomes:", pkg["results_by_status"])
+          accession = json.loads(Path("corpus-accession-noop.json").read_text())
+          assert accession["state"] == "PINNED_SNAPSHOT_DIFF_ONLY"
+          assert not accession["exact_revisions_differ"] and not accession["data_delta_nonempty"]
+          assert accession["governed"]["before"] == accession["governed"]["after"] == 1043
+          assert accession["observed_source_rows"]["before"] == accession["observed_source_rows"]["after"] == 66139
+          assert accession["tracked_source_files"]["before"] == accession["tracked_source_files"]["after"] == 2825
+          for family in ("governed", "observed_source_rows", "tracked_source_files"):
+              assert all(accession[family][kind]["count"] == 0 for kind in ("added", "removed", "changed"))
+          stable = accession["source_aware_observation_multiset"]
+          assert stable["before_observations"] == stable["after_observations"] == 66139
+          assert stable["unchanged_observation_occurrences"] == 66139
+          assert stable["added"]["occurrences"] == 0
+          assert stable["removed"]["occurrences"] == 0
+          assert stable["all_duplicate_occurrences_preserved"]
+          assert stable["cross_shard_path_and_row_number_independent"]
+          assert not stable["source_content_reuse_rights_inferred"]
+          assert not accession["source_shard_repacking_may_explain_pointer_delta"]
+          assert accession["review_status_transitions"] == []
+          assert accession["taxonomy_artifacts_changed"] == []
+          assert not accession["candidate_snapshot_auto_imported"]
+          assert not accession["snapshot_accession_authorized"]
+          assert not accession["composition_eligible"]
+          assert not accession["candidate_publisher_independently_authenticated"]
+          print("Full exact-pinned source accession no-op:", "1043 reviewed, 66139 observed, 2825 tracked, 0 delta, NO ADMISSION")
           evolution = json.loads(Path("corpus-evolution-summary.json").read_text())
           assert evolution["observed_path_rows"] == 66139
           assert evolution["source_family_rows"] == {"four-source": 4813, "g1-g3": 61326}
@@ -191,6 +276,20 @@ jobs:
 
           print("C2 recognized capability outcome definitions missing:", graph["outcome_definitions_missing"])
           print("C2 routes with unqualified/unknown essential outcomes:", graph["unqualified_or_unknown_outcome_routes"])
+          probe = json.loads(Path("corpus-live-capability-probe.json").read_text())
+          assert probe["state"] == "LIVE_PINNED_SOURCE_INSPECTION_NOT_SKILL_QUALIFICATION"
+          assert probe["tested_distinct_routes"] == probe["proposal_count"] == 13
+          assert len({row["route"] for row in probe["scenarios"]}) == 13
+          assert all(row["state"] == "REFUSED_PRE_ADMISSION" and
+                     not row["composition_eligible"] and not row["prism_invoked"] and
+                     row["chosen_method"] is None for row in probe["scenarios"])
+          assert probe["qualified_skills"] == 0 and not probe["rights_accepted"]
+          assert probe["real_host_invocations"] == probe["actual_prism_guest_invocations"] == 0
+          assert probe["routes_with_evidence_linked_reviews"] + probe["routes_with_no_evidence_linked_reviews"] == 13
+          print("LIVE PINNED CAPABILITY PROBE:", probe["tested_distinct_routes"],
+                "cross-domain task requests, sources inspected", probe["sampled_governed_records_count"],
+                "byte-verified", probe["sampled_original_source_bytes_verified_count"],
+                "admitted 0; refusal codes", probe["refusal_code_occurrences_not_unique_skills"])
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
           PY
       - name: Upload non-content reconciliation receipt
@@ -201,9 +300,12 @@ jobs:
             corpus-index-summary.json
             corpus-capability-summary.json
             corpus-evolution-summary.json
+            corpus-accession-noop.json
             corpus-package-scan.json
             corpus-comparison-example.json
+            corpus-prism-denial-preflight.json
             corpus-capability-gaps.json
+            corpus-live-capability-probe.json
             corpus-workflow-proposal-example.json
           retention-days: 14
           if-no-files-found: error

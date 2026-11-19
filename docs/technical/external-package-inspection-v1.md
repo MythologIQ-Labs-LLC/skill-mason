@@ -15,6 +15,7 @@ The governed \`skillz\` handoff preserves external repository, source commit, or
 5. Complete recursive tracked file inventory in that subtree, including nested assets, with regular Git blob modes only; reject Gitlinks, symlinks and unsupported modes.
 6. Actual on-disk files match the full Git inventory with no extra ignored/untracked files, missing files or symlinks. Hash each actual file against its exact Git blob and report its SHA-256 and byte count. Accept bounded empty regular files.
 7. Read-only, incomplete inline Markdown reference leads. Report unresolved within-package, out-of-package and remote URL references as unqualified; do not fetch them. This is **not** evidence of transitive dependency closure.
+8. A separate [whole-package reference and asset inventory](package-reference-inventory-v1.md) accounts for **every exact-verified file**, categorizes scripts/media/legal notices as independent review subjects, scans bounded nested Markdown links relative to their own directories, and recognizes the entrypoint frontmatter `license:` pointer. Even a matching exact `LICENSE.txt` remains evidence for legal review, not clearance. A pinned digest of this queue is passed to the C4 comparator and onward to the source-to-Prism preflight. All composition/host/rights states remain false.
 
 Inputs are bounded to 2,000 files, 16 MB per file, 64 MB total. The underlying source index still verifies the **separately pinned, complete original \`skillz\` source checkout and handoff before external inspection**.
 

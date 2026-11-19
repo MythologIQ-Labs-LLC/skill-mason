@@ -31,6 +31,10 @@ python3 -m scripts.candidate_comparison \
 
 Use --no-lexical when a full path-observation sweep is not requested; the receipt explicitly records that reduced search scope.
 
+## Exact-pinned per-asset rights-review evidence (development C3/C4 follow-on)
+
+For an explicitly inspected external source, the comparator now requires both the original pinned Git-object proof and a complete source-file **rights-review queue** with no false approval state. The output binds the SHA-256 of this verified file/notice/reference inventory alongside package Git tree and entrypoint blob. Its digest is not an authority signature, legal clearance, dynamic dependency closure, or a method ranking. Missing or forged Git proof, malformed license pointers and claims of all-rights-cleared cause explicit refusal. The next source-bound Prism preflight also binds this digest as part of the package-inspection receipt.
+
 ## Optional exact-pinned third-party package evidence (development follow-on)
 
 When an external source is explicitly selected, the caller supplies `--external-record`, `--external-checkout` and `--external-repository-tree` together. The record must be an exact evidence-linked third-party candidate on the requested recognized capability route. The comparison invokes the source-tree and actual-file verifier directly; it never accepts a caller-supplied byte-receipt JSON as proof. Any mismatch refuses the comparison. A successful source byte check does **not** change the categorical rights/host/behavior hold or set a chosen method. See [real Git acceptance](external-package-inspection-v1.md).

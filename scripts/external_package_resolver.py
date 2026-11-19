@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 from scripts.catalog_handoff import COMMIT, Refusal, git_blob, require, sha256
 from scripts.catalog_index import CorpusIndex
 from scripts.package_resolver import _markdown_leads
+from scripts.package_reference_inventory import build_reference_inventory
 from scripts.verify_catalog_source import git, read_source, safe_relative
 
 SCHEMA = "qortara/external-package-inspection/1"
@@ -186,6 +187,7 @@ def inspect_external(index, record_id, checkout, *, expected_repo_tree):
     require(observed_actual == set(entries),
             "EXTERNAL_WORKTREE_DRIFT", "actual package has untracked, missing or ignored files")
     files = []
+    verified_bytes = {}
     total = 0
     for rel, oid in sorted(entries.items()):
         path = dirname + "/" + rel
@@ -212,6 +214,8 @@ def inspect_external(index, record_id, checkout, *, expected_repo_tree):
                 "external package exceeds cumulative byte ceiling")
         files.append({"relative_path": rel, "sha256": sha256(raw),
                       "git_blob_sha1": oid, "bytes": len(raw)})
+        verified_bytes[rel] = raw
+    reference_inventory = build_reference_inventory(verified_bytes, files)
     skill_bytes = (Path(checkout) / dirname / "SKILL.md").read_bytes()
     try:
         leads = _markdown_leads(skill_bytes, set(entries))
@@ -238,6 +242,7 @@ def inspect_external(index, record_id, checkout, *, expected_repo_tree):
         "complete_tracked_package_files_verified": len(files),
         "package_bytes_verified": total, "files": files,
         "reference_leads": leads,
+        "complete_package_reference_and_asset_review_queue": reference_inventory,
         "recorded_license_claim_not_clearance": rights.get("recorded_license"),
         "license_or_notice_files_present": [x["relative_path"] for x in files
               if x["relative_path"].lower().endswith(

@@ -4,7 +4,17 @@ on:
     paths:
       - 'scripts/external_package_resolver.py'
       - 'tests/test_external_package_resolver.py'
+      - 'scripts/package_reference_inventory.py'
+      - 'tests/test_package_reference_inventory.py'
+      - 'docs/technical/package-reference-inventory-v1.md'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'scripts/source_acceptance_gate.mjs'
+      - 'tests/source_acceptance_gate.test.mjs'
+      - 'tests/integration/source_acceptance_p0_adapters.mjs'
+      - 'docs/technical/source-acceptance-gate-v1.md'
+      - 'tests/test_prism_input_preflight.py'
+      - 'docs/technical/prism-input-preflight-v1.md'
       - 'tests/test_external_comparison.py'
       - 'scripts/catalog_index.py'
       - 'scripts/catalog_handoff.py'
@@ -19,6 +29,15 @@ on:
     paths:
       - 'scripts/external_package_resolver.py'
       - 'tests/test_external_package_resolver.py'
+      - 'scripts/package_reference_inventory.py'
+      - 'tests/test_package_reference_inventory.py'
+      - 'scripts/candidate_comparison.py'
+      - 'tests/test_external_comparison.py'
+      - 'scripts/prism_input_preflight.py'
+      - 'tests/test_prism_input_preflight.py'
+      - 'scripts/source_acceptance_gate.mjs'
+      - 'tests/source_acceptance_gate.test.mjs'
+      - 'tests/integration/source_acceptance_p0_adapters.mjs'
       - '.github/workflows/external-package-probe.yml'
   workflow_dispatch:
 permissions:
@@ -37,7 +56,10 @@ jobs:
       - name: Check synthetic third-party Git-object, worktree and comparison refusals
         run: |
           python3 -m unittest discover -s tests -p 'test_external_package_resolver.py' -v
+          python3 -m unittest discover -s tests -p 'test_package_reference_inventory.py' -v
           python3 -m unittest discover -s tests -p 'test_external_comparison.py' -v
+      - name: Verify independent signed source acceptance and replay refusals
+        run: node --test tests/source_acceptance_gate.test.mjs
       - name: Checkout exact immutable skillz handoff
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -86,6 +108,15 @@ jobs:
             --external-checkout external-source \
             --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
             > external-comparison-receipt.json
+          python3 -m scripts.prism_input_preflight \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route software-engineering/frontend --host ChatGPT \
+            --governed-record governed:anthropic-skills/frontend-design \
+            --external-record governed:anthropic-skills/frontend-design \
+            --external-checkout external-source \
+            --external-repository-tree d482eba557f7b2035c8a83589809628b96f6f40e \
+            > external-prism-denial-preflight.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -95,6 +126,18 @@ jobs:
           assert r['package_git_tree_sha1'] == 'd79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6'
           assert r['entrypoint_git_blob_sha1'] == 'a5333457c414d20d625f307df945842c0952ecc3'
           assert r['complete_tracked_package_files_verified'] == 2
+          inventory = r['complete_package_reference_and_asset_review_queue']
+          assert inventory['file_count'] == 2
+          assert inventory['frontmatter_license_pointer']['matched'] == ['LICENSE.txt']
+          assert inventory['frontmatter_license_pointer']['unresolved'] == []
+          assert inventory['markdown_files_scanned'] == 1
+          assert inventory['inline_markdown_reference_count'] == 0
+          assert len(inventory['files_requiring_individual_rights_review']) == 2
+          assert len(inventory['license_and_notice_files_observed_not_cleared']) == 1
+          assert inventory['dependency_closure_proven'] is False
+          assert inventory['each_asset_rights_cleared'] is False
+          assert inventory['composition_eligible'] is False
+          print('REAL FULL-PACKAGE RIGHTS REVIEW QUEUE: 2 verified files, 1 license pointer, zero rights grants')
           assert {x['relative_path'] for x in r['files']} == {'SKILL.md', 'LICENSE.txt'}
           assert r['package_bytes_verified'] > 0
           assert r['pinned_git_object_consistency_verified']
@@ -117,11 +160,101 @@ jobs:
           assert len(matches) == 1
           assert matches[0]['package_bytes']['status'] == 'EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED'
           assert matches[0]['package_bytes']['package_files'] == 2
+          from scripts.catalog_handoff import canonical, sha256
+          source_assets = matches[0]['package_bytes']
+          assert source_assets['asset_files_requiring_review'] == 2
+          assert source_assets['source_license_pointer_evidence_present'] is True
+          assert source_assets['source_asset_rights_review_queue_sha256'] == sha256(canonical(inventory))
+          assert source_assets['source_asset_rights_and_dependencies_still_unqualified'] is True
+
           assert matches[0]['package_bytes']['historical_export_identity_gap_requires_upstream_correction']
           assert matches[0]['eligible'] is False and cmp['eligible_candidate_count'] == 0
           assert cmp['chosen_method'] is None and cmp['composition_eligible'] is False
           assert cmp['prism_invoked'] is False
           print('PINNED EXTERNAL-TO-C4 COMPARISON: PASS; 2 evidence links, 1 full external byte receipt, 0 eligible methods')
+          bridge = json.loads(Path('external-prism-denial-preflight.json').read_text())
+          assert bridge['binding']['governed_id'] == 'anthropic-skills/frontend-design'
+          assert bridge['binding']['requested_route'] == 'software-engineering/frontend'
+          assert bridge['source_package_bytes_verified'] is True
+          assert bridge['binding']['package_bytes_verified'] is True
+          assert bridge['binding']['package_inspection_sha256'] == sha256(canonical(source_assets))
+
+          assert bridge['facts_verified'] == {
+              'evidence': False, 'rights': False, 'authority': False, 'coverage': False}
+          assert bridge['negative_test_vector_hex'] == '00000000'
+          refusal = bridge['typed_generation_refusal']
+          assert refusal['state'] == 'REFUSED_PRE_ADMISSION'
+          assert refusal['source_record_id'] == 'anthropic-skills/frontend-design'
+          assert refusal['original_source_bytes_proven'] is True
+          assert refusal['codes'] == [
+              'EVIDENCE_UNQUALIFIED', 'RIGHTS_UNRESOLVED',
+              'AUTHORITY_EXCEEDED', 'OUTCOME_UNCOVERED']
+          assert refusal['no_method_composed'] and refusal['not_a_prism_guest_verdict']
+          assert bridge['expected_guest_refusals'] == [
+              'EVIDENCE_UNQUALIFIED', 'RIGHTS_UNRESOLVED',
+              'AUTHORITY_EXCEEDED', 'OUTCOME_UNCOVERED']
+          assert bridge['independently_authenticated_method_assertion'] is False
+          assert bridge['selected_method_for_composition'] is None
+          assert bridge['prism_invoked'] is False
+          assert bridge['composition_eligible'] is False and bridge['production_eligible'] is False
+          print('REAL EXTERNAL-TO-PRISM PREFLIGHT: source bytes yes; signed facts no; unsigned 00000000 denial only')
+
+          PY
+      - name: Prove real pinned source preflight does not self-authorize operator signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/source_acceptance_gate.mjs --preflight "$PWD/external-prism-denial-preflight.json" > source-acceptance-stdout.txt 2> source-acceptance-denial.json
+          status="$?"
+          set -e
+          test "$status" -eq 2
+          test ! -s source-acceptance-stdout.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          row=json.loads(Path('source-acceptance-denial.json').read_text())
+          assert row['state']=='REFUSED'
+          assert row['code']=='SOURCE_ACCEPTANCE_MISSING'
+          assert row['compositionEligible'] is False
+          assert row['prismInvoked'] is False
+          print('REAL CORPUS SOURCE SIGNATURE GATE: unsigned externally pinned source correctly refused')
+          PY
+      - name: Checkout separately pinned P0 signed-assertion backend without executing it
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          ref: 5cbb978e5041eab18d884d0cdd6e01ed61e5cc3b
+          path: p0-backend
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Verify two separately signed refusal layers using real pinned source and real P0 adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C p0-backend rev-parse HEAD)" = 5cbb978e5041eab18d884d0cdd6e01ed61e5cc3b
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/source_acceptance_p0_adapters.mjs \
+              --preflight "$PWD/external-prism-denial-preflight.json" \
+              --p0-root "$PWD/p0-backend" > source-p0-interop.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          row=json.loads(Path('source-p0-interop.json').read_text())
+          assert row['status']=='CRYPTOGRAPHIC_INTEROP_PASSED_NOT_METHOD_ACCEPTANCE'
+          assert row['operatorSignatureChecked'] is True
+          assert row['independentlySignedFourFactsChecked'] is True
+          assert row['falseFacts']==[False,False,False,False]
+          assert row['changedAssetReviewStoppedBeforeFactAdapter'] is True
+          assert row['absentApprovalStoppedBeforeFactAdapter'] is True
+          assert row['realGuestInvoked'] is False
+          assert row['methodComposed'] is False
+          assert row['productionEligible'] is False
+          print('REAL C4 TO PINNED P0 SIGNED-FACT INTEROP: two fixture signatures verified, all four facts false, zero composition')
           PY
       - name: Preserve bounded metadata-only evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -130,5 +263,8 @@ jobs:
           path: |
             external-package-receipt.json
             external-comparison-receipt.json
+            external-prism-denial-preflight.json
+            source-acceptance-denial.json
+            source-p0-interop.json
           retention-days: 14
           if-no-files-found: error
