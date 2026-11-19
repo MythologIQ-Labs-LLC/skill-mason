@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','ci-failure-triage-v2','governance-drift-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','governance-drift-review']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -177,8 +177,30 @@ async function main(argv){
   assert.ok(fromV2.files['SKILL.md'].includes('discriminating next verification'));
   assert.notEqual(fromV2.files['SKILL.md'],fromRequest.files['SKILL.md']);
   assert.equal(JSON.parse(fromV2.files['RECEIPT.json']).hostValidated,false);
+  const requestV3='Investigate CI failures where the supplied error evidence contains API tokens and authorization headers; redact sensitive data.';
+  const requestedV3=await generateFirstPartyRequest({
+    request:requestV3,capability:'triage sensitive CI failure logs',
+    methodId:'ci-failure-triage-v3',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedV3.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedV3.requestSha256,SHA(Buffer.from(requestV3)));
+  assert.equal(requestedV3.selectedMethod,'ci-failure-triage-v3');
+  assert.equal(requestedV3.productionEligible,false);
+  assert.equal(requestedV3.sourceRightsVerified,false);
+  const fromV3=await readPackage(join(requestRoot,'ci-failure-triage-v3'));
+  assert.ok(fromV3.files['SKILL.md'].includes(String.fromCharCode(92)+'[REDACTED'+String.fromCharCode(92)+']'));
+  // The escape is intentional in raw Markdown; rendered text displays [REDACTED].
+  assert.ok(fromV3.files['SKILL.md'].includes('Authorization headers'));
+  assert.ok(fromV3.files['SKILL.md'].includes('Never repeat the original value'));
+  assert.ok(fromV3.files['SKILL.md'].includes('discriminating next verification'));
+  assert.notEqual(fromV3.files['SKILL.md'],fromV2.files['SKILL.md']);
+  const v3Receipt=JSON.parse(fromV3.files['RECEIPT.json']);
+  assert.equal(v3Receipt.productionEligible,false);
+  assert.equal(v3Receipt.hostValidated,false);
+  assert.equal(v3Receipt.modelCallsMeasured,false);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+2,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+3,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -194,6 +216,11 @@ async function main(argv){
      selectedMethod:requestedV2.selectedMethod,requestedOutcome:requestedV2.requestedOutcome,
      packageManifestSha256:requestedV2.packageManifestSha256,
      state:requestedV2.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+     productionEligible:false},
+   firstPartyUserRequestV3:{requestSha256:requestedV3.requestSha256,
+     selectedMethod:requestedV3.selectedMethod,requestedOutcome:requestedV3.requestedOutcome,
+     packageManifestSha256:requestedV3.packageManifestSha256,
+     state:requestedV3.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false}};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
