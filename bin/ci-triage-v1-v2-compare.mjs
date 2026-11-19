@@ -84,7 +84,8 @@ function summarize(rows,arm){
     passed:rows.filter(r=>r.arms[arm]?.score?.pass===true).length,
     total:rows.length,groups,
     promptTokens:rows.reduce((n,r)=>n+(r.arms[arm]?.usage?.prompt_tokens??0),0),
-    completionTokens:rows.reduce((n,r)=>n+(r.arms[arm]?.usage?.completion_tokens??0),0)
+    completionTokens:rows.reduce((n,r)=>n+(r.arms[arm]?.usage?.completion_tokens??0),0),
+    totalObservedLatencyMs:rows.reduce((n,r)=>n+(r.arms[arm]?.latencyMs??0),0)
   };
 }
 
@@ -101,12 +102,15 @@ export async function compareSealedSkills({
     const arms={};
     // Alternate order to avoid systematic first-arm effects.
     for(const arm of index%2===0?['v1','v2']:['v2','v1']){
+      const started=process.hrtime.bigint();
       const result=await completion({model,token,messages:messagesForSkill(sealed[arm].skill,item)});
+      const latencyMs=Math.round(Number(process.hrtime.bigint()-started)/1e6);
       if(!obj(result)||typeof result.output!=='string'||result.output.length>25000)
         refuse('PAIR_HOST','invalid bounded host answer');
       const entry={
         score:scoreSpectrum(result.output,item),output:result.output,
-        model:result.model??model,requestId:result.id??null,usage:result.usage??null
+        model:result.model??model,requestId:result.id??null,usage:result.usage??null,
+        latencyMs
       };
       arms[arm]=entry;
       if(onResult)await onResult({caseId:item.id,group:item.group,arm,...entry});
