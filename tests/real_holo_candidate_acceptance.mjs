@@ -234,9 +234,10 @@ async function main(argv){
   assert.equal(requestedV5.sourceRightsVerified,false);
   assert.equal(requestedV5.productionEligible,false);
   const fromV5=await readPackage(join(requestRoot,'ci-failure-triage-v5'));
-  assert.match(fromV5.files['SKILL.md'],/HYPOTHESES: NOT_SUPPORTED/);
-  assert.match(fromV5.files['SKILL.md'],/SINGLE_CAUSE/);
-  assert.match(fromV5.files['SKILL.md'],/FIX_HEAD:/);
+  const v5Rendered=fromV5.files['SKILL.md'].replaceAll(String.fromCharCode(92)+'_', '_');
+  assert.match(v5Rendered,/HYPOTHESES: NOT_SUPPORTED/);
+  assert.match(v5Rendered,/SINGLE_CAUSE/);
+  assert.match(v5Rendered,/FIX_HEAD:/);
   const fromV5Receipt=JSON.parse(fromV5.files['RECEIPT.json']);
   assert.equal(fromV5Receipt.productionEligible,false);
   assert.equal(fromV5Receipt.hostValidated,false);
