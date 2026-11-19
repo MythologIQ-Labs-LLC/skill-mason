@@ -1,6 +1,6 @@
 # Original first-party text-review pilot methods
 
-These five pinned procedures are **authored for Skill Mason** as original, instruction-only development examples. The four CI-triage versions are separate historical method identities, not interchangeable overwrites. They are not copied from the external `skillz` catalog and contain no scripts, bundled assets, credential requirements or network dependencies.
+These six pinned procedures are **authored for Skill Mason** as original, instruction-only development examples. The five CI-triage versions are separate historical method identities, not interchangeable overwrites. They are not copied from the external `skillz` catalog and contain no scripts, bundled assets, credential requirements or network dependencies.
 
 | Source procedure | Explicit outcome | Original Git blob SHA-1 | Pinned SHA-256 |
 | --- | --- | --- | --- |
@@ -8,6 +8,7 @@ These five pinned procedures are **authored for Skill Mason** as original, instr
 | [CI failure triage v2](ci-failure-triage-v2/procedure.json) | `triage complex CI failures` | `fa036a2fa7ffc2e95e2bb79523321e583d65f045` | `0b3350725eee7c5ef8c6d7bff5db7538ba546a8597c35c601499c85434cbe2c1` |
 | [CI failure triage v3](ci-failure-triage-v3/procedure.json) | `triage sensitive CI failure logs` | `020d6850472c9f3fad80c07a1b6d2a5af78c34c4` | `fcc156c7ac3c369716ab0fa957159996ae25d193b22c7805790fb100ee5669d5` |
 | [CI failure triage v4](ci-failure-triage-v4/procedure.json) | `triage provenance-sensitive CI failure logs` | `d4669d434bc00aa07ca6d06be140ad661b8ac7dc` | `2aae2a88a499cf7d65f70d03e619f25ca8e790f07481c3b2eb05ed563faaf761` |
+| [CI failure triage v5](ci-failure-triage-v5/procedure.json) | `triage causally grounded CI failure evidence` | `02fb50e813242b6017116076e38cd44846ab6332` | `58a3e5c1479e8b4e0f944ada48f686337e1f116d335061f202ffeb1e59ca1b6f` |
 | [Governance drift review](governance-drift-review/procedure.json) | `review governance drift` | `0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07` | `949abaa21513610ce2d9b4a1b64da75af6edb4b9cea73266979eda85aec043d1` |
 
 The original authoring commit for the first two procedures is [`87a6a5965a25af95a50127f26ec5afb404e0f2b8`](https://github.com/MythologIQ-Labs-LLC/skill-mason/commit/87a6a5965a25af95a50127f26ec5afb404e0f2b8). Code in [`src/backend/first-party-pilots.mjs`](../../src/backend/first-party-pilots.mjs) checks both original Git object identities **and independently pinned SHA-256 values** against the bytes in this checkout, then derives the bundled recipe snapshot digest before any candidate generation. A changed source file refuses rather than silently retargeting the procedure.
@@ -18,7 +19,7 @@ Each JSON file is a bounded, *declarative, text-only* workflow: when to use and 
 
 ## What can be tested
 
-The original work domains are diagnostic CI-log review and governance-to-evidence reconciliation. The distinct CI versions add multi-job analysis (v2), sensitive-log protection (v3), and explicit revision binding plus A/B verification (v4). See [v4 qualitative review](../../docs/evidence/ci-triage-v4-qualitative-review.md). Their source bytes and explicit outcomes are preserved in the reproducible `SOURCES.json` and receipt.
+The original work domains are diagnostic CI-log review and governance-to-evidence reconciliation. The distinct CI versions add multi-job analysis (v2), sensitive-log protection (v3), and explicit revision binding plus A/B verification (v4), and evidence-gated abstention, per-job causal isolation, and post-fix head verification (v5). See [v4 qualitative review](../../docs/evidence/ci-triage-v4-qualitative-review.md). Their source bytes and explicit outcomes are preserved in the reproducible `SOURCES.json` and receipt.
 
 The generated `SKILL.md` has Agent Skills-compatible basic frontmatter (`name`, `description`) and substantive, bounded instructions. That **format** is based on the [Agent Skills specification](https://agentskills.io/specification); host *execution* compatibility is not established by static parsing. The positive unit tests run the candidate composer with **mock Prism and fixture source attestations**. The separate [real P0 pilot](../../docs/technical/real-holo-pilot.md) invokes the actual holo in isolated CI but also retains fixture-only rights.
 
@@ -38,7 +39,7 @@ node bin/first-party-pilot.mjs \
   --dev-p0-fixture
 ```
 
-Substitute `--id governance-drift-review`, `--id ci-failure-triage-v2`, `--id ci-failure-triage-v3`, or `--id ci-failure-triage-v4` to explicitly choose another pinned source procedure. The output is a new folder whose name matches the Agent Skills frontmatter. It includes `SKILL.md`, `SOURCES.json`, `RECEIPT.json`, `skill-mason.json` and `.qortara-complete`. The last file is a *development candidate completion seal*, not an authority signature or permission to install. A repeated attempt at the same destination refuses instead of overwriting.
+Substitute `--id governance-drift-review`, `--id ci-failure-triage-v2`, `--id ci-failure-triage-v3`, `--id ci-failure-triage-v4`, or `--id ci-failure-triage-v5` to explicitly choose another pinned source procedure. The output is a new folder whose name matches the Agent Skills frontmatter. It includes `SKILL.md`, `SOURCES.json`, `RECEIPT.json`, `skill-mason.json` and `.qortara-complete`. The last file is a *development candidate completion seal*, not an authority signature or permission to install. A repeated attempt at the same destination refuses instead of overwriting.
 
 **Do not use the ephemeral fixture signature for production source eligibility.** The command deliberately refuses without `--dev-p0-fixture` or without an exact pinned holo digest. It performs no LLM inference, but it does not currently instrument integrated model-call counts; the receipt correctly preserves `modelCallsMeasured:false`.
 
