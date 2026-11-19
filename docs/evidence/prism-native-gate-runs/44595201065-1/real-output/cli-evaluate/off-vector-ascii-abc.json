@@ -1,0 +1,17 @@
+{
+  "schema": "qortara/local-eligibility-result/1",
+  "application": "Qortara Skills Eligibility",
+  "artifact": {
+    "path": "/home/runner/work/_temp/gate/nested/out/holo/eligibility.holo",
+    "sha256": "9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e",
+    "byteLength": 17346
+  },
+  "engine": "prism-code@0.9.5",
+  "requestHex": "616263",
+  "assurance": "P0 unverified; development fixtures only",
+  "productionEligible": false,
+  "status": "GUEST_COMPLETED",
+  "exitCode": 0,
+  "response": "invalid request",
+  "responseHex": "696e76616c69642072657175657374"
+}
