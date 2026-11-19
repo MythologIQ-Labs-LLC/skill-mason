@@ -202,6 +202,16 @@ jobs:
               assert result["pinned_source"]["git_tree_sha1"] == "e6d5dfeb42bcd7777ddff52605922fead62135ff"
           assert frontend == cli == outside, "root and caller-relative Node CLI must return exact identical pinned source results"
           assert frontend["refusal"]["code"] == "RIGHTS_UNRESOLVED"
+          coverage=frontend["source_outcome_coverage"]
+          assert coverage["schema"]=="qortara/route-outcome-coverage/1"
+          assert coverage["route"]=="software-engineering/frontend"
+          assert coverage["source_outcome_row"]=="registry/capability-outcome-register.json"
+          assert len(coverage["source_outcome_row_sha256"])==64
+          assert coverage["defined_essential_outcomes"]==[]
+          assert coverage["defined_essential_outcome_count"]==0
+          assert coverage["gap_code"]=="OUTCOME_DEFINITION_MISSING"
+          assert coverage["composition_eligible"] is False
+          assert "OUTCOME_DEFINITION_MISSING" in frontend["refusal"]["codes"]
           assert "SOURCE_PACKAGE_BYTES_UNVERIFIED" in frontend["refusal"]["codes"]
           assert frontend["inspected_governed_record_not_selected_for_composition"] == (
               "governed:anthropic-skills/frontend-design")

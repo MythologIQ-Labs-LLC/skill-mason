@@ -114,3 +114,12 @@ The [regressions](../../tests/test_request_to_skill.py) and [Node CLI tests](../
 This is deliberately **not** a positive release path. Source-rights issuance, trusted signatory/revocations, normal deterministic authorized composition, exact P0/P2 assurance, actual host-loaded ChatGPT/Claude task behavior and end-user Pages parity are still independent gates. The existing [P0 first-party pilot](../../bin/first-party-pilot.mjs) remains separate, requires explicit fixture consent and is labeled \`productionEligible:false\`. The public [Pages app](../../web/app.mjs) still creates only clearly labeled starter drafts and must not claim to use this Python interpreter or privileged file-system source access. GitHub Pages cannot host the local Python/Prism backend.
 
 **Next authorized development slice:** source/asset authority intake and a real operator-approved positive composition path with independently held keys and revocation evidence; then a human/host integration check. No synthetic signer becomes trusted merely because this CLI is live.
+
+
+## Source-bound essential-outcome gap in ordinary \`create\`
+
+Each accepted exact route now reports \`source_outcome_coverage\` in the same refusal JSON as C3/C4 source inspection. The receipt binds the actual pinned C2 outcome row (\`registry/capability-outcome-register.json\`) to a SHA-256 digest and checks that the independent C4 comparison agrees on definition status, count, and recorded qualification count. Missing, malformed or mismatched rows refuse; a mismatched comparison refuses \`OUTCOME_COMPARISON_DRIFT\`.
+
+The actual pinned \`software-engineering/frontend\` route has two linked reviewed source methods but **zero** registered essential outcomes. The existing primary source/rights refusal is retained, and \`OUTCOME_DEFINITION_MISSING\` is added as an independent actionable blocker. A populated register instead reports \`OUTCOME_QUALIFICATION_UNVERIFIED\`, even if the source metadata contains a positive qualification count: source metadata is not independent acceptance. Neither condition invokes Prism, the composer, a host, or an install.
+
+The existing thirteen proposed workflows are review drafts, not part of this signed source snapshot. They must be accepted upstream and imported through an explicitly verified next snapshot before they affect actual coverage. The real pinned-corpus workflow asserts the empty frontend outcome and exact ordinary Node/Python refusal parity. No new SDK workflow or additional full-Prism execution was introduced for this read-only feature.

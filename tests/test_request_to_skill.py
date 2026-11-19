@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 
 from scripts.catalog_handoff import Refusal, canonical, sha256
-from scripts.request_to_skill import evaluate_request, SCHEMA
+from scripts.request_to_skill import evaluate_request, _source_outcome_coverage, SCHEMA
 
 ROUTE = "security/supply-chain"
 HOST = "ChatGPT"
@@ -38,6 +38,10 @@ def comparator(graph, route, host, *, include_lexical, limit, external_selection
         "schema": "qortara/candidate-comparison/1",
         "state": "READ_ONLY_COMPARISON_NO_ADMISSION",
         "route": route,
+        "outcome_definition_status": graph.outcome_by_path[route]["outcome_definition_status"],
+        "defined_essential_outcomes": len(graph.outcome_by_path[route]["essential_outcomes"]),
+        "essential_outcome_qualification_count":
+            graph.outcome_by_path[route]["qualified_essential_outcome_count"],
         "evidence_linked_review_count": len(sources),
         "evidence_linked_reviews": sources,
         "name_only_unassessed_leads": [{
@@ -85,7 +89,14 @@ class RequestAdmissionTests(unittest.TestCase):
     def setUp(self):
         self.graph = SimpleNamespace(
             paths={ROUTE: {}},
-            corpus=SimpleNamespace(manifest={"source": {
+            outcome_by_path={ROUTE: {
+                "path": ROUTE,
+                "outcome_definition_status": "needs-workflow-decomposition",
+                "essential_outcomes": [],
+                "qualified_essential_outcome_count": None}},
+            corpus=SimpleNamespace(taxonomy_paths={
+                "outcomes": "registry/capability-outcome-register.json"},
+                manifest={"source": {
                 "repository": "https://github.com/Knapp-Kevin/skillz",
                 "commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
                 "git_tree_sha1": "e6d5dfeb42bcd7777ddff52605922fead62135ff"}}),
@@ -226,6 +237,70 @@ class RequestAdmissionTests(unittest.TestCase):
             return x
         with self.assertRaises(Refusal) as err:self.evaluate(preflight=swapped)
         self.assertEqual(err.exception.code,"UNTRUSTED_PROMOTION")
+
+
+    def test_gherkin_empty_source_outcomes_are_explicitly_blocked(self):
+        out = self.evaluate()
+        coverage = out["source_outcome_coverage"]
+        self.assertEqual(coverage["gap_code"], "OUTCOME_DEFINITION_MISSING")
+        self.assertEqual(coverage["defined_essential_outcome_count"], 0)
+        self.assertEqual(coverage["defined_essential_outcomes"], [])
+        self.assertEqual(
+            coverage["source_outcome_row"],
+            "registry/capability-outcome-register.json")
+        self.assertEqual(
+            coverage["source_outcome_row_sha256"],
+            sha256(canonical(self.graph.outcome_by_path[ROUTE])))
+        self.assertIn("OUTCOME_DEFINITION_MISSING", out["refusal"]["codes"])
+        self.assertEqual(out["refusal"]["code"], "RIGHTS_UNRESOLVED")
+        self.assertFalse(coverage["composition_eligible"])
+
+    def test_gherkin_described_outcomes_still_need_independent_qualification(self):
+        self.graph.outcome_by_path[ROUTE]["essential_outcomes"] = [
+            {"expected_output": "complete dependency inventory"}]
+        self.graph.outcome_by_path[ROUTE]["qualified_essential_outcome_count"] = 1
+        out = self.evaluate()
+        self.assertEqual(
+            out["source_outcome_coverage"]["gap_code"],
+            "OUTCOME_QUALIFICATION_UNVERIFIED")
+        self.assertEqual(
+            out["source_outcome_coverage"][
+                "source_claimed_qualified_count_not_independent_proof"], 1)
+        self.assertIn(
+            "OUTCOME_QUALIFICATION_UNVERIFIED", out["refusal"]["codes"])
+        self.assertFalse(out["composer_invoked"])
+
+    def test_gherkin_comparison_cannot_forge_source_outcome_coverage(self):
+        def forged(*args, **kwargs):
+            x = comparator(*args, **kwargs)
+            x["defined_essential_outcomes"] = 9
+            return x
+        with self.assertRaises(Refusal) as exc:
+            self.evaluate(comparator=forged)
+        self.assertEqual(exc.exception.code, "OUTCOME_COMPARISON_DRIFT")
+
+    def test_gherkin_missing_stale_or_malformed_outcome_row_refuses(self):
+        known = comparator(self.graph, ROUTE, HOST, include_lexical=False,
+                           limit=25, external_selection=None)
+        row = self.graph.outcome_by_path[ROUTE]
+        for mutated in (None, {"path": "wrong/route", "essential_outcomes": []},
+                        {"path": ROUTE, "essential_outcomes": "not a list"},
+                        {"path": ROUTE, "essential_outcomes": [],
+                         "qualified_essential_outcome_count": 1}):
+            with self.subTest(mutated=mutated):
+                self.graph.outcome_by_path[ROUTE] = mutated
+                with self.assertRaises(Refusal) as exc:
+                    _source_outcome_coverage(self.graph, ROUTE, known)
+                self.assertEqual(exc.exception.code, "OUTCOME_SOURCE_DRIFT")
+        self.graph.outcome_by_path[ROUTE] = row
+
+    def test_gherkin_route_without_source_outcome_row_refuses(self):
+        known = comparator(self.graph, ROUTE, HOST, include_lexical=False,
+                           limit=25, external_selection=None)
+        self.graph.outcome_by_path.clear()
+        with self.assertRaises(Refusal) as exc:
+            _source_outcome_coverage(self.graph, ROUTE, known)
+        self.assertEqual(exc.exception.code, "OUTCOME_SOURCE_MISSING")
 
 
 if __name__ == "__main__":
