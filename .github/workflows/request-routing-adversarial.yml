@@ -1,0 +1,71 @@
+name: Frozen request routing adversarial replay (no model)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/replay_request_retrieval.py'
+      - 'tests/test_replay_request_retrieval.py'
+      - 'benchmarks/request-routing-adversarial-v2.json'
+      - 'docs/technical/request-routing-replay-v2.md'
+      - '.github/workflows/request-routing-adversarial.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-untuned-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout subject revision, no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run frozen-source Gherkin negative controls
+        run: python3 -m unittest discover -s tests -p 'test_replay_request_retrieval.py' -v
+      - name: Read pinned Skillz export exactly as published
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          submodules: false
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact source and run actual graph with frozen retriever
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+          python3 -m scripts.replay_request_retrieval \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > /tmp/request-replay-v2.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('/tmp/request-replay-v2.json').read_text())
+          assert x['source_commit']=='31a8c518dd97b7828adcc728202fa41388a306d7'
+          assert x['schema']=='qortara/untuned-retrieval-replay/1'
+          assert x['candidate']=='EXACT_FROZEN_UNTUNED_LEXICAL_RETRIEVER_NOT_VERDANT'
+          assert x['independent_gold_labels'] is False
+          assert x['production_eligible'] is False
+          assert x['prism_invoked'] is False and x['composer_invoked'] is False
+          assert len(x['records'])==46
+          assert x['decision'] in ('NO_GO_AUTOMATIC_ROUTE_SELECTION','CANDIDATE_FIT_FOR_INDEPENDENT_ADJUDICATION')
+          print('FROZEN REPLAY EXECUTED: no auto-promotion or metrics-based greenwashing')
+          print(json.dumps({k:x[k] for k in ('decision','adoption_criteria_predeclared','baseline_metrics','grounded_metrics','independent_gold_labels','input_hashes')},indent=2,sort_keys=True))
+          PY
+      - name: Archive exact case-by-case results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: request-replay-adversarial-46
+          path: /tmp/request-replay-v2.json
+          if-no-files-found: ignore
+          retention-days: 14
