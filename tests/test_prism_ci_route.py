@@ -29,13 +29,13 @@ class RouterTests(unittest.TestCase):
         self.write("prism-overlay/template.patch", "locked overlay\n")
         self.write("scripts/prism_nested_ratchet.sh", "locked ratchet\n")
         self.write(".github/workflows/prism-native-gate.yml",
-                   "name: Prism native gate (isolated runner)\\n"
-                   "env:\\n"
-                   "  TEMPLATE_PIN: b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b\\n"
+                   "name: Prism native gate (isolated runner)\n"
+                   "env:\n"
+                   "  TEMPLATE_PIN: b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b\n"
                    "  SDK_IMAGE: ghcr.io/afflom/prismpm-sdk-patched@sha256:"
-                   "3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3\\n"
+                   "3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3\n"
                    "  PRISM_CODE_INTEGRITY: "
-                   "sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==\\n")
+                   "sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==\n")
         self.write("bin/qortara-skills.mjs", "locked holo consumer\n")
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "baseline")
