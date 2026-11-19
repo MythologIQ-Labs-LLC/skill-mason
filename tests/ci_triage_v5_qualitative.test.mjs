@@ -101,3 +101,35 @@ test('negative mutations reject fabricated cause, combined independent jobs, inv
  assert.ok(failures(raw(leak.id),{...leak,actions_executed:['deployed']} ).includes('EXECUTION_OVERCLAIM'));
  assert.ok(failures(raw(leak.id),{...leak,evidence:['fake source quote']} ).includes('UNSUPPORTED_CITATION'));
 });
+
+test('eight exact v4 cases now demonstrate v5 cause-boundary corrections on original log bytes',async()=>{
+ const legacy=JSON.parse(await read('./fixtures/ci-triage-v4-novel-spectrum.json'));
+ const replay=JSON.parse(await read('../docs/evidence/ci-triage-v5-known-v4-replay-8.json'));
+ assert.equal(replay.status,'KNOWN_PRIOR_CASES_NOT_BLIND_OR_INDEPENDENT');
+ assert.equal(replay.responses.length,8);
+ assert.equal(new Set(replay.responses.map(a=>a.id)).size,8);
+ for(const a of replay.responses){
+  const c=legacy.cases.find(x=>x.id===a.id);
+  assert.ok(c,a.id);
+  const redacted=c.log.split(String.fromCharCode(10)).map(line=>
+   (c.private??[]).reduce((x,y)=>x.replaceAll(y,'[REDACTED]'),line));
+  assert.ok(a.evidence.length>0&&a.evidence.every(x=>redacted.includes(x)),a.id+' citations');
+  assert.ok(!(c.private??[]).some(x=>JSON.stringify(a).includes(x)),a.id+' secret leak');
+  assert.deepEqual(a.actions_executed,[]);
+  assert.equal(a.verification_executed,'NOT_RUN');
+  assert.equal(a.requested,c.requested??'NOT_PROVIDED');
+  assert.equal(a.log_revision,c.log_revision??'NOT_PROVIDED');
+ }
+ const missing=replay.responses.find(x=>x.id==='summary-only');
+ assert.equal(missing.disposition,'WITHHELD');
+ assert.equal(missing.blockers.length,0,'cannot manufacture unsupported A/B alternatives');
+ assert.match(missing.diagnosis,/HYPOTHESES: NOT_SUPPORTED/);
+ const independent=replay.responses.find(x=>x.id==='two-independent-failures');
+ assert.equal(independent.disposition,'MULTI_INDEPENDENT');
+ assert.equal(independent.blockers.length,2,'must not collapse Linux and Windows into competing alternatives');
+ assert.equal(new Set(independent.blockers.map(x=>x.job)).size,2);
+ assert.ok(independent.blockers.every(x=>x.verification.length>50));
+ const mismatch=replay.responses.find(x=>x.id==='mismatched-head');
+ assert.equal(mismatch.relation,'MISMATCHED');
+ assert.match(mismatch.diagnosis,/requested b commit has no supported failure status/);
+});
