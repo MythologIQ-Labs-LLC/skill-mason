@@ -303,5 +303,59 @@ class RequestAdmissionTests(unittest.TestCase):
         self.assertEqual(exc.exception.code, "OUTCOME_SOURCE_MISSING")
 
 
+    def test_gherkin_actual_negative_scope_handoff_is_visible_but_never_authorizes(self):
+        receipt = {
+            "schema": "qortara/source-outcome-scope-gap/1",
+            "state": "NONADMITTING_SOURCE_SCOPE_GAP_RECORDED",
+            "reviewer_observation_disposition_not_independent_qualification":
+                "PROPOSED_WORKFLOW_NOT_ESTABLISHED_BY_EXAMINED_METHOD",
+            "route": ROUTE, "governed_review_id": METHOD,
+            "source_snapshot_commit": self.graph.corpus.manifest["source"]["commit"],
+            "source_snapshot_tree": self.graph.corpus.manifest["source"]["git_tree_sha1"],
+            "source_entrypoint": "skills/mcp-vetting/SKILL.md",
+            "entrypoint_sha256": "a" * 64,
+            "original_complete_package_file_list_sha256": "b" * 64,
+            "proposal_sha256": "c" * 64, "review_sha256": "d" * 64,
+            "unestablished_requested_outcomes": [
+                "Generic package release approval is not demonstrated"],
+            "narrower_workflow_candidate_not_governed":
+                "Static MCP preconnection review only, still awaiting outcome governance.",
+            "rights_qualified": False, "host_validated": False,
+            "outcome_coverage_qualified": False, "prism_invoked": False,
+            "composer_invoked": False, "composition_eligible": False}
+        out = self.evaluate(scope_evaluator=lambda *a: receipt)
+        self.assertEqual(out["refusal"]["code"], "RIGHTS_UNRESOLVED")
+        self.assertIn("METHOD_SCOPE_UNESTABLISHED", out["refusal"]["codes"])
+        self.assertEqual(out["reviewed_method_scope_gap"]["review_sha256"], "d"*64)
+        self.assertIs(out["reviewed_method_scope_gap"]["composition_eligible"], False)
+        self.assertIs(out["composer_invoked"], False)
+        # An ordinary unreviewed route remains visibly unassessed.
+        self.assertIsNone(self.evaluate()["reviewed_method_scope_gap"])
+
+    def test_gherkin_wrong_method_scope_or_positive_claim_fails_closed(self):
+        valid = {
+            "schema": "qortara/source-outcome-scope-gap/1",
+            "state": "NONADMITTING_SOURCE_SCOPE_GAP_RECORDED",
+            "reviewer_observation_disposition_not_independent_qualification":
+                "PROPOSED_WORKFLOW_NOT_ESTABLISHED_BY_EXAMINED_METHOD",
+            "route": ROUTE, "governed_review_id": METHOD,
+            "source_snapshot_commit": self.graph.corpus.manifest["source"]["commit"],
+            "source_snapshot_tree": self.graph.corpus.manifest["source"]["git_tree_sha1"],
+            "rights_qualified": False, "host_validated": False,
+            "outcome_coverage_qualified": False, "prism_invoked": False,
+            "composer_invoked": False, "composition_eligible": False}
+        for field, value in (
+            ("route", "software-engineering/frontend"),
+            ("governed_review_id", "anthropic-skills/frontend-design"),
+            ("source_snapshot_commit", "f"*40),
+            ("rights_qualified", True), ("composition_eligible", True),
+            ("prism_invoked", True), ("composer_invoked", True)):
+            with self.subTest(field=field):
+                forged = {**valid, field: value}
+                with self.assertRaises(Refusal) as exc:
+                    self.evaluate(scope_evaluator=lambda *a: forged)
+                self.assertEqual(exc.exception.code, "SCOPE_REVIEW_INTEGRITY")
+
+
 if __name__ == "__main__":
     unittest.main()
