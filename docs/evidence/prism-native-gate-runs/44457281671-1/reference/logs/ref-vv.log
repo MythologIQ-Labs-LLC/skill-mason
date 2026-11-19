@@ -1,0 +1,258 @@
+GATE_SOURCE repo=/opt/prism-gate/template commit=b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b tree=baf38d0be448b35eaa2ac6a39b68bfb6c42d93cd subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=none workdir=/opt/prism-gate/run/work/ref-vv
+cargo fmt --all -- --check
+cargo run -q --locked -p xtask -- validate
+check-model: CONFORMANCE.md equals the model, 6 ids (CM-01)
+audit-limits: every error type a shipped crate names is declared with a negative test (0 declared) (R5)
+audit-deferral: nothing is deferred (R4)
+audit-dependency-updates: SDK ownership and ordinary maintenance are preserved
+audit-bootstrap: SDK and workflow trust roots are immutable and separated
+audit-prism: non-Prism implementation is 13420 lines in 77 files (13423 lines, 77 files in the parent); it only shrinks
+validate: every gate passed
+prismpm template check
+template contract passed
+prismpm lock check
+SDK lock is canonical and valid
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    Checking serde_core v1.0.229
+    Checking typenum v1.20.1
+    Checking winnow v1.0.5
+    Checking const-oid v0.10.2
+    Checking toml_writer v1.2.0+spec-1.1.0
+    Checking cfg-if v1.0.4
+    Checking cpufeatures v0.3.1
+    Checking toml_parser v1.1.5+spec-1.1.0
+    Checking zmij v1.0.23
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking hybrid-array v0.4.15
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking toml_datetime v1.1.3+spec-1.1.0
+    Checking serde_spanned v1.1.3
+    Checking serde v1.0.229
+    Checking serde_json v1.0.154
+    Checking digest v0.11.3
+    Checking toml v1.2.1+spec-1.1.0
+    Checking sha2 v0.11.1
+    Checking repo-model v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/crates/model)
+    Checking repo-conformance v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/crates/conformance)
+    Checking xtask v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.50s
+cargo test --workspace --locked
+   Compiling repo-conformance v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/crates/conformance)
+   Compiling xtask v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/xtask)
+   Compiling repo-model v0.1.0 (/opt/prism-gate/run/work/ref-vv/src/crates/model)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.01s
+     Running unittests src/lib.rs (target/debug/deps/repo_conformance-1229ed93a41a1266)
+
+running 1 test
+test meta::tests::the_assertive_vocabulary_is_recognised ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bdd.rs (target/debug/deps/bdd-93a4e78770e07617)
+
+running 4 tests
+test every_some_true_claim_cites_an_authority_cm_03 ... ok
+test no_scenario_is_pending_cm_02 ... ok
+test every_id_has_a_scenario_and_a_test_cm_02 ... ok
+test the_meta_gate_is_falsifiable_cm_02 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/contract.rs (target/debug/deps/contract-9d91f8e3e7745187)
+
+running 1 test
+test contract_tc_01 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/frame.rs (target/debug/deps/frame-b7fc6f32c24a4314)
+
+running 5 tests
+test frame_fr_04 ... ok
+test frame_fr_03 ... ok
+test frame_fr_02 ... ok
+test frame_fr_05 ... ok
+test frame_fr_01 ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running unittests src/lib.rs (target/debug/deps/repo_model-3606d3fd59fd3112)
+
+running 4 tests
+test tests::every_some_true_claim_cites_an_authority_cm_03 ... ok
+test tests::model_is_consistent_cm_01 ... ok
+test tests::the_id_register_is_well_formed_cm_02 ... ok
+test tests::the_authority_rule_is_one_rule ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/xtask-d425453c6e310106)
+
+running 61 tests
+test audit::prism::tests::admits_shrinking_and_growth_paid_for_by_deletion ... ok
+test audit::prism::tests::a_comment_or_a_blank_line_is_free ... ok
+test audit::prism::tests::counts_code_not_comments_or_blank_lines ... ok
+test audit::prism::tests::frame_counts_only_while_its_bytes_match_the_lock ... ok
+test audit::prism::tests::prism_and_data_are_not_counted ... ok
+test audit::prism::tests::locks_bind_frame_files_and_generated_output ... ok
+test audit::prism::tests::names_what_grew_when_another_file_shrank ... ok
+test audit::prism::tests::refuses_a_new_non_prism_file ... ok
+test audit::prism::tests::refuses_net_growth ... ok
+test audit::tests::a_declared_type_whose_negative_test_is_not_registered_fails ... ok
+test audit::tests::a_declared_failure_type_passes ... ok
+test audit::tests::a_crate_that_does_not_ship_is_not_audited ... ok
+test audit::tests::a_declared_type_without_its_negative_test_fails ... ok
+test audit::tests::a_negative_test_is_a_build_claim ... ok
+test audit::tests::a_declaration_is_a_pair_and_is_made_once ... ok
+test audit::tests::an_undeclared_failure_type_fails ... ok
+test audit::tests::a_result_in_a_comment_or_a_test_module_is_not_audited ... ok
+test audit::tests::an_alias_that_hides_the_error_type_fails ... ok
+test audit::tests::a_result_broken_across_lines_is_read_whole ... ok
+test audit::tests::only_a_bare_type_name_is_a_declared_name ... ok
+test bootstrap::tests::authority_pins_name_each_dependency_once ... ok
+test audit::tests::no_error_type_is_sanctioned_without_a_declaration ... ok
+test bootstrap::tests::accepted_promotion_bypass_plant_is_rejected ... ok
+test bootstrap::tests::floating_action_plant_is_rejected ... ok
+test audit::tests::the_template_itself_passes ... ok
+test bootstrap::tests::dependency_updates_preserve_sdk_ownership_and_ordinary_maintenance ... ok
+test bootstrap::tests::hosted_sdk_disk_is_prepared_before_image_pull ... ok
+test bootstrap::tests::host_docker_plugin_plant_is_rejected ... ok
+test bootstrap::tests::dropped_native_coverage_plant_is_rejected ... ok
+test bootstrap::tests::incomplete_release_lifecycle_plant_is_rejected ... ok
+test bootstrap::tests::mutable_sdk_plant_is_rejected ... ok
+test bootstrap::tests::narrowed_policy_boundary_plant_is_rejected ... ok
+test bootstrap::tests::native_platform_inventory_rejects_swaps_missing_platforms_and_legacy_drift ... ok
+test bootstrap::tests::project_overwrite_plant_is_rejected ... ok
+test bootstrap::tests::sdk_pull_without_disk_reservation_is_rejected ... ok
+test bootstrap::tests::sha256_identity_retains_canonical_lowercase_bytes ... ok
+test bootstrap::tests::shallow_checkout_plant_is_rejected ... ok
+test bootstrap::tests::universal_policy_drift_plant_is_rejected ... ok
+test bootstrap::tests::missing_or_credential_nested_buildx_state_is_rejected ... ok
+test bootstrap::tests::upstream_pinned_dependency_is_ignored_and_nothing_else ... ok
+test proof::tests::a_kept_proof_that_does_not_bind_these_inputs_is_proved_again ... ok
+test proof::tests::a_lake_file_outside_the_application_is_never_read ... ok
+test bootstrap::tests::widened_proof_reuse_plant_is_rejected ... ok
+test proof::tests::a_proof_of_these_exact_inputs_is_reused ... ok
+test proof::tests::browser_timing_is_outside_the_acceptance_digest ... ok
+test scaffold::tests::malformed_or_duplicate_capabilities_write_nothing ... ok
+test scaffold::tests::the_empty_register_becomes_a_table ... ok
+test tests::a_checksum_that_is_not_a_sha256_fails ... ok
+test scaffold::tests::scaffolded_capabilities_satisfy_the_meta_gate ... ok
+test tests::a_checksum_with_no_artifact_to_check_fails ... ok
+test tests::a_committed_artifact_with_no_checksum_fails ... ok
+test tests::a_committed_artifact_whose_checksum_does_not_match_fails ... ok
+test tests::a_committed_directory_with_its_recorded_checksum_passes ... ok
+test tests::a_committed_file_with_its_recorded_checksum_passes ... ok
+test tests::an_artifact_outside_the_repository_fails ... ok
+test tests::a_file_added_to_or_removed_from_the_artifact_changes_its_checksum ... ok
+test tests::an_artifact_that_is_not_committed_fails ... ok
+test tests::an_artifact_with_nothing_in_it_fails ... ok
+test tests::the_template_itself_passes ... ok
+TAP version 13
+TAP version 13
+# Subtest: absent standards lock receives exact SDK bytes and matching bytes remain unchanged
+ok 1 - absent standards lock receives exact SDK bytes and matching bytes remain unchanged
+  ---
+  duration_ms: 7.84068
+  type: 'test'
+  ...
+# Subtest: different project standards bytes are rejected without replacement
+ok 2 - different project standards bytes are rejected without replacement
+  ---
+  duration_ms: 5.878141
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.804958
+test bootstrap::tests::initial_standards_binding_refuses_project_drift ... ok
+# Subtest: the input kappa is a function of the tracked input bytes and their paths
+ok 1 - the input kappa is a function of the tracked input bytes and their paths
+  ---
+  duration_ms: 39.187347
+  type: 'test'
+  ...
+# Subtest: a genuine holo verifies and replays every vector
+ok 2 - a genuine holo verifies and replays every vector
+  ---
+  duration_ms: 21.234167
+  type: 'test'
+  ...
+# Subtest: a holo with one byte flipped is refused by its self-fingerprint
+ok 3 - a holo with one byte flipped is refused by its self-fingerprint
+  ---
+  duration_ms: 1.9169
+  type: 'test'
+  ...
+# Subtest: a holo altered and fingerprinted again can pass verify, so verify alone binds nothing
+ok 4 - a holo altered and fingerprinted again can pass verify, so verify alone binds nothing
+  ---
+  duration_ms: 10.670173
+  type: 'test'
+  ...
+# Subtest: a hit requires provenance signed by the storing repository's pages workflow on main
+ok 5 - a hit requires provenance signed by the storing repository's pages workflow on main
+  ---
+  duration_ms: 1.202946
+  type: 'test'
+  ...
+# Subtest: a truncated holo is refused
+ok 6 - a truncated holo is refused
+  ---
+  duration_ms: 1.108693
+  type: 'test'
+  ...
+# Subtest: a manifest for another kappa, or without a holo, is refused
+ok 7 - a manifest for another kappa, or without a holo, is refused
+  ---
+  duration_ms: 0.35085
+  type: 'test'
+  ...
+# Subtest: bytes that differ from the manifest's digest are refused
+ok 8 - bytes that differ from the manifest's digest are refused
+  ---
+  duration_ms: 0.62425
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 142.614135
+test bootstrap::tests::holo_cache_refuses_every_unbound_holo ... ok
+
+test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+   Doc-tests repo_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repo_model
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+cargo deny --all-features check
+advisories ok, bans ok, licenses ok, sources ok
+3 modules are canonical
+lexlean.lock is current
+verified attestation: 271b467076164392817e28116e278d726a53d7c8e87f2ab19dc44f60584ac730
+app: kept attestation 271b467076164392817e28116e278d726a53d7c8e87f2ab19dc44f60584ac730 with the inputs it binds
+vv: the acceptance gate passed
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=417s cmd=just vv

@@ -1,0 +1,21 @@
+{
+  "schema": "qortara/local-cli-status/1",
+  "cliVersion": "0.1.0-dev.0",
+  "nodeVersion": "22.23.4",
+  "nodeStatus": "SUPPORTED",
+  "runtime": {
+    "status": "PINNED",
+    "installed": "0.9.5",
+    "required": "prism-code@0.9.5"
+  },
+  "holo": {
+    "status": "DIGEST_MATCH",
+    "path": "/home/runner/work/_temp/gate/nested/out/holo/eligibility.holo",
+    "sha256": "9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e",
+    "byteLength": 17346
+  },
+  "preflightReady": true,
+  "applicationNativeCheck": "NOT_RUN",
+  "independentAssurance": "P0 unverified",
+  "productionReady": false
+}
