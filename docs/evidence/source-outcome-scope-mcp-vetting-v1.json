@@ -1,0 +1,35 @@
+{
+  "schema_version": "qortara/source-outcome-scope-review/1",
+  "authority": "reviewer-observation-negative-only-no-source-rights",
+  "source_commit": "31a8c518dd97b7828adcc728202fa41388a306d7",
+  "source_tree": "e6d5dfeb42bcd7777ddff52605922fead62135ff",
+  "route": "security/supply-chain",
+  "governed_review_id": "local-skills/mcp-vetting",
+  "source_entrypoint": "skills/mcp-vetting/SKILL.md",
+  "source_git_blob_sha1": "37a13d7296c7d3d87dc360988bc6aca1f873c4db",
+  "proposal_objective": "Inventory release dependencies and provenance evidence before recommending a release decision",
+  "disposition": "PROPOSED_WORKFLOW_NOT_ESTABLISHED_BY_EXAMINED_METHOD",
+  "evidence": [
+    {
+      "exact_source_excerpt": "Review a proposed MCP server **without installing, connecting, running, or invoking it**.",
+      "scope_finding": "Method is a static preconnection review of one proposed MCP server; it is not a general software release dependency analyzer."
+    },
+    {
+      "exact_source_excerpt": "This skill does not replace package-security scanning or representative external behavioral validation.",
+      "scope_finding": "Source expressly excludes independent package-security scanning and real behavioral validation, both important for broad release qualification."
+    },
+    {
+      "exact_source_excerpt": "Use for a proposed new server or a material version/permission change.",
+      "scope_finding": "Activation is limited to new or materially changed MCP servers, not arbitrary application releases."
+    }
+  ],
+  "unestablished_outcomes": [
+    "Inventory all direct and transitive dependencies for arbitrary software release builds",
+    "Qualify registry and build artifact provenance for a general software release decision",
+    "Approve a release or authenticate signing authority across arbitrary build systems"
+  ],
+  "narrower_candidate_draft": "Perform a bounded, read-only preconnection security and authority review of a specified MCP server, preserving exact source identity, visible tool effects, data flows, injection and dependency risks, evidence gaps, and a nonauthorizing recommendation.",
+  "rights_qualified": false,
+  "host_validated": false,
+  "composition_eligible": false
+}
