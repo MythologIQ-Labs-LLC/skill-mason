@@ -6,7 +6,7 @@
 
 - Revision binding is mandatory at the **top of the generated investigation**, including explicit `REQUESTED`, `LOG`, and `RELATION` values. Missing identity is `NOT_PROVIDED / UNVERIFIED`; mismatched identity is `MISMATCHED`. Neither status permits an exact-head recovery claim.
 - Every independent blocker requires hypotheses A/B and a bounded discriminating check: what prerequisite is needed, what observation supports A, and what contrasting observation supports B. A generic rerun alone is not enough.
-- Worked example distinguishes a missing `protoc` installation from a valid executable outside `PATH`. Redaction, log-injection refusal, unexecuted-action declarations and lack of caller authority carry forward from v3.
+- Worked example distinguishes a missing installed tool from a valid executable outside `PATH`. Redaction, log-injection refusal, unexecuted-action declarations and lack of caller authority carry forward from v3.
 - v4 is **explicitly selectable** through the existing first-party recipe/CLI, using its unique source digest and original source Git blob. Earlier method pins are unchanged.
 
 ## Evidence completed in this branch
