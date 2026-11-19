@@ -1,0 +1,27 @@
+{
+  "schema": "qortara/prism-native-p0-observation/1",
+  "repository": "MythologIQ-Labs-LLC/skill-mason",
+  "baseline_commit": "70ee027a1bfbcf05c98e80833c93b779c8e5fe8b",
+  "workflow_run_id": 44437233577,
+  "workflow_name": "Prism native gate (isolated runner)",
+  "required_jobs": [
+    "SDK / reference",
+    "SDK / author",
+    "SDK / nested",
+    "Real holo outputs (independent runtime, probe, CLI)"
+  ],
+  "required_artifacts": [
+    "prism-native-nested-70ee027a1bfbcf05c98e80833c93b779c8e5fe8b",
+    "prism-native-reference-70ee027a1bfbcf05c98e80833c93b779c8e5fe8b",
+    "prism-native-author-70ee027a1bfbcf05c98e80833c93b779c8e5fe8b",
+    "prism-real-output-70ee027a1bfbcf05c98e80833c93b779c8e5fe8b"
+  ],
+  "template_commit": "b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b",
+  "sdk_image": "ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3",
+  "prism_code_integrity": "sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==",
+  "holo_sha256": "9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e",
+  "assurance_grade": "P0 unverified",
+  "sdk_trust_root_accepted": false,
+  "production_eligible": false,
+  "description": "Previously observed full native run, not owner approval. Eligible only as reusable input observation when every relevant native code/data and the recorded GitHub evidence are unchanged."
+}
