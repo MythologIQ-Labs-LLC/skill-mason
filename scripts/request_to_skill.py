@@ -7,6 +7,7 @@ host permissions, semantic routing or P0 fixture facts are inferred from text.
 """
 import argparse
 import json
+from pathlib import Path
 import re
 import sys
 import unicodedata
@@ -14,6 +15,9 @@ import unicodedata
 from scripts.catalog_handoff import Refusal, canonical, require, sha256
 from scripts.catalog_index import CorpusIndex
 from scripts.capability_graph import CapabilityGraph
+from scripts.capability_gap_backlog import load_proposals
+from scripts.source_outcome_scope_review import assess_scope, SCHEMA as SCOPE_SCHEMA, DISPOSITION as SCOPE_DISPOSITION
+from scripts.catalog_handoff import parse_json, read_exact
 from scripts.candidate_comparison import compare
 from scripts.prism_input_preflight import prepare_preflight
 
@@ -95,9 +99,30 @@ def _source_outcome_coverage(graph, route, comparison):
         "composition_eligible": False,
     }
 
+
+# Only already published, negative-only evidence records may add scope gaps.
+# The source review stays outside the compiler and can never authorize a method.
+_SCOPE_NOTES = {
+    ("security/supply-chain", "local-skills/mcp-vetting"):
+        "source-outcome-scope-mcp-vetting-v1.json",
+}
+
+
+def _verified_scope_gap(graph, route, selected):
+    key = (route, selected.removeprefix("governed:"))
+    name = _SCOPE_NOTES.get(key)
+    if name is None:
+        return None
+    root = Path(__file__).resolve().parents[1]
+    proposals = load_proposals(
+        graph, root / "docs/technical/essential-workflow-proposals-v1.json")
+    review = parse_json(read_exact(root / "docs/evidence" / name, 128_000))
+    return assess_scope(graph, proposals, review)
+
+
 def evaluate_request(graph, request, host, route=None, governed_method=None,
                      *, external_selection=None, comparator=compare,
-                     preflight=prepare_preflight):
+                     preflight=prepare_preflight, scope_evaluator=None):
     """One real task requirement -> reviewed source disposition or typed refusal.
 
     Even an externally byte-verified method is *not* licensed or signed by the
@@ -226,11 +251,38 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         code, refusal_codes = "METHOD_SELECTION_REQUIRED", [
             "METHOD_SELECTION_REQUIRED", "RIGHTS_UNRESOLVED", "OUTCOME_UNCOVERED"]
 
+    # Source-scope review is an additional denial, never a source of eligibility.
+    scope_gap = None
+    if selected is not None and scope_evaluator is not None:
+        scope_gap = scope_evaluator(graph, route, selected)
+        if scope_gap is not None:
+            rid = selected.removeprefix("governed:")
+            require(isinstance(scope_gap, dict) and
+                    scope_gap.get("schema") == SCOPE_SCHEMA and
+                    scope_gap.get("state") ==
+                        "NONADMITTING_SOURCE_SCOPE_GAP_RECORDED" and
+                    scope_gap.get("reviewer_observation_disposition_not_independent_qualification")
+                        == SCOPE_DISPOSITION and
+                    scope_gap.get("route") == route and
+                    scope_gap.get("governed_review_id") == rid and
+                    scope_gap.get("source_snapshot_commit") == snapshot["commit"] and
+                    scope_gap.get("source_snapshot_tree") == snapshot["git_tree_sha1"] and
+                    scope_gap.get("rights_qualified") is False and
+                    scope_gap.get("host_validated") is False and
+                    scope_gap.get("outcome_coverage_qualified") is False and
+                    scope_gap.get("prism_invoked") is False and
+                    scope_gap.get("composer_invoked") is False and
+                    scope_gap.get("composition_eligible") is False,
+                    "SCOPE_REVIEW_INTEGRITY",
+                    "source-scope review must identify the exact selected method and remain a denial")
+
     # Keep the primary source/method refusal stable; report the independent
     # source-outcome blocker alongside it, never as permission to compose.
     refusal_codes = list(refusal_codes)
     if coverage["gap_code"] not in refusal_codes:
         refusal_codes.append(coverage["gap_code"])
+    if scope_gap is not None and "METHOD_SCOPE_UNESTABLISHED" not in refusal_codes:
+        refusal_codes.append("METHOD_SCOPE_UNESTABLISHED")
 
     return {
         "schema": SCHEMA,
@@ -241,6 +293,19 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         "pinned_source": snapshot,
         "comparison_receipt_sha256": sha256(canonical(comparison)),
         "source_outcome_coverage": coverage,
+        "reviewed_method_scope_gap": (None if scope_gap is None else {
+            "state": scope_gap["state"],
+            "source_entrypoint": scope_gap["source_entrypoint"],
+            "original_source_sha256": scope_gap["entrypoint_sha256"],
+            "complete_package_file_list_sha256": scope_gap["original_complete_package_file_list_sha256"],
+            "proposal_sha256": scope_gap["proposal_sha256"],
+            "review_sha256": scope_gap["review_sha256"],
+            "unestablished_requested_outcomes": scope_gap["unestablished_requested_outcomes"],
+            "narrower_workflow_candidate_not_governed":
+                scope_gap["narrower_workflow_candidate_not_governed"],
+            "rights_qualified": False,
+            "composition_eligible": False,
+        }),
         "evidence_linked_review_count": len(reviewed),
         "candidates": [{
             "governed_id": x["governed_id"],
@@ -302,7 +367,8 @@ def main(argv=None):
              "repo_tree": args.external_repository_tree}
             if args.external_checkout is not None else None)
         outcome = evaluate_request(graph, args.request, args.host, args.route,
-                                   args.method, external_selection=evidence)
+                                   args.method, external_selection=evidence,
+                                   scope_evaluator=_verified_scope_gap)
         print(json.dumps(outcome, indent=2, ensure_ascii=False, sort_keys=True))
         # Expected refusal is a nonzero exit, so unattended builds cannot
         # mistake a fully blocked task for a generated skill.
