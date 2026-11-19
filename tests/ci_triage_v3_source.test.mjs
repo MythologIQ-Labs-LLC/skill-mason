@@ -64,7 +64,7 @@ test('v3 can only be selected explicitly for the sensitive-log request, never as
 });
 
 test('redaction example does not promote raw credentials into the first-party method',async()=>{
-  const raw=await readFile(new URL('../pilots/first-party/ci-failure-triage-v3/procedure.json',import.meta.url'),'utf8');
+  const raw=await readFile(new URL('../pilots/first-party/ci-failure-triage-v3/procedure.json',import.meta.url),'utf8');
   const p=parseTextProcedure(raw);
   const proceduralText=p.steps.map(x=>x.action+' '+x.evidenceRequired).join(' ');
   for(const risk of ['passwords','tokens','Authorization headers','signed URL secrets','personal identifiers'])
