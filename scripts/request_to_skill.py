@@ -117,7 +117,8 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
     binding = None
     if selected is not None:
         inspected = preflight(graph, route, host, selected,
-                             external_selection=external_selection)
+                             external_selection=external_selection,
+                             comparison_receipt=comparison)
         expected_id = selected.removeprefix("governed:")
         require(isinstance(inspected, dict) and
                 inspected.get("schema") == "qortara/method-to-prism-preflight/1" and
@@ -134,6 +135,34 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
                 inspected.get("binding", {}).get("requested_route") == route and
                 inspected.get("negative_test_vector_hex") == "00000000",
                 "UNTRUSTED_PROMOTION", "preflight attempted to grant source or host authority")
+        # Bind the selected C5 fact vector to the *same*, already verified
+        # C4 package receipt. A second repository scan between passes could
+        # otherwise see a different source tree or license/asset review.
+        if preflight is prepare_preflight:
+            candidate = matched[expected_id]
+            bound = inspected.get("binding")
+            source_record = graph.corpus.by_id.get(selected)
+            require(isinstance(bound, dict) and source_record is not None and
+                    bound.get("governed_id") == expected_id and
+                    bound.get("snapshot_commit") == snapshot["commit"] and
+                    bound.get("snapshot_tree") == snapshot["git_tree_sha1"] and
+                    bound.get("requested_route") == route and
+                    bound.get("requested_host_label_not_authority") == host and
+                    bound.get("review_status") == candidate["review_status"] and
+                    bound.get("review_disposition") == candidate["disposition"] and
+                    bound.get("governed_record_sha256") ==
+                        sha256(canonical(source_record["raw"])) and
+                    bound.get("package_inspection_sha256") ==
+                        sha256(canonical(candidate["package_bytes"])) and
+                    bound.get("comparison_receipt_sha256") ==
+                        sha256(canonical(comparison)) and
+                    bound.get("package_bytes_verified") is
+                        (candidate["package_bytes"].get("status") in (
+                            "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED",
+                            "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED")) and
+                    inspected.get("binding_sha256") == sha256(canonical(bound)),
+                    "SOURCE_BINDING_MISMATCH",
+                    "C4 source, asset and C5 refusal receipts do not identify the same evidence")
         binding = inspected["binding_sha256"]
         refusal_codes = inspected["typed_generation_refusal"]["codes"]
         require(isinstance(refusal_codes, list) and
@@ -172,6 +201,10 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         "name_only_unassessed_leads": comparison["name_only_unassessed_leads"],
         "inspected_governed_record_not_selected_for_composition": selected,
         "selected_source_binding_sha256": binding,
+        "selected_package_comparison_source_bound": bool(
+            selected is not None and preflight is prepare_preflight),
+        "comparison_reused_for_preflight_without_second_source_scan": bool(
+            selected is not None and preflight is prepare_preflight),
         "refusal": {
             "schema": REFUSAL_SCHEMA,
             "code": code,
