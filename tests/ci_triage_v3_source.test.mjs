@@ -9,7 +9,7 @@ import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 import {bindFirstPartyRequest} from '../bin/request-first-party-pilot.mjs';
 
 const SHA=b=>createHash('sha256').update(b).digest('hex');
-const GIT_BLOB=b=>createHash('sha1').update(Buffer.from('blob '+b.length+'\\0')).update(b).digest('hex');
+const GIT_BLOB=b=>createHash('sha1').update(Buffer.from('blob '+b.length+String.fromCharCode(0))).update(b).digest('hex');
 const V3_SOURCE='fcc156c7ac3c369716ab0fa957159996ae25d193b22c7805790fb100ee5669d5';
 const V3_BLOB='020d6850472c9f3fad80c07a1b6d2a5af78c34c4';
 const V1_SOURCE='9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47';
