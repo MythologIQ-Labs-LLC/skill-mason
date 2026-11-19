@@ -5,7 +5,7 @@ import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
-import {parseCommand,localStatus,evaluate,run} from '../bin/qortara-skills.mjs';
+import {parseCommand,localStatus,evaluate,run,createRequest} from '../bin/qortara-skills.mjs';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function withHolo(fn){
@@ -90,4 +90,70 @@ test('evaluate creates report exclusively, records exact Prism output',async()=>
   assert.equal(JSON.parse(await readFile(join(dir,'result.json'),'utf8')).responseHex,'656c696769626c65');
   await assert.rejects(run(args,deps),{code:'EEXIST'});
  });
+});
+
+
+const REQUEST_ARGS=['create','--request',
+  'Review dependency supply chain evidence and report actionable security findings',
+  '--route','security/supply-chain',
+  '--host','ChatGPT',
+  '--handoff','/pinned/handoff',
+  '--source-checkout','/pinned/source'];
+const REFUSED={
+  schema:'qortara/request-to-skill-evaluation/1',
+  state:'REFUSED_PRE_ADMISSION',
+  refusal:{schema:'qortara/skill-generation-refusal/1',
+    code:'RIGHTS_UNRESOLVED',no_method_composed:true},
+  prism_invoked:false,composer_invoked:false,
+  output_package_created:false,production_eligible:false
+};
+
+test('Gherkin: create uses the shared Python source inspector with bounded required inputs',async()=>{
+ const cmd=parseCommand(REQUEST_ARGS);
+ assert.equal(cmd.command,'create');
+ assert.equal(cmd.flags['--route'],'security/supply-chain');
+ const result=await run(REQUEST_ARGS,{requestRunner:async flags=>{
+  assert.equal(flags['--host'],'ChatGPT');
+  assert.equal(flags['--request'],REQUEST_ARGS[2]);
+  return REFUSED;
+ }});
+ assert.equal(result.exitCode,2,'policy refusal is not executable success');
+ assert.equal(result.value.refusal.code,'RIGHTS_UNRESOLVED');
+ assert.equal(result.value.composer_invoked,false);
+ assert.equal(result.value.production_eligible,false);
+});
+test('Gherkin: create never accepts user or model forged rights as a real positive result',async()=>{
+ for(const malicious of [
+  {...REFUSED,production_eligible:true},
+  {...REFUSED,composer_invoked:true},
+  {...REFUSED,prism_invoked:true},
+  {...REFUSED,state:'COMPLETED',production_eligible:true},
+  {...REFUSED,refusal:{...REFUSED.refusal,no_method_composed:false}},
+ ]) {
+  await assert.rejects(createRequest(parseCommand(REQUEST_ARGS).flags,{
+   requestRunner:async()=>malicious}),{code:'UNTRUSTED_PROMOTION'});
+ }
+});
+test('Gherkin: create options enforce external identity and prohibit P0 fixture bypass',()=>{
+ assert.throws(()=>parseCommand(['create']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...REQUEST_ARGS,'--allow-p0']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...REQUEST_ARGS,'--holo','x']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...REQUEST_ARGS,'--external-checkout','/repo']),{code:'USAGE'});
+ assert.throws(()=>parseCommand([...REQUEST_ARGS,
+  '--external-checkout','/repo','--external-repository-tree','a'.repeat(40)]),{code:'USAGE'});
+ const complete=parseCommand([...REQUEST_ARGS,'--method','governed:some/method',
+  '--external-checkout','/repo','--external-repository-tree','a'.repeat(40)]);
+ assert.equal(complete.flags['--method'],'governed:some/method');
+});
+test('Gherkin: request evaluation report is exclusive and never overwrites evidence',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'qortara-request-cli-'));
+ const file=join(dir,'refusal.json');
+ try{
+  const args=[...REQUEST_ARGS,'--report',file];
+  const deps={requestRunner:async()=>REFUSED};
+  const out=await run(args,deps);
+  assert.equal(out.exitCode,2);
+  assert.deepEqual(JSON.parse(await readFile(file,'utf8')),REFUSED);
+  await assert.rejects(run(args,deps),{code:'EEXIST'});
+ }finally{await rm(dir,{recursive:true,force:true});}
 });
