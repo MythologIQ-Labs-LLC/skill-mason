@@ -149,7 +149,7 @@ test('untrusted providers, session labels and invalid UTF-8 refuse',async()=>{
  }),refusal('HOST_IDENTITY'));
  assert.throws(()=>captureHostTaskEvidence({
   ...c,host:metadata('chatgpt','session-9'),
-  response:Buffer.from([0xff,0xfe])
+  polarity:'positive',response:Buffer.from([0xff,0xfe])
  }),refusal('EVIDENCE_BYTES'));
 });
 test('four captures cover both hosts and both positive/negative controls but never self-certify',async()=>{
