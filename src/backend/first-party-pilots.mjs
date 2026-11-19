@@ -8,6 +8,8 @@ import {canonicalJSON} from './compose.mjs';
 import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
+// Snapshot of all three first-party methods; originals retain their historical commit.
+export const PILOT_SNAPSHOT_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -18,6 +20,13 @@ export const PILOT_DEFINITIONS=Object.freeze([
     path:'pilots/first-party/ci-failure-triage/procedure.json',
     gitBlob:'23bd3a94a3da68996f406892dcbb94be247a6db9',
     sha256:'9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47'}),
+  Object.freeze({id:'ci-failure-triage-v2',title:'CI failure triage v2',
+    description:'Diagnose multi-job and ambiguous CI failures with untrusted-log boundaries and discriminating verifications.',
+    outcome:'triage complex CI failures',
+    path:'pilots/first-party/ci-failure-triage-v2/procedure.json',
+    sourceCommit:PILOT_SNAPSHOT_COMMIT,
+    gitBlob:'fa036a2fa7ffc2e95e2bb79523321e583d65f045',
+    sha256:'0b3350725eee7c5ef8c6d7bff5db7538ba546a8597c35c601499c85434cbe2c1'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
@@ -51,18 +60,19 @@ export async function loadFirstPartyPilots(){
       package_sha256:sha(bytes),packageBytes:Buffer.from(bytes),
       method:{
         id:pilot.id,origin:PILOT_SOURCE_REPOSITORY,sourcePath:pilot.path,
-        commit:PILOT_SOURCE_COMMIT,sha256:sha(bytes),methodVersion:PROCEDURE_VERSION,
+        commit:pilot.sourceCommit??PILOT_SOURCE_COMMIT,
+        sha256:sha(bytes),methodVersion:PROCEDURE_VERSION,
         methodText,covers:[pilot.outcome],containsAssets:false
       }
     });
   }
   const pins=sources.map(entry=>({
     id:entry.method_id,path:entry.method.sourcePath,
-    commit:PILOT_SOURCE_COMMIT,gitBlob:PILOT_DEFINITIONS.find(x=>x.id===entry.method_id).gitBlob,
+    commit:entry.method.commit,gitBlob:PILOT_DEFINITIONS.find(x=>x.id===entry.method_id).gitBlob,
     sha256:entry.package_sha256
   })).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
   const sourceSnapshot=Object.freeze({repository:PILOT_SOURCE_REPOSITORY,
-    commit:PILOT_SOURCE_COMMIT,sha256:sha(Buffer.from(canonicalJSON(pins)))});
+    commit:PILOT_SNAPSHOT_COMMIT,sha256:sha(Buffer.from(canonicalJSON(pins)))});
   return Object.freeze({sourceSnapshot,
     supportedHosts:Object.freeze([PILOT_HOST]),
     components:Object.freeze(sources)});
