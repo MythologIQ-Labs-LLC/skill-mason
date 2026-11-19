@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: the host network gives the SDK container the runner's whole network, unfiltered and unlogged. Use 'allowlist', or set PRISM_GATE_HOST_NETWORK=unfiltered-egress-accepted on a throwaway machine.
