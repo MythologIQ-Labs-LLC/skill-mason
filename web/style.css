@@ -191,3 +191,19 @@ button.primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY
   .prism-topline{font-size:8px}
   .prism-topline .section-number{padding:4px 5px}
 }
+
+/* Consent-first external trial reporting: fixed-choice local export only. */
+.trial-link{margin:12px 0 0;font-size:12px;line-height:1.6;color:#abc8e5}
+.trial-link a{font-weight:700}
+.trial-panel{margin:18px 0 18px;padding:23px 28px;background:linear-gradient(145deg,#102943,#0c2138);border:1px solid #446b8a;border-radius:16px}
+.trial-summary h2{font-size:23px;margin:0 0 8px;line-height:1.3}
+.trial-summary>p:last-child{color:#b8cee2;font-size:13px;margin:0 0 19px;max-width:780px}
+.trial-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.trial-fields>div{min-width:0}
+.trial-fields select{width:100%;min-height:43px;appearance:auto;background:#071c33;border:1px solid #547597;color:#e7f5ff;border-radius:8px;padding:9px 12px;font:inherit;font-size:12px}
+.trial-fields select:focus-visible{outline:3px solid #9acbf9;outline-offset:3px}
+.trial-disclosure{color:#adc7db;font-size:12px;line-height:1.6;margin:16px 0}
+.trial-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.trial-actions a{font-size:13px;font-weight:700}
+.trial-panel .request-status{margin-top:12px}
+@media(max-width:690px){.trial-panel{padding:20px 18px}.trial-fields{grid-template-columns:1fr}.trial-actions{align-items:stretch}.trial-actions button{width:100%}}
