@@ -165,15 +165,18 @@ export async function createRequest(flags,deps={}) {
   let outcome;
   if (deps.requestRunner) outcome=await deps.requestRunner(flags);
   else {
+    // The Python module must run from the checked-in application root,
+    // but source paths belong to the *caller's* current working directory.
+    // Resolve them before switching the subprocess cwd (no shell expansion).
     const args=['-m','scripts.request_to_skill',
       '--request',flags['--request'],
       '--host',flags['--host'],
-      '--handoff',flags['--handoff'],
-      '--source-checkout',flags['--source-checkout']];
+      '--handoff',resolve(flags['--handoff']),
+      '--source-checkout',resolve(flags['--source-checkout'])];
     if (flags['--route'])args.push('--route',flags['--route']);
     if (flags['--method'])args.push('--method',flags['--method']);
     if (flags['--external-checkout'])args.push(
-      '--external-checkout',flags['--external-checkout'],
+      '--external-checkout',resolve(flags['--external-checkout']),
       '--external-repository-tree',flags['--external-repository-tree']);
     let stdout;
     try {
