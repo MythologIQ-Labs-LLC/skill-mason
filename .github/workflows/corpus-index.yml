@@ -34,8 +34,10 @@ on:
       - 'docs/technical/capability-graph-v1.md'
       - 'docs/architecture/skill-mason-pipeline-v0.md'
       - 'docs/README.md'
+  # Scoped development branch permits a real corpus integration run while
+  # the stacked PR remains draft. Remove this branch trigger before merge.
   push:
-    branches: [main]
+    branches: [main, feat/issue-30-handoff-snapshot-delta]
     paths:
       - 'scripts/catalog_index.py'
       - 'scripts/snapshot_accession.py'
