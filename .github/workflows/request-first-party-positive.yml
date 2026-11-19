@@ -1,0 +1,61 @@
+name: Request to first-party sealed candidate (focused)
+
+on:
+  pull_request:
+    paths:
+      - 'bin/request-first-party-pilot.mjs'
+      - 'tests/request_first_party_positive.test.mjs'
+      - 'docs/technical/request-first-party-positive-v1.md'
+      - '.github/workflows/request-first-party-positive.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  user-request-to-first-party-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Checkout exact candidate revision, no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 22 LTS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Real original source, recipe, and user-request negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/request_first_party_positive.test.mjs \
+            tests/first_party_pilot_cli.test.mjs \
+            tests/backend_first_party_pilots.test.mjs
+      - name: Prove no positive output on missing native Prism runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(mktemp -d)"
+          set +e
+          node bin/request-first-party-pilot.mjs \
+            --request "Triage the supplied failing CI job and propose the smallest evidence based verification" \
+            --capability "triage CI failure" \
+            --method ci-failure-triage \
+            --host agent-skills-text-only-fixture \
+            --holo /missing/native/eligibility.holo \
+            --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+            --output-root "$root" \
+            --dev-p0-fixture 2> /tmp/first-party-native-refusal.json
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          test -z "$(ls -A "$root")"
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const x=JSON.parse(readFileSync("/tmp/first-party-native-refusal.json","utf8"));
+            if(x.state!=="REFUSED"||x.code!=="PRISM_UNAVAILABLE"||x.productionEligible!==false)process.exit(1);
+            console.log("PASS: actual user request cannot create a fake skill without real Prism");
+          '
+          rmdir "$root"
