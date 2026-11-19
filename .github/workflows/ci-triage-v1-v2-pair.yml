@@ -1,0 +1,132 @@
+name: Compare original generated CI triage v1 versus v2
+
+on:
+  pull_request:
+    paths:
+      - 'bin/ci-triage-v1-v2-compare.mjs'
+      - 'tests/ci_triage_v1_v2_compare.test.mjs'
+      - 'docs/evidence/ci-triage-v1-v2-paired-evaluation-v1.md'
+      - '.github/workflows/ci-triage-v1-v2-pair.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Approved OpenAI text-only model to compare (30 cases by 2 arms)'
+        type: string
+        required: true
+      consent:
+        description: 'Enter COMPARE_60_HOST_CALLS to authorize model spending for this run'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  exact-generated-source-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout evaluated source without persisted authentication
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Check paired trial's mock-not-host behavior
+        run: node --test tests/ci_triage_v1_v2_compare.test.mjs
+      - name: Retrieve both ORIGINAL sealed generated skills from exact native guest run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          run-id: '44574297023'
+          artifact-ids: '14556620721'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ci-triage-pair-source
+      - name: Independently verify both packages, source SHA pins and 30-case judge using real disk bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ci-triage-pair-source/first-party-request-candidates"
+          for version in ci-failure-triage ci-failure-triage-v2; do
+            test -f "$root/$version/.qortara-complete"
+            test -f "$root/$version/RECEIPT.json"
+            test -f "$root/$version/SOURCES.json"
+          done
+          test "$(sha256sum "$root/ci-failure-triage/SKILL.md" | cut -d' ' -f1)" = 92fda9597af84d89b11415d6a86f4b7e6317d6a99ab90d496e8039d115c952a1
+          test "$(sha256sum "$root/ci-failure-triage-v2/SKILL.md" | cut -d' ' -f1)" = 25b74b564861e72b3d2e63060177d39e35c995875c589976f2b1fa401b3ef714
+          CI_TRIAGE_PAIR_V1_DIR="$root/ci-failure-triage" \
+          CI_TRIAGE_PAIR_V2_DIR="$root/ci-failure-triage-v2" \
+          node --test tests/ci_triage_v1_v2_compare.test.mjs
+          echo "PASS: original independent generated skills and 30 paired synthetic judge examples; no external model used"
+      - name: Stage exact authenticated bytes for separate opt-in model job
+        if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_HOST_CALLS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ci-triage-pair-source/first-party-request-candidates"
+          mkdir -p "$RUNNER_TEMP/paired-sealed"
+          cp -a "$root/ci-failure-triage" "$RUNNER_TEMP/paired-sealed/"
+          cp -a "$root/ci-failure-triage-v2" "$RUNNER_TEMP/paired-sealed/"
+      - name: Upload verified pair without exposing source-retrieval credentials to model job
+        if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_HOST_CALLS'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: exact-sealed-ci-triage-pair
+          path: ${{ runner.temp }}/paired-sealed/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  live-paired-behavior:
+    if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_HOST_CALLS'
+    needs: [exact-generated-source-contract]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions: {}
+    env:
+      OPENAI_API_KEY: ${{ secrets.SKILL_MASON_HOST_OPENAI_API_KEY }}
+      HOST_MODEL: ${{ inputs.model }}
+    steps:
+      - name: Checkout only fixed evaluator and task corpus, no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Download authenticated generated pair from preceding non-model job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: exact-sealed-ci-triage-pair
+          path: ${{ runner.temp }}/paired-host
+      - name: Refuse missing authorized model key or GitHub token in model context
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$OPENAI_API_KEY" || { echo 'OWNER_AUTH_REQUIRED: external provider secret missing'; exit 2; }
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+      - name: Actually evaluate thirty paired CI cases with original v1 and v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          node bin/ci-triage-v1-v2-compare.mjs \
+            --v1-dir "$RUNNER_TEMP/paired-host/ci-failure-triage" \
+            --v2-dir "$RUNNER_TEMP/paired-host/ci-failure-triage-v2" \
+            --model "$HOST_MODEL" \
+            --report "$RUNNER_TEMP/ci-triage-v1-v2-30-case-host.json"
+      - name: Retain completed and partial raw model outputs for independent review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ci-triage-v1-v2-real-host-30-paired-observations
+          path: |
+            ${{ runner.temp }}/ci-triage-v1-v2-30-case-host.json
+            ${{ runner.temp }}/ci-triage-v1-v2-30-case-host.json.partial.jsonl
+          if-no-files-found: ignore
+          retention-days: 14
