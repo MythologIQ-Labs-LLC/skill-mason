@@ -123,7 +123,10 @@ jobs:
           assert detail["mode"]=="SHOW"
           route=detail["routes"][0]
           assert route["path"]=="software-engineering/frontend"
-          assert route["essential_outcomes"]
+          assert isinstance(route["essential_outcomes"],list)
+          assert route["essential_outcomes"]==[]
+          assert route["explicit_gaps"]["needs_workflow_decomposition"] is True
+          assert len(route["evidence_linked_reviews"])==2
           assert route["composition_eligible"] is False
           assert all(x["rights_clearance"]=="not-established"
                      for x in route["evidence_linked_reviews"])
