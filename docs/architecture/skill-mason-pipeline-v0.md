@@ -36,6 +36,10 @@
 
 The read-only catalog stage is now proposed for implementation in [scripts/catalog_index.py](../../scripts/catalog_index.py), governed by the [C1 technical contract](../technical/corpus-index-v1.md) and [issue #30](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/30). Its source of truth is the separately authenticated original pinned source checkout plus the published export. It preserves governed reviews (including rejected/unmapped), all fourteen G1–G3 shards, four separate frontier source families, evidence references and recognized/proposed taxonomy inputs. Lexical search results are *unassessed leads*, not capability matches or reusable method candidates. A separate **partial C2 opportunity graph** is now proposed in [scripts/capability_graph.py](../../scripts/capability_graph.py), under [its C2 technical contract](../technical/capability-graph-v1.md). It links the 33 recognized domains/247 routes to exact governed review identities, keeps name-only leads and proposal sources distinct, verifies exact outcome-register rows and explicitly reports missing essential workflow definitions. This is not complete deterministic candidate selection or C2 outcome qualification. Runtime adoption, rights assessment, complete C2+ planner, source-package resolver, Prism routing and host proof remain unimplemented. Until exact-revision CI and owner acceptance exist this is an **implementation candidate**, not a qualified component.
 
+## Versioned corpus publication accession (proposed C1/C6 gate)
+
+The source-verified [snapshot accession preflight](../technical/snapshot-accession-v1.md) checks a separately pinned candidate Git source and its complete handoff artifacts against the existing accepted snapshot, preserving full reviewed ID, source-file, raw source-observation and evidence-pointer changes. All changes remain review-required; pin acceptance and rights/host authorization cannot arise from a hash match or a comparison receipt. Current CI checks the real pinned snapshot against itself for precisely zero drift.
+
 ## Full capability gap analysis and draft essential workflow specifications (proposed C2 workbench)
 
 The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produces an exact 247-route, domain-diversified review queue and separately retains original testable workflow proposals for thirteen recognized routes. This is human-review intake, not changed upstream outcomes, rights clearance, method selection or proven host behavior. Publication into a future governed skillz snapshot requires separate owner/source acceptance.
@@ -44,9 +48,21 @@ The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produc
 
 The [deterministic candidate comparison receipt](../technical/candidate-comparison-v1.md) lists exact recognized evidence links, name-only review hints and bounded lexical raw observations separately, with no eligibility or chosen method. Rights, dependencies and host authority are unassessed; a comparison is not an automatic recommendation or Prism input.
 
+## Operator-signed source-selection acceptance (proposed C4/C5 signed handoff)
+
+A future positively evidenced source cannot reuse a signed assurance assertion from a different host, original source revision, license/asset review, capability route or P0 composer plan. The [Ed25519 source-acceptance guard](../technical/source-acceptance-gate-v1.md) binds these identities under an **independently pinned operator key and fresh revocation policy** before invoking the **separate PR #28 signed four-fact adapter**. This authenticates the scoped source selection, not the factual truth of rights or host behavior. An unsigned C4 receipt still returns `SOURCE_ACCEPTANCE_MISSING`; the source selection signature does not set evidence, rights, authority or coverage to true. The real Prism guest and actual host tests remain separate. The #28 receipt does not yet record the source-approval digest, so full replay/release approval remains held.
+
+## Source-bound Prism input preflight (proposed C4/C5 refusal boundary)
+
+The [Prism input preflight](../technical/prism-input-preflight-v1.md) deterministically binds one exact reviewed source, its source snapshot/tree and byte-inspection receipt to a recognized capability route and requested host. It prepares only the **unsigned negative development vector 00000000** because static review and source byte matching do not establish independent signed evidence, rights, host authority or qualified outcome coverage. It does not run a Prism guest, sign claims, install or generate a skill, or introduce a substitute selection engine. The signed-assertion verifier and actual P0 guest in the separate pilot PR #28 remain the consumer interface for future properly qualified facts.
+
 ## External third-party exact-source package byte verification (proposed C3 follow-on)
 
 The separately pinned [external package inspector](../technical/external-package-inspection-v1.md) verifies a governed third-party candidate's complete Git subtree and actual files against its original exact source revision and recorded package tree/blob, without downloading on invocation, running code, granting rights or declaring host fitness. A Git object consistency receipt is only source-byte evidence. Independent publisher, asset licenses, dependency closure, modification/redistribution rights and actual agent-host acceptance remain explicit holds.
+
+## Package asset and license reference review (proposed C3/C5 prerequisite)
+
+The [source-reference inventory](../technical/package-reference-inventory-v1.md) records original Git-verified package files, code/media/notice roles, limited per-file Markdown reference leads and frontmatter license pointers as **review evidence only**. A matched LICENSE file does not establish the legal rights of every file or transitive dependency closure. The complete source/asset permissions, publisher custody, target-host authority and signed claims are all separate required gates before the existing Prism method composer can accept a source.
 
 ## First-party source-package inspection (proposed C3 slice)
 
