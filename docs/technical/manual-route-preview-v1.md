@@ -6,14 +6,14 @@
 
 The independently executed [adversarial replay](request-routing-replay-v2.md) found that a bounded lexical retriever matches 19/26 new in-scope requests, but makes positive selections on **6/8 negated or ambiguous requests**. That predeclared acceptance failure prohibits automatic routing.
 
-However, its matches may still help a user manually explore the available opportunity space. The CLI now exposes **unassessed, user-confirmed discovery leads only**. It never selects a route, and existing `create` still requires the user to supply `--route`. There is no new network/model/third-party runtime dependency.
+However, its matches may still help a user manually explore the available opportunity space. The experimental Python CLI now exposes **unassessed, user-confirmed discovery leads only**. It never selects a route, and existing `create` still requires the user to supply `--route`. There is no new network/model/third-party runtime dependency.
 
 ## Execute against original pinned sources
 
-Requires Node 22+, Python 3.11+, historical Skillz handoff, and its separately verified original source checkout (as already required by `create`).
+Requires Python 3.11+, historical Skillz handoff, and its separately verified original source checkout (as already required by `create`). The ordinary Node `qortara-skills` command is deliberately unchanged so this preview does not trigger unrelated full native Prism SDK qualification.
 
 ```sh
-qortara-skills preview \
+python3 -m scripts.manual_route_preview \
   --request "Check signed packages and build provenance before shipping a release" \
   --handoff /original/skillz/registry/exports/skill-mason-v1 \
   --source-checkout /original/skillz-source \
@@ -43,11 +43,11 @@ Feature: An imperfect request router must not choose on behalf of the user
 
   Scenario: Candidate output or source is forged
     Given a result claims a method is eligible, a route was chosen, or source pins drifted
-    When the ordinary Node CLI checks the Python output
+    When the Python preview checks the pinned source and candidate fields
     Then it refuses to accept the forged state
 ```
 
-The [existing request-language benchmark CI](../../.github/workflows/request-language-benchmark.yml) runs the Python and Node preview end-to-end against actual pinned Skillz source bytes, with negative cases and exact JSON parity. No new recurring SDK/Cargo gate.
+The [existing request-language benchmark CI](../../.github/workflows/request-language-benchmark.yml) runs the Python preview end-to-end against actual pinned Skillz source bytes, with negative cases. No new recurring SDK/Cargo gate, and no shared Node/Prism runtime changes.
 
 ### Adoption threshold
 
