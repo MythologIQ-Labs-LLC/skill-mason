@@ -1,0 +1,7 @@
+2026-11-19T03:24:52Z START 172.30.99.1:3128 allow=github.com,index.crates.io,static.crates.io
+2026-11-19T03:24:52Z CLOSED - no-request
+2026-11-19T03:24:52Z CLOSED - no-request
+2026-11-19T03:28:33Z DENY example.com:443 not-on-allowlist
+2026-11-19T03:28:33Z ALLOW static.crates.io:443
+2026-11-19T03:28:41Z ALLOW static.crates.io:443
+2026-11-19T03:29:16Z ALLOW github.com:443

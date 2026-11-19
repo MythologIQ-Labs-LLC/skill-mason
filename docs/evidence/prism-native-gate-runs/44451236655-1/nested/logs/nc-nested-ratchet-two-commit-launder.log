@@ -1,0 +1,5 @@
+GATE_SOURCE repo=/opt/prism-gate/run/work/nc-nested-ratchet-two-commit-launder.projection commit=5ffc1dd12dd803f3b948cec3fab5de8930df92c2 tree=8e8aae619dad5e6c0710eb826bdc2253ae1488cc subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-nested-ratchet-two-commit-launder
+gate failed: audit-prism: only Prism may be implemented here, measured against 8589256690ba:
+  - 1 new non-Prism file(s): crates/conformance/tests/added_later.rs. Author the behavior in LexLean (`*.lex.tex`) so PrismPM builds it.
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=14s cmd=cargo run -q --locked -p xtask -- audit-prism

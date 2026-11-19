@@ -1,0 +1,113 @@
+{
+  "schema": "qortara/sm01-output-probe/1",
+  "application": "Qortara Skills Eligibility",
+  "artifact": {
+    "path": "/home/runner/work/_temp/gate/nested/out/holo/eligibility.holo",
+    "sha256": "9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e",
+    "byteLength": 17346
+  },
+  "engine": "prism-code@0.9.5",
+  "assurance": "P0 unverified - explicit fixture-only policy, not P2",
+  "productionEligible": false,
+  "tests": [
+    {
+      "case": "eligible",
+      "requestHex": "01010101",
+      "expected": "eligible",
+      "actual": "eligible",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "evidence",
+      "requestHex": "00010101",
+      "expected": "refused: EVIDENCE_UNQUALIFIED",
+      "actual": "refused: EVIDENCE_UNQUALIFIED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "rights",
+      "requestHex": "01000101",
+      "expected": "refused: RIGHTS_UNRESOLVED",
+      "actual": "refused: RIGHTS_UNRESOLVED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "prohibited-rights",
+      "requestHex": "01020101",
+      "expected": "refused: RIGHTS_UNRESOLVED",
+      "actual": "refused: RIGHTS_UNRESOLVED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "authority",
+      "requestHex": "01010001",
+      "expected": "refused: AUTHORITY_EXCEEDED",
+      "actual": "refused: AUTHORITY_EXCEEDED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "coverage",
+      "requestHex": "01010100",
+      "expected": "refused: OUTCOME_UNCOVERED",
+      "actual": "refused: OUTCOME_UNCOVERED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "all-refused",
+      "requestHex": "00000000",
+      "expected": "refused: EVIDENCE_UNQUALIFIED RIGHTS_UNRESOLVED AUTHORITY_EXCEEDED OUTCOME_UNCOVERED",
+      "actual": "refused: EVIDENCE_UNQUALIFIED RIGHTS_UNRESOLVED AUTHORITY_EXCEEDED OUTCOME_UNCOVERED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "unknown-code",
+      "requestHex": "ff010101",
+      "expected": "refused: EVIDENCE_UNQUALIFIED",
+      "actual": "refused: EVIDENCE_UNQUALIFIED",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "short",
+      "requestHex": "010101",
+      "expected": "invalid request",
+      "actual": "invalid request",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "long",
+      "requestHex": "0101010101",
+      "expected": "invalid request",
+      "actual": "invalid request",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "empty",
+      "requestHex": "",
+      "expected": "invalid request",
+      "actual": "invalid request",
+      "exitCode": 0,
+      "pass": true
+    },
+    {
+      "case": "allocation-boundary",
+      "requestHex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "invalid request",
+      "actual": "invalid request",
+      "exitCode": 0,
+      "pass": true
+    }
+  ],
+  "passed": 12,
+  "total": 12,
+  "verdict": "FIXTURE_PASS"
+}

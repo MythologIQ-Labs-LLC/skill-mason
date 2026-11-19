@@ -1,0 +1,42 @@
+EXPERIMENT ONLY. Outcomes are recorded as observed and assert nothing.
+The key below is generated here and thrown away: it is not a trusted signer.
+The original holo is never modified; only a copy is.
+
+## files the gate wrote beside the receipts
+total 112
+drwxr-xr-x 2 runner runner  4096 Nov 19 04:06 .
+drwxr-xr-x 4 runner runner  4096 Nov 19 04:06 ..
+-rw-r--r-- 1 runner runner  2645 Nov 19 04:06 application-acceptance.json
+-rw-r--r-- 1 runner runner 43200 Nov 19 04:06 lexlean-attestation.json
+-rw-r--r-- 1 runner runner 49640 Nov 19 04:06 manifest.json
+-rw-r--r-- 1 runner runner   105 Nov 19 04:06 verified-directory-listing.txt
+
+experiment runtime: /home/runner/work/_temp/experiment-runtime/node_modules/.bin/prism-code (separate install with optional packages)
+
+## the unmodified holo, judged with a named key it was never signed with
+$ prism-code (network off) check /tmp/tmp.dr1uEfgdqY/copy.holo --key /tmp/tmp.dr1uEfgdqY/public.pem
+FAILED  P0 unverified  policy default requires P2 or above
+holo    /tmp/tmp.dr1uEfgdqY/copy.holo
+digest  blake3:193438f420f8b0bb0533eed12bf105c5783c175bb6642e324002a4ee6a96fcaf
+
+Reasons:
+  provenance.statement (Verification, withholds P1)
+    The holo carries no provenance statement.
+  proof.statement (ProofMismatch, withholds P2)
+    The holo carries no proof statement.
+  replay.statement (Replay, withholds P3)
+    The holo carries no replay statement.
+  policy.level (PP5601, Verification, policy rule)
+    The level is P0; the policy requires P2 or above.
+[exit 1]
+
+## statement files beside the receipts: 0
+none: this SDK wrote no proof, provenance or replay statement to sign
+
+## signing whatever unsigned statements the copy itself carries
+$ prism-code (network off) attest /tmp/tmp.dr1uEfgdqY/copy.holo --unsigned --key /tmp/tmp.dr1uEfgdqY/private.pem --output /tmp/tmp.dr1uEfgdqY/attested.holo
+signing_failed: the holo has no unsigned statement, and no statement was given
+check: sign.statement
+[exit 3]
+
+no signed copy was produced, so there is nothing further to judge
