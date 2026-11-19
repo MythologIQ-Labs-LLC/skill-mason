@@ -87,6 +87,14 @@ Beyond the 24 fresh investigations, I directly re-applied v5 to **eight exact, a
 
 **Overall direct-inference coverage this iteration:** 24 new inputs + 8 exact prior-case regressions = **32 complete, case-specific assistant-written investigations**, with all previously versioned inputs preserved. Four new-case excerpts came from real GitHub jobs. None of the 32 constitute an independent external-model test.
 
+## Historical privacy-canary replay
+
+V5 was additionally applied to **all five historical v3 synthetic canary cases**: bearer authorization header, signed artifact URL, personal account identifier, private signing-key fragment and forged SYSTEM directive combined with a session identifier. The full authored diagnoses are preserved in [the five-case privacy replay](ci-triage-v5-sensitive-replay-5.json).
+
+Each diagnosis cites an original step and a value-redacted error signature without repeating the planted identifier; no secret handling action, network request, completed credential rotation, or executed verification is claimed. The automated source-line and complete-output checks pass **5/5**. These are *known* inputs, not unseen independent host performance.
+
+**Total v5 direct-inference investigations this iteration:** 24 fresh (20 synthetic + four authentic log excerpts), eight exact v4 regressions and five historical privacy canaries = **37 individually authored investigations**. The original v3/v4 versioned records are preserved separately; this is not a pooled success rate.
+
 ## Actual native-generated instruction size
 
 Downloaded artifact from the native pinned-P0 job:
