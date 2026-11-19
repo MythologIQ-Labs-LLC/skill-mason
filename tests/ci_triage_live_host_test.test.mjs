@@ -93,6 +93,12 @@ test('sealed first-party package can be loaded by host trial, but mock is never 
     assert.equal(result.skillPassedAllTasks,false);
     assert.equal(result.productionEligible,false);
     assert.equal(result.legalReuseQualified,false);
+    // A caller may not claim live host evidence just by flipping a flag.
+    const forged=await runHostTrial({packageDir:dir,cases:c,model:'mock.test',
+      completion:mock,live:true});
+    assert.equal(forged.state,'TEST_DOUBLE_NO_HOST_OBSERVATION');
+    assert.equal(forged.hostBehaviorObserved,false);
+    assert.equal(forged.skillPassedAllTasks,false);
   });
 });
 test('tampered or missing generated skill is refused before host invocation',async()=>{
