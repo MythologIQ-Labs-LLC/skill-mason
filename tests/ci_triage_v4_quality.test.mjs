@@ -70,7 +70,7 @@ test('v4 remains bounded, executable as text instructions, and requires explicit
  assert.equal(p.outputFields.length,9);
  const all=p.steps.map(x=>x.action+' '+x.evidenceRequired).join(' ');
  for(const required of ['REQUESTED:','LOG:','RELATION:','NOT_PROVIDED',
-                         'MISMATCHED','UNVERIFIED','hypothesis A','hypothesis B',
+                         'MISMATCHED','UNVERIFIED','hypothesis A','under B',
                          '[REDACTED]','protoc','PATH'])
    assert.ok(all.includes(required),required);
  assert.ok(p.outputFields[0].startsWith('Revision binding:'));
