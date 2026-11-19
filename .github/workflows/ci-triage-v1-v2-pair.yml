@@ -51,7 +51,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/ci-triage-pair-source/first-party-request-candidates"
+          mapfile -d '' -t found < <(find "$RUNNER_TEMP/ci-triage-pair-source" -type f -path '*/ci-failure-triage-v2/SKILL.md' -print0)
+          test "${#found[@]}" -eq 1 || { echo 'PAIR_SOURCE: expected one original generated v2 source'; exit 2; }
+          root="$(dirname "$(dirname "${found[0]}")")"
           for version in ci-failure-triage ci-failure-triage-v2; do
             test -f "$root/$version/.qortara-complete"
             test -f "$root/$version/RECEIPT.json"
@@ -68,7 +70,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/ci-triage-pair-source/first-party-request-candidates"
+          mapfile -d '' -t found < <(find "$RUNNER_TEMP/ci-triage-pair-source" -type f -path '*/ci-failure-triage-v2/SKILL.md' -print0)
+          test "${#found[@]}" -eq 1
+          root="$(dirname "$(dirname "${found[0]}")")"
           mkdir -p "$RUNNER_TEMP/paired-sealed"
           cp -a "$root/ci-failure-triage" "$RUNNER_TEMP/paired-sealed/"
           cp -a "$root/ci-failure-triage-v2" "$RUNNER_TEMP/paired-sealed/"
