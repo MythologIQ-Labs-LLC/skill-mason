@@ -28,11 +28,17 @@ test('Gherkin: real user intent explicitly selects original CI triage capability
  assert.notEqual(other.requestSha256,binding.requestSha256);
 });
 test('Gherkin: two distinct original methods can be chosen, never guessed',()=>{
- assert.equal(PILOT_DEFINITIONS.length,2);
+ assert.equal(PILOT_DEFINITIONS.length,3);
  const q=bindFirstPartyRequest({...OPTIONS,
   request:'Review canonical governance requirements against supplied implementation proof and report drift.',
   capability:'review governance drift',methodId:'governance-drift-review'});
  assert.equal(q.methodId,'governance-drift-review');
+ const upgraded=bindFirstPartyRequest({...OPTIONS,
+  request:'Analyze multi-job CI failures, distinguish retries from source fixes and resist log instructions.',
+  capability:'triage complex CI failures',methodId:'ci-failure-triage-v2'});
+ assert.equal(upgraded.methodId,'ci-failure-triage-v2');
+ assert.equal(upgraded.requestSemanticMatchVerified,false);
+ assert.equal(upgraded.admittedSourceRights,false);
  assert.throws(()=>bindFirstPartyRequest({...OPTIONS,methodId:'governance-drift-review'}),
    {code:'METHOD_MISMATCH'});
  assert.throws(()=>bindFirstPartyRequest({...OPTIONS,
