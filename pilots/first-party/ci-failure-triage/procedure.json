@@ -1,0 +1,43 @@
+{
+  "schema": "qortara/text-review-procedure/1",
+  "useWhen": "The user supplies a CI failure transcript and wants a grounded diagnosis and next verification step without running commands.",
+  "doNotUseWhen": "The request requires executing a build, fetching remote logs, accessing secrets, changing workflows or claiming a fix without a passing rerun.",
+  "inputs": [
+    "The exact CI job and failing step name, if available",
+    "The supplied log excerpt with error lines",
+    "The change or configuration context supplied by the user"
+  ],
+  "steps": [
+    {
+      "action": "Identify the first failing command or check, distinguishing it from steps skipped after the failure.",
+      "evidenceRequired": "Record the visible job, step and exit code; use unknown when a field is absent."
+    },
+    {
+      "action": "Copy the shortest exact error message that establishes the observed failure, preserving path and line references.",
+      "evidenceRequired": "Point to a supplied log line or explain that the error text was not provided."
+    },
+    {
+      "action": "Separate observed facts from possible causes. Do not upgrade a plausible root cause into a verified finding.",
+      "evidenceRequired": "For each possible cause, name the specific error line or configuration fact that supports it."
+    },
+    {
+      "action": "Recommend the smallest bounded verification that could distinguish the leading cause from alternatives.",
+      "evidenceRequired": "State the expected pass and fail observation, without claiming that verification was executed."
+    },
+    {
+      "action": "Summarize the blocker and what would count as a verified resolution.",
+      "evidenceRequired": "Name the exact-head rerun or task behavior needed before closing the failure."
+    }
+  ],
+  "outputFields": [
+    "Observed failure",
+    "Evidence",
+    "Cause hypothesis and uncertainty",
+    "Next verification",
+    "Completion criteria"
+  ],
+  "stopConditions": [
+    "If no failing step or error text is supplied, do not invent a diagnosis. Request the exact log excerpt.",
+    "If resolution requires a tool, secret, network or repository edit, stop at recommendation until separately authorized."
+  ]
+}
