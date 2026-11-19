@@ -15,6 +15,12 @@ Two distinct facts must remain separate:
 
 The separately pinned [observation record](../../.github/prism-ci/previous-p0-observation.json) points to [workflow #44437233577](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44437233577), head \`70ee027a1bfbcf05c98e80833c93b779c8e5fe8b\`, and records full reference/author/nested/real-output jobs and four original nonexpired GitHub artifacts. Every routing decision independently checks GitHub's **actual run head, success, required jobs, artifact identities and expiry** through a read-only API token; the manifest itself does not manufacture success. This observation is **P0 unverified**, not P2, and the SDK publisher is not owner-trusted.
 
+## Historical observation expiry and renewal
+
+The pinned artifacts from native run `44437233577` currently expire on **2026-12-19 UTC**. The routing code explicitly verifies they are still present, nonempty, unexpired, and tied to the exact observed commit. If even one artifact expires, disappears, or GitHub's evidence API fails, it returns **`FULL_NATIVE_REQUIRED`**. A previously good CI check is never grandfathered into an indefinite permission to skip native execution.
+
+The live CI assertion accepts either the demonstrated reusable observation or the explicitly typed **safe full-required fallback** after expiry; its synthetic Gherkin tests independently prove both behaviors. After a newly scoped full native P0 run passes, update the trusted baseline manifest **in a separately reviewed change**, binding the new source commit, exact full jobs and artifacts and preserving the P0/no-owner-authority labels. Do not auto-refresh by merely copying a later holo hash, and never change evidence identities inside a candidate PR to grant itself reuse.
+
 ## Trust-input boundary and fail-closed decisions
 
 [\`scripts/prism_ci_route.py\`](../../scripts/prism_ci_route.py) must run from trusted base code, not a PR's copy. It compares actual Git blob/path differences from the pinned successful observation commit to the proposed candidate. It requires direct ancestry and an exact immutable commit ID. Every changed path must be in a **conservative explicit non-native allowlist**: documentation, backend composer-only files, first-party pilot fixtures, and unrelated source-only workflows. Changes in \`prism/**\`, \`prism-overlay/**\`, SDK pins, all native gate/ratchet/egress scripts, the holo CLI, unknown paths, Git configuration, routing logic or the observation record force full native qualification.
