@@ -36,6 +36,26 @@
 
 The read-only catalog stage is now proposed for implementation in [scripts/catalog_index.py](../../scripts/catalog_index.py), governed by the [C1 technical contract](../technical/corpus-index-v1.md) and [issue #30](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/30). Its source of truth is the separately authenticated original pinned source checkout plus the published export. It preserves governed reviews (including rejected/unmapped), all fourteen G1–G3 shards, four separate frontier source families, evidence references and recognized/proposed taxonomy inputs. Lexical search results are *unassessed leads*, not capability matches or reusable method candidates. A separate **partial C2 opportunity graph** is now proposed in [scripts/capability_graph.py](../../scripts/capability_graph.py), under [its C2 technical contract](../technical/capability-graph-v1.md). It links the 33 recognized domains/247 routes to exact governed review identities, keeps name-only leads and proposal sources distinct, verifies exact outcome-register rows and explicitly reports missing essential workflow definitions. This is not complete deterministic candidate selection or C2 outcome qualification. Runtime adoption, rights assessment, complete C2+ planner, source-package resolver, Prism routing and host proof remain unimplemented. Until exact-revision CI and owner acceptance exist this is an **implementation candidate**, not a qualified component.
 
+## Full capability gap analysis and draft essential workflow specifications (proposed C2 workbench)
+
+The [capability gap workbench](../technical/capability-gap-backlog-v1.md) produces an exact 247-route, domain-diversified review queue and separately retains original testable workflow proposals for thirteen recognized routes. This is human-review intake, not changed upstream outcomes, rights clearance, method selection or proven host behavior. Publication into a future governed skillz snapshot requires separate owner/source acceptance.
+
+## Recognized-route source comparison (proposed C4 exploration)
+
+The [deterministic candidate comparison receipt](../technical/candidate-comparison-v1.md) lists exact recognized evidence links, name-only review hints and bounded lexical raw observations separately, with no eligibility or chosen method. Rights, dependencies and host authority are unassessed; a comparison is not an automatic recommendation or Prism input.
+
+## External third-party exact-source package byte verification (proposed C3 follow-on)
+
+The separately pinned [external package inspector](../technical/external-package-inspection-v1.md) verifies a governed third-party candidate's complete Git subtree and actual files against its original exact source revision and recorded package tree/blob, without downloading on invocation, running code, granting rights or declaring host fitness. A Git object consistency receipt is only source-byte evidence. Independent publisher, asset licenses, dependency closure, modification/redistribution rights and actual agent-host acceptance remain explicit holds.
+
+## First-party source-package inspection (proposed C3 slice)
+
+The read-only [package inspection contract](../technical/package-inspection-v1.md) reconciles each selected first-party package's exact nested file inventory with the pinned source tree, preserving explicit record-specific refusals. The result remains an unapproved byte receipt. Third-party packages and all target-specific rights, dependency and host authority checks remain blocked. No selected method is admitted into Prism by this inspection.
+
+## Future source-family intake (proposed C1/C6 extension)
+
+The source identity and sharded new-family preview candidate is documented in [corpus-evolution-v1](../technical/corpus-evolution-v1.md). It preserves every path observation while separating source slot, complete fingerprint claims, duplicate leads and conflicts. A proposed source-family manifest is **untrusted, read-only and never part of the pinned catalog**. A separately governed upstream handoff and reviewed source pin are required for future accession. This adds a discovery ledger, not independent rights review or generated-skill behavior.
+
 ## Trust boundaries
 
 1. **Catalog data is not authority.** Pins, metadata and review states are untrusted until linked to an authenticated provenance/evidence export. The adapter must validate a trusted source root and any cryptographic signatures/receipts it claims; hashes alone do not establish who made a claim.

@@ -3,12 +3,25 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_evolution.py'
+      - 'scripts/package_resolver.py'
+      - 'scripts/candidate_comparison.py'
+      - 'scripts/capability_gap_backlog.py'
+      - 'tests/test_capability_gap_backlog.py'
+      - 'docs/technical/capability-gap-backlog-v1.md'
+      - 'docs/technical/essential-workflow-proposals-v1.json'
+      - 'tests/test_candidate_comparison.py'
+      - 'docs/technical/candidate-comparison-v1.md'
+      - 'tests/test_package_resolver.py'
+      - 'docs/technical/package-inspection-v1.md'
+      - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
       - '.github/workflows/corpus-index.yml'
       - 'docs/technical/corpus-index-v1.md'
+      - 'docs/technical/corpus-evolution-v1.md'
       - 'docs/technical/capability-graph-v1.md'
       - 'docs/architecture/skill-mason-pipeline-v0.md'
       - 'docs/README.md'
@@ -16,6 +29,18 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_evolution.py'
+      - 'scripts/package_resolver.py'
+      - 'scripts/candidate_comparison.py'
+      - 'scripts/capability_gap_backlog.py'
+      - 'tests/test_capability_gap_backlog.py'
+      - 'docs/technical/capability-gap-backlog-v1.md'
+      - 'docs/technical/essential-workflow-proposals-v1.json'
+      - 'tests/test_candidate_comparison.py'
+      - 'docs/technical/candidate-comparison-v1.md'
+      - 'tests/test_package_resolver.py'
+      - 'docs/technical/package-inspection-v1.md'
+      - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
@@ -40,7 +65,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify synthetic omissions, shadowed bytes and refusal controls
-        run: python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
+          python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
+          python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
+          python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
+          python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -76,6 +106,26 @@ jobs:
           python3 -m scripts.capability_graph \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source show "software-engineering/frontend" > corpus-capability-example.json
+          python3 -m scripts.capability_gap_backlog \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            summary --limit 40 > corpus-capability-gaps.json
+          python3 -m scripts.capability_gap_backlog \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            focus memory-context/provenance > corpus-workflow-proposal-example.json
+          python3 -m scripts.candidate_comparison \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route "software-engineering/frontend" --host ChatGPT --limit 5 > corpus-comparison-example.json
+          python3 -m scripts.package_resolver \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source first-party-scan > corpus-package-scan.json
+          python3 -m scripts.corpus_evolution \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source summary > corpus-evolution-summary.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -99,6 +149,46 @@ jobs:
           example = json.loads(Path("corpus-capability-example.json").read_text())
           assert example["path"] == "software-engineering/frontend"
           assert example["explicit_gaps"]["rights_not_assessed"] and not example["composition_eligible"]
+          gaps = json.loads(Path("corpus-capability-gaps.json").read_text())
+          assert (gaps["recognized_domains"], gaps["recognized_subdomains"]) == (33, 247)
+          assert gaps["essential_outcome_definitions_missing"] == 246
+          assert gaps["unqualified_or_unknown_outcome_routes"] == 247
+          assert gaps["reviewed_identities_with_evidence_links"] == 122
+          assert gaps["governed_reviews_unmapped"] == 921
+          assert gaps["draft_workflow_proposals_pending_review"] == 13
+          assert gaps["work_queue_total"] == 247
+          assert len(set(row["domain"] for row in gaps["queue_sample"][:33])) == 33
+          assert not gaps["composition_eligible"] and gaps["methods_admitted"] == 0
+          focus = json.loads(Path("corpus-workflow-proposal-example.json").read_text())
+          assert focus["route"]["route"] == "memory-context/provenance"
+          assert focus["proposed_workflow"]["proposal_status"] == "DRAFT_NOT_GOVERNED"
+          assert not focus["actual_registered_essential_outcomes"] and not focus["composition_eligible"]
+          print("Recognized capability gap categories:", gaps["gap_categories"])
+          print("Cross-domain draft outcomes pending upstream review:", gaps["draft_workflow_proposals_pending_review"])
+          cmp = json.loads(Path("corpus-comparison-example.json").read_text())
+          assert cmp["route"] == "software-engineering/frontend"
+          assert cmp["declared_observation_rows_swept"] == 66139
+          assert cmp["eligible_candidate_count"] == 0 and cmp["chosen_method"] is None
+          assert not cmp["composition_eligible"] and not cmp["prism_invoked"]
+          assert cmp["receipt_not_a_best_method_rank"] and cmp["unmapped_and_unreviewed_methods_may_be_relevant"]
+          assert cmp["evidence_linked_review_count"] == len(cmp["evidence_linked_reviews"])
+          print("C4 comparison receipt counts:", {"evidence": cmp["evidence_linked_review_count"],
+                                                 "name_leads": cmp["name_only_lead_count"],
+                                                 "lexical_observations": cmp["lexical_observation_match_count"]})
+          pkg = json.loads(Path("corpus-package-scan.json").read_text())
+          assert pkg["first_party_reviewed"] == 48
+          assert pkg["all_48_checked_without_silent_omission"]
+          assert not pkg["rights_assessed"] and not pkg["host_qualified"]
+          assert not pkg["composition_eligible"] and not pkg["third_party_complete_packages_assessed"]
+          print("First-party package inspection outcomes:", pkg["results_by_status"])
+          evolution = json.loads(Path("corpus-evolution-summary.json").read_text())
+          assert evolution["observed_path_rows"] == 66139
+          assert evolution["source_family_rows"] == {"four-source": 4813, "g1-g3": 61326}
+          assert evolution["fully_specified_placement_claims"] <= 66139
+          assert not evolution["composition_eligible"] and not evolution["content_equivalence_verified_from_bytes"]
+          assert evolution["source_observations_preserved"] and not evolution["mirror_reuse_rights_inferred"]
+          print("Source identity accounting:", json.dumps(evolution, sort_keys=True))
+
           print("C2 recognized capability outcome definitions missing:", graph["outcome_definitions_missing"])
           print("C2 routes with unqualified/unknown essential outcomes:", graph["unqualified_or_unknown_outcome_routes"])
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
@@ -110,5 +200,10 @@ jobs:
           path: |
             corpus-index-summary.json
             corpus-capability-summary.json
+            corpus-evolution-summary.json
+            corpus-package-scan.json
+            corpus-comparison-example.json
+            corpus-capability-gaps.json
+            corpus-workflow-proposal-example.json
           retention-days: 14
           if-no-files-found: error
