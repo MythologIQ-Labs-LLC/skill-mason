@@ -6,7 +6,7 @@ below on 2026-11-17 (America/New_York), and reported enabling GitHub Private
 Vulnerability Reporting. This records an owner decision, **not independent
 verification of a GitHub setting or a completed native Qortara audit**.
 
-## Scope and supported versions
+## Supported versions and scope
 
 Qortara Skills is a public repository in **pre-alpha development**. No
 production service, released generator, or supported version range is currently
@@ -36,7 +36,7 @@ the vulnerability publicly as a workaround. The reporting-channel availability
 must be corrected by the repository owner before a confidential submission
 can proceed. No fallback mailbox or private channel is claimed.
 
-## Accountability and handling
+## Response, accountability and handling
 
 **Accountable authority:** the MythologIQ Labs, LLC project owner, or a
 delegate explicitly authorized for the relevant security case. The owner
