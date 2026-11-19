@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/request_to_skill.py'
       - 'tests/test_request_to_skill.py'
+      - 'scripts/user_route_discovery.py'
+      - 'tests/test_user_route_discovery.py'
       - 'scripts/prism_input_preflight.py'
       - 'tests/test_prism_input_preflight.py'
       - 'bin/qortara-skills.mjs'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'scripts/request_to_skill.py'
       - 'tests/test_request_to_skill.py'
+      - 'scripts/user_route_discovery.py'
+      - 'tests/test_user_route_discovery.py'
       - 'scripts/prism_input_preflight.py'
       - 'tests/test_prism_input_preflight.py'
       - 'bin/qortara-skills.mjs'
@@ -48,6 +52,7 @@ jobs:
           python3 --version
           node --version
           python3 -m unittest discover -s tests -p 'test_request_to_skill.py' -v
+          python3 -m unittest discover -s tests -p 'test_user_route_discovery.py' -v
           python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
           node --test tests/local_cli.test.mjs
       - name: Checkout immutable Skillz handoff
@@ -66,6 +71,72 @@ jobs:
           test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
           git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
           test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Real 247-route discovery from original pinned catalog through ordinary CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p route-evidence
+          python3 -m scripts.user_route_discovery \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source --summary \
+            > route-evidence/summary.json
+          python3 -m scripts.user_route_discovery \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source --search frontend --limit 10 \
+            > route-evidence/search.json
+          python3 -m scripts.user_route_discovery \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source --path software-engineering/frontend \
+            > route-evidence/detail.json
+          (
+            cd route-evidence
+            node ../bin/qortara-skills.mjs routes \
+              --handoff ../skillz-export/registry/exports/skill-mason-v1 \
+              --source-checkout ../skillz-source --search frontend --limit 10 \
+              > node-search.json
+          )
+          set +e
+          node bin/qortara-skills.mjs routes \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source --path imaginary/unrecognized \
+            > route-evidence/unknown-route.json
+          unknown_rc=$?
+          set -e
+          test "$unknown_rc" -eq 2
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path("route-evidence")
+          summary=json.loads((base/"summary.json").read_text())
+          search=json.loads((base/"search.json").read_text())
+          detail=json.loads((base/"detail.json").read_text())
+          node=json.loads((base/"node-search.json").read_text())
+          missing=json.loads((base/"unknown-route.json").read_text())
+          assert summary["recognized_domain_count"]==33
+          assert summary["recognized_route_count"]==247
+          assert summary["unmapped_governed_identity_count"]==921
+          assert summary["routes"]==[]
+          assert summary["production_eligible"] is False
+          assert search==node, "user-facing Node CLI must preserve Python discovery receipts"
+          assert search["mode"]=="SEARCH"
+          assert any(x["path"]=="software-engineering/frontend" for x in search["routes"])
+          assert detail["mode"]=="SHOW"
+          route=detail["routes"][0]
+          assert route["path"]=="software-engineering/frontend"
+          assert route["essential_outcomes"]
+          assert route["composition_eligible"] is False
+          assert all(x["rights_clearance"]=="not-established"
+                     for x in route["evidence_linked_reviews"])
+          assert missing["state"]=="REFUSED"
+          assert missing["code"]=="UNRECOGNIZED_CAPABILITY"
+          for obj in (summary,search,detail,node):
+              assert obj["pinned_source_commit"]=="31a8c518dd97b7828adcc728202fa41388a306d7"
+              assert obj["pinned_source_tree"]=="e6d5dfeb42bcd7777ddff52605922fead62135ff"
+              assert obj["composition_eligible"] is False
+              assert obj["source_rights_established"] is False
+              assert obj["host_validated"] is False
+          print("REAL PINNED ROUTE DISCOVERY PASS: 247 recognized, frontend searched and inspected, Node/Python parity, unknown route refused")
+          PY
       - name: Run actual user requests with pinned source comparisons and check refusals
         shell: bash
         run: |
@@ -232,6 +303,14 @@ jobs:
           print("REAL SINGLE-PASS C3-C4-C5 PASS: two Git-verified files, one license pointer,")
           print("same direct-Python/caller-directory-Node response, no rights approval, wrong-tree refused")
           PY
+      - name: Upload bounded user-visible original-source route discovery results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pinned-route-discovery-receipts
+          path: route-evidence/
+          retention-days: 14
+          if-no-files-found: warn
       - name: Upload bounded real source and refusal evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
