@@ -12,13 +12,13 @@ const source=await read('../pilots/first-party/ci-failure-triage-v5/procedure.js
 const corpus=JSON.parse(await read('./fixtures/ci-triage-v5-evaluation-24.json'));
 const evaluated=JSON.parse(await read('../docs/evidence/ci-triage-v5-direct-inference-24.json'));
 const sha=b=>createHash('sha256').update(b).digest('hex');
-const blob=b=>createHash('sha1').update(Buffer.from('blob '+b.length+'\\0')).update(b).digest('hex');
+const blob=b=>createHash('sha1').update(Buffer.from('blob '+b.length+String.fromCharCode(0))).update(b).digest('hex');
 const sourceSha='58a3e5c1479e8b4e0f944ada48f686337e1f116d335061f202ffeb1e59ca1b6f';
 const sourceBlob='02fb50e813242b6017116076e38cd44846ab6332';
 const byId=new Map(corpus.cases.map(c=>[c.id,c]));
 function failures(c,a){
  const errors=[];
- const e=c.log.split('\\n').map(line=>c.private_synthetic_spans.reduce((s,t)=>s.replaceAll(t,'[REDACTED]'),line));
+ const e=c.log.split(String.fromCharCode(10)).map(line=>c.private_synthetic_spans.reduce((s,t)=>s.replaceAll(t,'[REDACTED]'),line));
  const relation=!c.requested||!c.log_revision?'UNVERIFIED':c.requested===c.log_revision?'MATCHED':'MISMATCHED';
  if(a.id!==c.id||a.method!=='ci-failure-triage-v5')errors.push('CASE_ID');
  if(a.revision?.relation!==relation||a.revision?.requested!==(c.requested??'NOT_PROVIDED')||
@@ -68,9 +68,9 @@ test('v5 source explicitly fixes no-evidence abstention, no fake A/B, independen
  assert.equal(p.steps.length,12);
  const all=p.steps.flatMap(s=>[s.action,s.evidenceRequired]).join(' ');
  for(const required of ['DIAGNOSIS: WITHHELD','HYPOTHESES: NOT_SUPPORTED',
-  'SINGLE_CAUSE','PER independent','FIX_HEAD:','post-fix','each independent blocker'])
+  'SINGLE_CAUSE','PER independent','FIX_HEAD:','post-fix','per independent blocker'])
   assert.ok(all.toLowerCase().includes(required.toLowerCase()),required);
- assert.ok(p.steps.some(s=>s.evidenceRequired.includes('two independent jobs')));
+ assert.ok(p.steps.some(s=>s.evidenceRequired.includes('coexist')));
  assert.ok(p.stopConditions.some(s=>s.includes('no invented A/B')));
  assert.ok(p.outputFields.some(s=>s.includes('same-commit attempts')));
 });
