@@ -55,12 +55,13 @@ class ManualPreviewTests(unittest.TestCase):
             preview(original,PROPOSALS,"Review dependency signatures for a release")
 
     def test_given_bad_user_input_or_limit_when_previewing_then_refuse(self):
-        for query in ("foo","Review\x00 other material with secrets","Review dependency facts"):
+        for query in ("foo","Review\x00 other material with secrets"):
             with self.subTest(query=query):
                 with self.assertRaises(Refusal):
-                    preview(StubGraph(),PROPOSALS,query if query!="Review dependency facts" else query,limit=4)
+                    preview(StubGraph(),PROPOSALS,query,limit=3)
         with self.assertRaises(Refusal):
-            preview(StubGraph(),PROPOSALS,"abc")
+            preview(StubGraph(),PROPOSALS,
+                "Inspect package provenance before deciding whether to release",limit=4)
 
 
 if __name__=="__main__":unittest.main()
