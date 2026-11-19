@@ -10,7 +10,7 @@
 import {createHash} from 'node:crypto';
 import {resolve,isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {PILOT_DEFINITIONS,PILOT_HOST,PILOT_SNAPSHOT_COMMIT}
+import {PILOT_DEFINITIONS,PILOT_HOST,PILOT_CURRENT_SNAPSHOT_COMMIT}
   from '../src/backend/first-party-pilots.mjs';
 import {runFirstPartyPilot,DEV_HOLO_SHA256} from './first-party-pilot.mjs';
 
@@ -59,7 +59,7 @@ export async function generateFirstPartyRequest({
   });
   if(candidate?.status!=='DEVELOPMENT_CANDIDATE'||
      candidate.id!==binding.methodId||
-     candidate.sourceCommit!==PILOT_SNAPSHOT_COMMIT||
+     candidate.sourceCommit!==PILOT_CURRENT_SNAPSHOT_COMMIT||
      candidate.holoSha256!==DEV_HOLO_SHA256||
      candidate.hostValidated!==false||
      candidate.modelCallsMeasured!==false||
