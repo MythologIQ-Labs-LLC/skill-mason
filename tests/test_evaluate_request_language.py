@@ -89,7 +89,6 @@ class RequestLanguageEvaluationTests(unittest.TestCase):
         self.assertFalse(report["composition_eligible"])
 
     def test_given_token_variants_when_normalizing_then_stays_bounded_and_inert(self):
-        self.assertIn("dependencie", words("dependencies")) if False else None
         self.assertEqual(words("   PLEASE create a skill for me   "), set())
         self.assertIn("quantization", words("quantization and inference"))
 
