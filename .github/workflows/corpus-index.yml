@@ -5,6 +5,9 @@ on:
       - 'scripts/catalog_index.py'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
+      - 'scripts/candidate_comparison.py'
+      - 'tests/test_candidate_comparison.py'
+      - 'docs/technical/candidate-comparison-v1.md'
       - 'tests/test_package_resolver.py'
       - 'docs/technical/package-inspection-v1.md'
       - 'tests/test_corpus_evolution.py'
@@ -24,6 +27,9 @@ on:
       - 'scripts/catalog_index.py'
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
+      - 'scripts/candidate_comparison.py'
+      - 'tests/test_candidate_comparison.py'
+      - 'docs/technical/candidate-comparison-v1.md'
       - 'tests/test_package_resolver.py'
       - 'docs/technical/package-inspection-v1.md'
       - 'tests/test_corpus_evolution.py'
@@ -55,6 +61,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
           python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
+          python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -90,6 +97,10 @@ jobs:
           python3 -m scripts.capability_graph \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source show "software-engineering/frontend" > corpus-capability-example.json
+          python3 -m scripts.candidate_comparison \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route "software-engineering/frontend" --host ChatGPT --limit 5 > corpus-comparison-example.json
           python3 -m scripts.package_resolver \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source first-party-scan > corpus-package-scan.json
@@ -119,6 +130,16 @@ jobs:
           example = json.loads(Path("corpus-capability-example.json").read_text())
           assert example["path"] == "software-engineering/frontend"
           assert example["explicit_gaps"]["rights_not_assessed"] and not example["composition_eligible"]
+          cmp = json.loads(Path("corpus-comparison-example.json").read_text())
+          assert cmp["route"] == "software-engineering/frontend"
+          assert cmp["declared_observation_rows_swept"] == 66139
+          assert cmp["eligible_candidate_count"] == 0 and cmp["chosen_method"] is None
+          assert not cmp["composition_eligible"] and not cmp["prism_invoked"]
+          assert cmp["receipt_not_a_best_method_rank"] and cmp["unmapped_and_unreviewed_methods_may_be_relevant"]
+          assert cmp["evidence_linked_review_count"] == len(cmp["evidence_linked_reviews"])
+          print("C4 comparison receipt counts:", {"evidence": cmp["evidence_linked_review_count"],
+                                                 "name_leads": cmp["name_only_lead_count"],
+                                                 "lexical_observations": cmp["lexical_observation_match_count"]})
           pkg = json.loads(Path("corpus-package-scan.json").read_text())
           assert pkg["first_party_reviewed"] == 48
           assert pkg["all_48_checked_without_silent_omission"]
@@ -146,5 +167,6 @@ jobs:
             corpus-capability-summary.json
             corpus-evolution-summary.json
             corpus-package-scan.json
+            corpus-comparison-example.json
           retention-days: 14
           if-no-files-found: error
