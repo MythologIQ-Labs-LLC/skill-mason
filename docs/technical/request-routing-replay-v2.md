@@ -37,4 +37,12 @@ Feature: New retrieval must earn the right to be considered
     Then reject the benchmark without a success-shaped report
 ```
 
+## Executed result at the frozen model and original source
+
+[Native GitHub Actions original-source replay #44557289069](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44557289069), full per-case artifact `request-replay-adversarial-46`. Actual pinned Skillz export and separately verified original source tree loaded successfully. On **26 new in-scope requests**, original exact-all-word search returned **0 correct / 26 abstentions**; the frozen lexical retriever returned **19 correct top-1, 23 expected within top-3, 7 abstentions, 0 wrong non-abstaining route**. On **12 unrelated requests**, both approaches abstained **12/12**. On **8 explicitly negated/undecided/multi-outcome requests**, the lexical retriever returned an unsupported positive route **6/8**, while the original all-word search abstained **8/8**.
+
+**Predeclared acceptance verdict: NO_GO_AUTOMATIC_ROUTE_SELECTION.** The candidate met the in-scope accuracy and ordinary out-of-scope criteria but failed the zero-unsafe-selection rule on negated and ambiguous user intent. That is a real product failure, not a test failure to be suppressed or a reason to adjust thresholds and reuse this dataset as a fresh holdout. There is no justified automatic route assignment, method selection, rights admission or composer invocation.
+
+**Consequence:** Until genuinely independent labeling and a fresh adversarial retest, treat lexical similarity strictly as an *unassessed discovery lead* requiring an explicit user-selected route; consider presenting an optional read-only list in a separate product increment, not silently applying the highest score. Preserve existing denial, source and Prism boundaries.
+
 **Next legitimate step:** If this stricter replay fails, prefer evidence-backed ambiguity/negation handling or a manual choice UI over adding a new model. If it passes, independently adjudicate a fresh sample, then offer read-only *candidate* suggestions through normal `create` UX without allowing a classifier to become source authority. In either case, first positive rights-qualified Skill Mason output remains the product milestone.
