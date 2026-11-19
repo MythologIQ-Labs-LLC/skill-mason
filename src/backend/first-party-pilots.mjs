@@ -11,7 +11,7 @@ export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
 // Each immutable method retains its own historical source commit; the current snapshot includes v4.
 export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
-export const PILOT_V4_SOURCE_COMMIT='7627d98f081f1335a1c0246e71300416e4b754c5';
+export const PILOT_V4_SOURCE_COMMIT='de2be11765ede34be59d9a64c2a1b434b0ca4bcc';
 export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_V4_SOURCE_COMMIT;
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
