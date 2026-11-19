@@ -161,23 +161,28 @@ const SOURCE_ROOT=fileURLToPath(new URL('../',import.meta.url));
  * The Python module is the only C4/C5 coordinator; the Node CLI cannot
  * synthesize an eligible verdict or accept a model's rights self-assertion.
  */
+/**
+ * Preserve the invoking operator's filesystem context even though Python
+ * needs to import its verified module from the Skill Mason repository root.
+ */
+export function requestPythonArgs(flags,callerDirectory=process.cwd()) {
+  const args=['-m','scripts.request_to_skill',
+    '--request',flags['--request'],
+    '--host',flags['--host'],
+    '--handoff',resolve(callerDirectory,flags['--handoff']),
+    '--source-checkout',resolve(callerDirectory,flags['--source-checkout'])];
+  if (flags['--route'])args.push('--route',flags['--route']);
+  if (flags['--method'])args.push('--method',flags['--method']);
+  if (flags['--external-checkout'])args.push(
+    '--external-checkout',resolve(callerDirectory,flags['--external-checkout']),
+    '--external-repository-tree',flags['--external-repository-tree']);
+  return args;
+}
 export async function createRequest(flags,deps={}) {
   let outcome;
   if (deps.requestRunner) outcome=await deps.requestRunner(flags);
   else {
-    // The Python module must run from the checked-in application root,
-    // but source paths belong to the *caller's* current working directory.
-    // Resolve them before switching the subprocess cwd (no shell expansion).
-    const args=['-m','scripts.request_to_skill',
-      '--request',flags['--request'],
-      '--host',flags['--host'],
-      '--handoff',resolve(flags['--handoff']),
-      '--source-checkout',resolve(flags['--source-checkout'])];
-    if (flags['--route'])args.push('--route',flags['--route']);
-    if (flags['--method'])args.push('--method',flags['--method']);
-    if (flags['--external-checkout'])args.push(
-      '--external-checkout',resolve(flags['--external-checkout']),
-      '--external-repository-tree',flags['--external-repository-tree']);
+    const args=requestPythonArgs(flags);
     let stdout;
     try {
       ({stdout}=await execFileAsync(
