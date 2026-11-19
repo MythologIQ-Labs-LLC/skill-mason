@@ -8,9 +8,11 @@ import {canonicalJSON} from './compose.mjs';
 import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
-// Each immutable method retains its own historical source commit; the snapshot includes v3.
+// Each immutable method retains its own historical source commit; the current snapshot includes v4.
 export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
+export const PILOT_V4_SOURCE_COMMIT='7627d98f081f1335a1c0246e71300416e4b754c5';
+export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_V4_SOURCE_COMMIT;
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -35,6 +37,13 @@ export const PILOT_DEFINITIONS=Object.freeze([
     sourceCommit:PILOT_SNAPSHOT_COMMIT,
     gitBlob:'020d6850472c9f3fad80c07a1b6d2a5af78c34c4',
     sha256:'fcc156c7ac3c369716ab0fa957159996ae25d193b22c7805790fb100ee5669d5'}),
+  Object.freeze({id:'ci-failure-triage-v4',title:'CI failure triage v4',
+    description:'Trace exact CI revision provenance and distinguish competing failure causes while preserving privacy.',
+    outcome:'triage provenance-sensitive CI failure logs',
+    path:'pilots/first-party/ci-failure-triage-v4/procedure.json',
+    sourceCommit:PILOT_V4_SOURCE_COMMIT,
+    gitBlob:'d4669d434bc00aa07ca6d06be140ad661b8ac7dc',
+    sha256:'2aae2a88a499cf7d65f70d03e619f25ca8e790f07481c3b2eb05ed563faaf761'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
@@ -80,7 +89,7 @@ export async function loadFirstPartyPilots(){
     sha256:entry.package_sha256
   })).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
   const sourceSnapshot=Object.freeze({repository:PILOT_SOURCE_REPOSITORY,
-    commit:PILOT_SNAPSHOT_COMMIT,sha256:sha(Buffer.from(canonicalJSON(pins)))});
+    commit:PILOT_CURRENT_SNAPSHOT_COMMIT,sha256:sha(Buffer.from(canonicalJSON(pins)))});
   return Object.freeze({sourceSnapshot,
     supportedHosts:Object.freeze([PILOT_HOST]),
     components:Object.freeze(sources)});
