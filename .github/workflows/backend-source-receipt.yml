@@ -6,6 +6,10 @@ on:
       - 'src/backend/source-proof-replay.mjs'
       - 'tests/backend_compose.test.mjs'
       - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'src/backend/host-task-evidence.mjs'
+      - 'bin/host-task-evidence.mjs'
+      - 'tests/backend_host_task_evidence.test.mjs'
+      - 'docs/technical/host-task-acceptance-v1.md'
       - 'tests/integration/strict_source_receipt_fixture.mjs'
       - 'docs/technical/backend-source-approval-receipt-v1.md'
       - '.github/workflows/backend-source-receipt.yml'
@@ -15,6 +19,10 @@ on:
       - 'src/backend/compose.mjs'
       - 'src/backend/source-proof-replay.mjs'
       - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'src/backend/host-task-evidence.mjs'
+      - 'bin/host-task-evidence.mjs'
+      - 'tests/backend_host_task_evidence.test.mjs'
+      - 'docs/technical/host-task-acceptance-v1.md'
       - 'tests/integration/strict_source_receipt_fixture.mjs'
       - '.github/workflows/backend-source-receipt.yml'
   workflow_dispatch:
@@ -44,8 +52,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
-          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/backend_signed_assertions.test.mjs
-          git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs tests/backend_source_approval_receipt.test.mjs
+          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
+          git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
       - name: Cross-branch two-signature P0 fixture through exclusive disk seal (offline)
         shell: bash
         run: |
