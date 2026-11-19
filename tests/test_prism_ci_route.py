@@ -257,7 +257,14 @@ class NativeSchedulingContractTests(unittest.TestCase):
         self.assertIn("always() &&", self.final)
         self.assertIn("needs: [sdk, real-output, publish-evidence]", self.final)
         for result in ("SDK_RESULT", "REAL_OUTPUT_RESULT", "EVIDENCE_RESULT"):
-            self.assertIn('test " + result + '" = success', self.final)
+            self.assertIn('test "
+        self.assertNotIn("REUSE_PREVIOUS_P0_OBSERVATION", self.final)
+
+
+
+if __name__ == "__main__":
+    unittest.main()
+ + result + '" = success', self.final)
         self.assertNotIn("REUSE_PREVIOUS_P0_OBSERVATION", self.final)
 
 
