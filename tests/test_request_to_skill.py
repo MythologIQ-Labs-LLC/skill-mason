@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 
 from scripts.catalog_handoff import Refusal, canonical, sha256
-from scripts.request_to_skill import evaluate_request, SCHEMA
+from scripts.request_to_skill import evaluate_request, _source_outcome_coverage, SCHEMA
 
 ROUTE = "security/supply-chain"
 HOST = "ChatGPT"
@@ -280,6 +280,8 @@ class RequestAdmissionTests(unittest.TestCase):
         self.assertEqual(exc.exception.code, "OUTCOME_COMPARISON_DRIFT")
 
     def test_gherkin_missing_stale_or_malformed_outcome_row_refuses(self):
+        known = comparator(self.graph, ROUTE, HOST, include_lexical=False,
+                           limit=25, external_selection=None)
         row = self.graph.outcome_by_path[ROUTE]
         for mutated in (None, {"path": "wrong/route", "essential_outcomes": []},
                         {"path": ROUTE, "essential_outcomes": "not a list"},
@@ -288,14 +290,16 @@ class RequestAdmissionTests(unittest.TestCase):
             with self.subTest(mutated=mutated):
                 self.graph.outcome_by_path[ROUTE] = mutated
                 with self.assertRaises(Refusal) as exc:
-                    self.evaluate()
+                    _source_outcome_coverage(self.graph, ROUTE, known)
                 self.assertEqual(exc.exception.code, "OUTCOME_SOURCE_DRIFT")
         self.graph.outcome_by_path[ROUTE] = row
 
     def test_gherkin_route_without_source_outcome_row_refuses(self):
+        known = comparator(self.graph, ROUTE, HOST, include_lexical=False,
+                           limit=25, external_selection=None)
         self.graph.outcome_by_path.clear()
         with self.assertRaises(Refusal) as exc:
-            self.evaluate()
+            _source_outcome_coverage(self.graph, ROUTE, known)
         self.assertEqual(exc.exception.code, "OUTCOME_SOURCE_MISSING")
 
 
