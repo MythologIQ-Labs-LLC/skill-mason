@@ -16,6 +16,7 @@ name: Prism native gate (isolated runner)
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     paths:
       - '.github/workflows/prism-native-gate.yml'
       - 'prism-overlay/**'
@@ -50,8 +51,16 @@ env:
 jobs:
   sdk:
     name: SDK / ${{ matrix.phase }}
-    # A pull request from a fork never starts the SDK image here.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    # Draft source iteration runs the fast trusted-base router, not this full SDK matrix.
+    # Ready-for-review automatically runs full native acceptance. An owner may
+    # also opt into one exact-head draft run by applying run-prism-native.
+    # Fork PRs never start the SDK image, including on a labeled event.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+        (github.event.pull_request.draft == false ||
+          (github.event.action == 'labeled' &&
+           github.event.label.name == 'run-prism-native')))
     strategy:
       fail-fast: false
       matrix:
@@ -358,3 +367,35 @@ jobs:
             -m "Files exactly as the workflow's jobs uploaded them. Not edited, not summarised, not an approval."
           git push --quiet origin "HEAD:refs/heads/evidence/prism-native-gate-$run"
           echo "pushed evidence/prism-native-gate-$run ($(git rev-parse HEAD)), $(wc -l <"$dest/SHA256SUMS") files"
+
+  native-qualification:
+    name: Native qualification (never a skipped-job pass)
+    # Draft-only updates intentionally have no native-PASS check. Ready or
+    # explicitly requested full executions MUST pass every phase. This job
+    # does not convert a previous P0 observation or a router recommendation
+    # into qualification; such reuse needs a separate reviewed integration.
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.pull_request.draft == false ||
+       (github.event.action == 'labeled' &&
+        github.event.label.name == 'run-prism-native'))
+    needs: [sdk, real-output, publish-evidence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require actual successful native phases
+        shell: bash
+        env:
+          SDK_RESULT: ${{ needs.sdk.result }}
+          REAL_OUTPUT_RESULT: ${{ needs.real-output.result }}
+          EVIDENCE_RESULT: ${{ needs.publish-evidence.result }}
+        run: |
+          set -euo pipefail
+          printf 'native qualification: sdk=%s real-output=%s evidence=%s\n' \
+            "$SDK_RESULT" "$REAL_OUTPUT_RESULT" "$EVIDENCE_RESULT"
+          test "$SDK_RESULT" = success
+          test "$REAL_OUTPUT_RESULT" = success
+          test "$EVIDENCE_RESULT" = success
+          echo 'Actual full native phases all passed. Not P2 or owner release approval.'
