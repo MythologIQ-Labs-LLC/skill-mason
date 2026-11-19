@@ -1,0 +1,5 @@
+GATE_SOURCE repo=/opt/prism-gate/run/work/nc-nested-ratchet-growth.projection commit=20cf7faa582e66bb4c6a6676c3fbbc78db3b560a tree=24d0f9c2fc7056c3ed1007b1d35b17fa28edede8 subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-nested-ratchet-growth
+gate failed: audit-prism: only Prism may be implemented here, measured against 3c90c9af178b:
+  - non-Prism implementation grew by 4 lines (13501 to 13505); grown: crates/conformance/tests/eligibility.rs +4. It may only shrink: move the logic into the Prism model, or delete as much as you add.
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=15s cmd=cargo run -q --locked -p xtask -- audit-prism

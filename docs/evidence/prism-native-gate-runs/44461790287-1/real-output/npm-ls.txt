@@ -1,0 +1,8 @@
+@qortara/skills-cli@0.1.0-dev.0 /home/runner/work/_temp/sm
+└─┬ prism-code@0.9.5 extraneous
+  ├── UNMET OPTIONAL DEPENDENCY @sigstore/bundle@5.0.0
+  ├── UNMET OPTIONAL DEPENDENCY @sigstore/protobuf-specs@0.5.2
+  ├── UNMET OPTIONAL DEPENDENCY @sigstore/sign@5.0.0
+  ├── UNMET OPTIONAL DEPENDENCY @sigstore/tuf@5.0.0
+  └── UNMET OPTIONAL DEPENDENCY @sigstore/verify@4.1.2
+

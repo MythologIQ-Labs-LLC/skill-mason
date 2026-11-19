@@ -1,0 +1,102 @@
+$ prism-code vectors /home/runner/work/_temp/gate/nested/out/holo/eligibility.holo
+12 of 12 vectors passed (holo, Qortara Skills Eligibility, identities verified)
+[exit 0]
+
+$ prism-code check /home/runner/work/_temp/gate/nested/out/holo/eligibility.holo
+FAILED  P0 unverified  policy default requires P2 or above
+holo    /home/runner/work/_temp/gate/nested/out/holo/eligibility.holo
+digest  blake3:193438f420f8b0bb0533eed12bf105c5783c175bb6642e324002a4ee6a96fcaf
+
+Reasons:
+  provenance.statement (Verification, withholds P1)
+    The holo carries no provenance statement.
+  proof.statement (ProofMismatch, withholds P2)
+    The holo carries no proof statement.
+  replay.statement (Replay, withholds P3)
+    The holo carries no replay statement.
+  policy.level (PP5601, Verification, policy rule)
+    The level is P0; the policy requires P2 or above.
+[exit 1]
+
+$ prism-code inspect /home/runner/work/_temp/gate/nested/out/holo/eligibility.holo
+Name:      Qortara Skills Eligibility
+Revision:  2026-10-23
+Format:    HOLO physical version 4, flags 0
+Size:      17346 B
+Digest:    sha256:9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e
+           blake3:e08e23e8132551c8a3d8c6006fb560872b86bfcffd00f4f74a835c7e81c74db3
+Footer:    193438f420f8b0bb0533eed12bf105c5783c175bb6642e324002a4ee6a96fcaf (BLAKE3 of the body)
+
+Sections:
+  INDEX  KIND  ROLE                   OFFSET  LENGTH  SHA256                                                            BLAKE3
+  0      15    app-manifest           202     356     5ef737f07bb546638a2bde3a98055c09fdde71f4444f84ae119cc72c78fb2d79  3ffe96a8ba2227f10adc25b1f999fa84240455729cf49e2931a43d637197e405
+  1      8     source-manifest        558     610     f131c56679622a5a922804b48ce2e703b5fe6e676c0a2632377662df533fe2e0  1b1e5dcd5594b461885dd1a6647e06af2a003f4f640eebcf154e275fc4d26ee4
+  2      14    application-directory  1168    1077    276451438d94317e71a9e7c2f3d855ef1600b34293fab609dd5d655c5c3a3180  d3b0f870987eb8163cbfb79d6fd814e8922afb74a7c515c824d1b2cd660b7aea
+  3      14    model-provenance       2245    2204    271e6ce04845e7a1cbf1784d63db815d329480c389d2e2a09c7a332081a3daba  08bb34d4e560ef1fc3b568d0a5a0e43e3db55c887f3cd2bc6a12edf09235cf85
+  4      16    guest                  4449    2004    03d6352e9096a2744127175d496340cc1f30bc1084d5b36bf49bc5d817bc922b  9ae185e3f518fe31510c629925f778ea01fbd8e3fae17535d478fb56798f4416
+  5      16    model-document         6453    4481    c52c2be3a1fb8b02b143141a0ffdcd7e71aaa43081e84107f58e1d8fbf7fae02  905170164897717b13a5ee39bb056fa8f36f8a74029b1e56c5ea055942fdc734
+  6      16    capability-set         10934   175     c85722a1f3f28f6a326e2af9734960401879b60fa3876633028a8118c6f34411  650500808dbf458a84ab6db39ae83dc81cfd118e3de08fe472eb97a8202ef924
+  7      16    view                   11109   6205    8d6ab8a472ad18d2ced891d689a7637e8a586e774098c6de24e1ac7d01a9c00e  1e7d71bba30dacb106b4f8feaf4c0cccac098b86a6aea41d0fb69d8508371d0c
+
+Content:
+  INDEX  ROLE            LENGTH  SHA256                                                            LABEL
+  4      guest           1933    9713ef19d440c029e376c2cb7747be1b4f7897518d5aea10926c24d5a320ac24  blake3:92285f01d0e3f192575b1a056c4feeac4737366c79950d8ca3c091141aa512e2
+  5      model-document  4410    95b423f6879b1f2e4d6fc60295dfb398b1aa75950c182b89939cb8dd1e0ce75e  blake3:c69deb6e6c94a3e8253f32158081876a0598cbaedb89378c55568c27a1695574
+  6      capability-set  104     888ef9fab26cf92f0a20a1d0fdf7e5dd494f7eb7ec23dfb26a039a7233cb4a02  blake3:cf46eb3028b50fde0444a1a648f5ce7cba94013f541c86537df54adf5d203e1c
+  7      view            6134    2c30842e7ba4b3cff6411d823cd2ddd596964c9a5ead1612149d7229578a3a8d  blake3:fd1ba6471f1161f299639e66ef615e9aaad133ef4e0dcb86d55e93dda0215d78
+
+Manifest:
+  URI:             https://hologram.foundation/realization/app-manifest
+  Capability set:  blake3:cf46eb3028b50fde0444a1a648f5ce7cba94013f541c86537df54adf5d203e1c
+  Guest:           blake3:92285f01d0e3f192575b1a056c4feeac4737366c79950d8ca3c091141aa512e2
+  View:            blake3:fd1ba6471f1161f299639e66ef615e9aaad133ef4e0dcb86d55e93dda0215d78
+  Entry:           holo_run
+  Contract:        hologram:guest/core-wasm@1
+  View entry:      index.html
+  Surface:         portable
+
+Model:
+  Schema:       prismpm/model-document/2
+  Name:         Qortara Skills Eligibility
+  Crate:        qortara-skills-eligibility 0.1.0
+  Description:  Decides whether one pinned source method is eligible, from four coded facts, and names every refusal.
+  Profile:      prismpm/text-application/1
+  Function:     none
+  Vectors:      12
+  Limits:       request 4 B, response 256 B, guest allocation 512 B
+  Digest:       sha256:95b423f6879b1f2e4d6fc60295dfb398b1aa75950c182b89939cb8dd1e0ce75e
+                blake3:c69deb6e6c94a3e8253f32158081876a0598cbaedb89378c55568c27a1695574
+
+Provenance:
+  Schema:       prismpm/model-provenance/1
+  Application:  blake3:3ffe96a8ba2227f10adc25b1f999fa84240455729cf49e2931a43d637197e405
+  Model ID:     95b423f6879b1f2e4d6fc60295dfb398b1aa75950c182b89939cb8dd1e0ce75e
+  Compiler:     1427f8b629013648a480454d67202788f2303f5396f1d7c70a7c350ddab6f694
+  Stdlib:       494d132f18b227cb43c3a2521d2d9d47d67558e2a506c5713aef8f231f7ea355
+  LexLean:      e0b74b81e6f49c83596a957d232c8383a5db1a25
+
+World:
+  Contract:        hologram:guest/core-wasm@1
+  WIT:             hologram:guest@1.0.0 world core-wasm, worlds/core-wasm.wit
+  WIT digest:      sha256:a566c87a359cadf98f652747f1b3574aa307ff5f652a190c6d99c350db9cf369
+                   blake3:0774a8ecbfa945a427712ee7d7ad406195b2d07492ceae15cca0067276c9ced8
+  Imports:         none
+  Exports:         holo_alloc, holo_run, memory
+  Guest:           conforms to the world
+  Purity:          pure: no clock, random, socket or filesystem import
+  Capability set:  blake3:cf46eb3028b50fde0444a1a648f5ce7cba94013f541c86537df54adf5d203e1c (requests nothing)
+
+Attestations:
+  none
+
+Verification:
+  Footer:            ok
+  Labels:            ok
+  Cross-references:  ok
+[exit 0]
+
+$ prism-code vectors /home/runner/work/_temp/evidence/real-output/tampered.holo
+digest_mismatch: integrity failure: the holo was altered: the footer is not the BLAKE3 of the body; to open it anyway, pass allowUnverified: true (--allow-unverified on the command line)
+check: holo.integrity
+[exit 1]
+
