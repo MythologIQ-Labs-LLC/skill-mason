@@ -1,0 +1,136 @@
+name: Request-to-skill exact pinned corpus admission (no rights grant)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/request_to_skill.py'
+      - 'tests/test_request_to_skill.py'
+      - 'bin/qortara-skills.mjs'
+      - 'tests/local_cli.test.mjs'
+      - 'docs/technical/request-to-skill-cli-v1.md'
+      - '.github/workflows/request-to-skill.yml'
+      - 'docs/README.md'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/request_to_skill.py'
+      - 'tests/test_request_to_skill.py'
+      - 'bin/qortara-skills.mjs'
+      - 'tests/local_cli.test.mjs'
+      - '.github/workflows/request-to-skill.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-pinned-request-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout Skill Mason without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Setup Node 22 for the ordinary CLI
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Execute Gherkin refusal and adversarial contract tests
+        run: |
+          set -euo pipefail
+          python3 --version
+          node --version
+          python3 -m unittest discover -s tests -p 'test_request_to_skill.py' -v
+          node --test tests/local_cli.test.mjs
+      - name: Checkout immutable Skillz handoff
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-export
+          submodules: false
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Materialize independent exact source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Run actual user requests with pinned source comparisons and check refusals
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p request-evidence
+          set +e
+          python3 -m scripts.request_to_skill \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Build an accessible responsive UI component with keyboard interactions" \
+            --route software-engineering/frontend \
+            --host ChatGPT \
+            --method governed:anthropic-skills/frontend-design \
+            > request-evidence/frontend-source-refusal.json
+          frontend_rc=$?
+          python3 -m scripts.request_to_skill \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Review memory provenance and trace original source evidence" \
+            --route memory-context/provenance \
+            --host Claude \
+            > request-evidence/unmapped-route-refusal.json
+          unmapped_rc=$?
+          node bin/qortara-skills.mjs create \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --request "Build an accessible responsive UI component with keyboard interactions" \
+            --route software-engineering/frontend \
+            --host ChatGPT \
+            --method governed:anthropic-skills/frontend-design \
+            > request-evidence/node-cli-frontend-refusal.json
+          cli_rc=$?
+          set -e
+          printf '%s\n' "$frontend_rc $unmapped_rc $cli_rc" > request-evidence/exit-codes.txt
+          test "$frontend_rc" -eq 2
+          test "$unmapped_rc" -eq 2
+          test "$cli_rc" -eq 2
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          base=Path("request-evidence")
+          frontend=json.loads((base/"frontend-source-refusal.json").read_text())
+          unmapped=json.loads((base/"unmapped-route-refusal.json").read_text())
+          cli=json.loads((base/"node-cli-frontend-refusal.json").read_text())
+          for result in (frontend,unmapped,cli):
+              assert result["schema"] == "qortara/request-to-skill-evaluation/1"
+              assert result["state"] == "REFUSED_PRE_ADMISSION"
+              assert result["production_eligible"] is False
+              assert result["composer_invoked"] is False
+              assert result["prism_invoked"] is False
+              assert result["output_package_created"] is False
+              assert result["pinned_source"]["commit"] == "31a8c518dd97b7828adcc728202fa41388a306d7"
+              assert result["pinned_source"]["git_tree_sha1"] == "e6d5dfeb42bcd7777ddff52605922fead62135ff"
+          assert frontend == cli, "ordinary Node CLI must exactly delegate to pinned Python evaluator"
+          assert frontend["refusal"]["code"] == "RIGHTS_UNRESOLVED"
+          assert "SOURCE_PACKAGE_BYTES_UNVERIFIED" in frontend["refusal"]["codes"]
+          assert frontend["inspected_governed_record_not_selected_for_composition"] == (
+              "governed:anthropic-skills/frontend-design")
+          assert unmapped["refusal"]["code"] == "MAPPING_GAP"
+          assert unmapped["evidence_linked_review_count"] == 0
+          assert unmapped["inspected_governed_record_not_selected_for_composition"] is None
+          print("LIVE PINNED REQUEST REFUSALS PASS: frontend, unmapped, real Node CLI parity")
+          PY
+          git status --porcelain --untracked-files=all > request-evidence/source-status.txt
+          test -z "$(git status --porcelain --untracked-files=all | grep -v -e '^?? request-evidence/' -e '^?? skillz-export/' -e '^?? skillz-source/' || true)"
+      - name: Upload bounded real source and refusal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pinned-user-request-refusal-receipts
+          path: request-evidence/
+          retention-days: 14
+          if-no-files-found: warn
