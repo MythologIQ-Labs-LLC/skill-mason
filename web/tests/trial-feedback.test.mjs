@@ -57,3 +57,15 @@ test('the public page keeps trial paths separate and only activates feedback aft
  assert.doesNotMatch(app,/fetch\([^\n]*feedback/i);
  assert.doesNotMatch(app,/sendBeacon/i);
 });
+
+test('downloaded feedback is syntactically valid JSON with no literal escape suffix',()=>{
+ const needle="download(JSON.stringify(report,null,2)+";
+ const start=app.indexOf(needle);
+ assert.ok(start>=0,'JSON download call exists');
+ const tail=app.slice(start+needle.length);
+ assert.equal(tail[0],"'");
+ const ending=tail.indexOf("'",1);
+ assert.ok(ending>1);
+ assert.deepEqual([...tail.slice(1,ending)].map(x=>x.charCodeAt(0)),[92,110],
+  'the source must append an actual newline using a single JavaScript escape');
+});
