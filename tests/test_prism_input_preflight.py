@@ -302,9 +302,9 @@ class PrismInputPreflightTests(unittest.TestCase):
                                  "governed:external/unknown"}),
             lambda x: x.update({"composition_eligible": True}),
             lambda x: x["evidence_linked_reviews"][0].update({"eligible": True}),
-            lambda x: x["evidence_linked_reviews"][1].update(
+            lambda x: x["evidence_linked_reviews"][0].update(
                 {"source_class": "first-party"}),
-            lambda x: x["evidence_linked_reviews"][1]["package_bytes"].update(
+            lambda x: x["evidence_linked_reviews"][0]["package_bytes"].update(
                 {"rights_and_host_still_unapproved": False}),
         ]:
             with self.subTest(mutator=str(mutator)):
