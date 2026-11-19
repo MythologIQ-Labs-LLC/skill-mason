@@ -29,11 +29,13 @@ Allowed hosts: `static.crates.io`, `index.crates.io` (crates) and `github.com` (
 
 | Job | What it runs | Permission |
 | --- | --- | --- |
+| `Plan` | Reads the event and decides whether this run starts the SDK image, with the reason. It runs nothing else | none |
 | `SDK / reference` | The upstream template's own application, pristine, through `just vv` | none |
 | `SDK / author` | `lexlean lock` and `lexlean fmt` on the overlay's model, and emits the files the tools wrote | none |
 | `SDK / nested` | The Qortara Skills Eligibility instance nested at `prism/` under this whole repository: canonical-form preflight, the wrapper's refusals, egress control, complete `just vv`, offline repeat, the nested ratchet and its bypass attempts, planted defects | none |
 | `Real holo outputs` | The built holo through `prism-code@0.9.5`, [`sm01_probe.mjs`](../../scripts/sm01_probe.mjs) and the [local CLI](local-cli.md), on a second VM that never ran the SDK image | none |
 | `Publish … evidence` | Copies the uploaded files, byte for byte, to a new `evidence/prism-native-gate-<run>` branch. Runs only after every job above passed. It never starts the SDK image, the runtime or the holo | `contents: write` |
+| `Native qualification decision` | Always runs last. Green only when the plan was to run the complete gate, every SDK phase and the real-output job passed at this head, and the evidence job published the run's files. A run that did not start the SDK image fails here with `NATIVE_QUALIFICATION=NOT_RUN`; a passed gate with no published evidence fails with `EVIDENCE_NOT_PUBLISHED` | none |
 
 The nested phase builds a throwaway repository on the runner: one commit that is the whole subject revision of this repository, then one commit that adds `prism/` from the pinned template and [`prism-overlay/`](../../prism-overlay/README.md). The first commit's tree equals the subject revision's tree, so the rehearsal meets the same root `.gitignore`, `.gitattributes` and hand-written code a real install would. The second commit is the installing commit. Before anything runs, the driver refuses if a root rule keeps any instance file out of that commit, or if any template file reaches it with a different blob from the pin, other than the three files the overlay patches. Author identity and dates are fixed, so the commit and tree hashes depend only on the two pinned inputs.
 
@@ -82,7 +84,22 @@ So the honest statement is: *the directory `prism/` is a byte-conformant instanc
 
 ## Running it
 
-A pull request that changes the overlay, the wrapper, the driver, the ratchet companion, the proxy, the probe, the CLI or anything under `prism/` starts the workflow, and every later push to that pull request restarts it. A revision that already contains `prism/` is refused by the driver until the installing change wires the gate for an installed instance, so it cannot pass by default. A pull request from a fork never starts the SDK image. `workflow_dispatch` runs it on demand once the workflow is on the default branch.
+A pull request that changes the overlay, the wrapper, the driver, the ratchet companion, the proxy, the probe, the CLI or anything under `prism/` starts the workflow on every push. GitHub judges that path filter against the whole pull request, not the push, so a merge of unrelated work into such a pull request matches it too. The complete gate takes about forty minutes, so the `Plan` job decides whether a given event starts the SDK image:
+
+| Event | SDK image |
+| --- | --- |
+| Push to a pull request that is not a draft | started: the complete gate runs |
+| A draft is marked ready for review | started, on that head |
+| The label `prism-native-gate:run` is added, draft or not | started, on that head. Remove the label and add it again to repeat |
+| `workflow_dispatch`, once the workflow is on the default branch | started |
+| Any other event on a draft, or any other label | **not started** |
+| Anything from a fork | never started |
+
+Nothing is reduced when it runs: all three phases, the unreduced `just vv`, the offline repeat and every control, at the exact head. What changed is only that a draft no longer pays for it on every push.
+
+A run that did not start the SDK image is not a pass and cannot look like one. GitHub reports a job that did not start as skipped, and a required check accepts skipped. So the workflow's last job, `Native qualification decision`, always runs and fails unless the complete gate ran and passed at this head and its evidence reached the evidence branch. The evidence counts because the run's uploaded artifacts expire, while the qualification records are built from, and tested against, the published files: a result that cannot be read back later is not one to cite. If only the evidence job fails, re-run that one job; nothing else has to run again. That one check is the one to require in a branch rule; never require the SDK jobs themselves. A draft's ordinary push therefore shows that check red with `NOT_RUN`, which is the true state of that head.
+
+This is not evidence reuse. It never lets a head count as qualified on the strength of an earlier run. Reusing an earlier observation for an unchanged native-input closure is a separate mechanism ([routing](prism-ci-routing-v1.md)) that this workflow does not consume. A revision that already contains `prism/` is refused by the driver until the installing change wires the gate for an installed instance, so it cannot pass by default. A pull request from a fork never starts the SDK image. `workflow_dispatch` runs it on demand once the workflow is on the default branch.
 
 To change the model, follow the `prism-model-first` skill: edit the authored files, let the `author` job run the tools, and commit the files exactly as it emitted them. `lexlean.lock` is never typed by hand.
 

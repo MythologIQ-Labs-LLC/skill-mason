@@ -7,7 +7,12 @@ three-host allowlist, and the unreduced `just vv`. They say what the files ask
 for. Whether a runner delivered it is shown only by a run's own evidence.
 """
 from pathlib import Path
+import itertools
+import os
 import re
+import subprocess
+import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,10 +38,10 @@ class NativeGateWorkflowTests(unittest.TestCase):
         cls.jobs = jobs(cls.text)
         cls.driver = DRIVER.read_text(encoding="utf-8")
 
-    def test_the_three_jobs_exist_and_only_the_publisher_has_a_permission(self):
-        self.assertEqual(set(self.jobs), {"sdk", "real-output", "publish-evidence"})
+    def test_the_jobs_exist_and_only_the_publisher_has_a_permission(self):
+        self.assertEqual(set(self.jobs), {"plan", "sdk", "real-output", "publish-evidence", "qualification"})
         self.assertRegex(self.text, r"(?m)^permissions: \{\}$")
-        for name in ("sdk", "real-output"):
+        for name in ("plan", "sdk", "real-output", "qualification"):
             with self.subTest(job=name):
                 self.assertNotIn("permissions:", self.jobs[name])
         publisher = self.jobs["publish-evidence"]
@@ -83,7 +88,7 @@ class NativeGateWorkflowTests(unittest.TestCase):
         for forbidden in ("docker ", "SDK_IMAGE", "prism_native_gate", "npm ", "node ", "prism-code", "sm01_"):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, publisher)
-        self.assertIn("needs: [sdk, real-output]", publisher)
+        self.assertIn("needs: [plan, sdk, real-output]", publisher)
         self.assertIn("find \"$dest\" -type l -delete", publisher)
 
     def test_every_action_is_pinned_to_a_full_commit(self):
@@ -98,6 +103,162 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertIn(guard, self.jobs["sdk"])
         self.assertIn(guard, self.jobs["publish-evidence"])
         self.assertNotIn("pull_request_target", self.text)
+
+    # --- when the SDK image starts, and what a run that did not start it reports ---
+
+    LABEL = "prism-native-gate:run"
+
+    def step_script(self, job: str, step_name: str) -> str:
+        """The bash of one `run: |` step, taken from the workflow text and dedented."""
+        body = self.jobs[job].split(f"- name: {step_name}\n", 1)[1].split("        run: |\n", 1)[1]
+        lines = []
+        for line in body.splitlines():
+            if line.strip() and not line.startswith("          "):
+                break
+            lines.append(line)
+        return textwrap.dedent("\n".join(lines)) + "\n"
+
+    def run_step(self, script: str, env: dict) -> tuple:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "output"
+            output.touch()
+            done = subprocess.run(
+                ["bash", "-c", script], capture_output=True, text=True, timeout=30,
+                env={"PATH": os.environ["PATH"], "GITHUB_OUTPUT": str(output), "SUBJECT_SHA": "0" * 40, **env},
+            )
+            outputs = dict(line.split("=", 1) for line in output.read_text().splitlines() if "=" in line)
+        return done.returncode, done.stdout, outputs
+
+    def plan(self, event="pull_request", action="synchronize", draft="true", label="", head="o/r", this="o/r") -> dict:
+        code, _, outputs = self.run_step(self.step_script("plan", "Decide from the event alone"), {
+            "EVENT_NAME": event, "ACTION": action, "DRAFT": draft, "LABEL": label, "HEAD_REPO": head, "THIS_REPO": this,
+        })
+        self.assertEqual(code, 0)
+        return outputs
+
+    def test_a_draft_push_does_not_start_the_sdk_image_and_a_deliberate_request_does(self):
+        for action in ("opened", "synchronize", "reopened"):
+            with self.subTest(draft_event=action):
+                self.assertEqual(self.plan(action=action, draft="true")["full"], "false")
+                self.assertEqual(self.plan(action=action, draft="false")["full"], "true")
+        self.assertEqual(self.plan(action="ready_for_review", draft="false")["full"], "true")
+        self.assertEqual(self.plan(action="labeled", draft="true", label=self.LABEL)["full"], "true")
+        self.assertEqual(self.plan(action="labeled", draft="false", label=self.LABEL)["full"], "true")
+        self.assertEqual(self.plan(event="workflow_dispatch", action="", draft="", head="")["full"], "true")
+        for other in ("documentation", "prism-native-gate", "prism-native-gate:run ", "PRISM-NATIVE-GATE:RUN", ""):
+            for draft in ("true", "false"):
+                with self.subTest(other_label=other, draft=draft):
+                    self.assertEqual(self.plan(action="labeled", draft=draft, label=other)["full"], "false")
+        self.assertIn("draft", self.plan(draft="true")["reason"])
+
+    def test_a_fork_never_starts_the_sdk_image_whatever_it_is_labelled_or_marked(self):
+        for action, draft, label in itertools.product(
+                ("opened", "synchronize", "reopened", "ready_for_review", "labeled"), ("true", "false"), ("", self.LABEL)):
+            with self.subTest(action=action, draft=draft, label=label):
+                outputs = self.plan(action=action, draft=draft, label=label, head="fork/r")
+                self.assertEqual(outputs["full"], "false")
+                self.assertIn("fork", outputs["reason"])
+
+    def test_an_event_value_cannot_inject_script_or_a_second_output(self):
+        hostile = "x$(touch INJECTED)`touch INJECTED`\nfull=true"
+        script = self.step_script("plan", "Decide from the event alone")
+        self.assertNotIn("${{", script)
+        outputs = self.plan(action="labeled", draft="true", label=hostile.replace("\\n", "\n"))
+        self.assertEqual(outputs["full"], "false")
+        self.assertFalse((ROOT / "INJECTED").exists())
+        self.assertFalse(Path("INJECTED").exists())
+
+    def test_the_trigger_listens_for_ready_and_label_events(self):
+        self.assertIn("    types: [opened, synchronize, reopened, ready_for_review, labeled]\n", self.text)
+
+    def test_the_sdk_and_the_publisher_run_only_when_the_plan_says_so(self):
+        for name in ("sdk", "publish-evidence"):
+            with self.subTest(job=name):
+                self.assertRegex(self.jobs[name], r"(?m)^    if: needs\.plan\.outputs\.full == 'true' && \(")
+                self.assertRegex(self.jobs[name], r"(?m)^    needs: (plan|\[plan, sdk, real-output\])$")
+        # real-output has no condition of its own: it needs sdk, so it is skipped with it.
+        self.assertRegex(self.jobs["real-output"], r"(?m)^    needs: sdk$")
+        self.assertNotRegex(self.jobs["real-output"], r"(?m)^    if:")
+
+    def concurrency_rule(self, event, action, draft, label, head, this) -> bool:
+        """Evaluate the workflow's own concurrency expression for one event."""
+        group = self.text.split("\nconcurrency:\n", 1)[1].split("cancel-in-progress", 1)[0]
+        expression = " ".join(group.split("}}-${{", 1)[1].rsplit("&& 'full' || github.run_id }}", 1)[0].split())
+        names = {
+            "github.event.pull_request.head.repo.full_name": "head", "github.event.pull_request.draft": "draft",
+            "github.event.label.name": "label", "github.event.action": "action",
+            "github.event_name": "event", "github.repository": "this",
+        }
+        for name, variable in names.items():
+            expression = expression.replace(name, variable)
+        self.assertNotIn("github.", expression)
+        expression = expression.replace("||", " or ").replace("&&", " and ").replace("false", "False")
+        values = {"event": event, "action": action, "draft": {"true": True, "false": False}.get(draft), "label": label,
+                  "head": head, "this": this}
+        return bool(eval(expression, {"__builtins__": {}}, values))  # the workflow's own text, nothing external
+
+    def test_the_concurrency_group_and_the_plan_state_the_same_rule(self):
+        cases = itertools.product(
+            ("pull_request",), ("opened", "synchronize", "reopened", "ready_for_review", "labeled"), ("true", "false"),
+            ("", self.LABEL, "other"), ("o/r", "fork/r"))
+        for event, action, draft, label, head in cases:
+            with self.subTest(action=action, draft=draft, label=label, head=head):
+                planned = self.plan(event=event, action=action, draft=draft, label=label, head=head)["full"] == "true"
+                self.assertEqual(self.concurrency_rule(event, action, draft, label, head, "o/r"), planned)
+        self.assertTrue(self.concurrency_rule("workflow_dispatch", "", "", "", "", "o/r"))
+        # A run that will not start the SDK image must not share the slot of one that will.
+        self.assertIn("&& 'full' || github.run_id }}", self.text)
+
+    def decide(self, plan="success", full="true", sdk="success", real="success", evidence="success") -> tuple:
+        script = self.step_script("qualification", "Green only for a complete native run that passed at this head")
+        code, out, _ = self.run_step(script, {
+            "PLAN_RESULT": plan, "FULL": full, "REASON": "test", "SDK_RESULT": sdk, "REAL_RESULT": real,
+            "EVIDENCE_RESULT": evidence, "GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"})
+        return code, out
+
+    def test_the_final_decision_is_green_only_for_a_complete_run_that_passed(self):
+        code, out = self.decide()
+        self.assertEqual(code, 0)
+        self.assertIn("NATIVE_QUALIFICATION=FULL_NATIVE_RUN_PASSED", out)
+        self.assertIn("not P2", out)
+        self.assertIn("Evidence: branch evidence/prism-native-gate-1-1", out)
+        results = ("success", "failure", "cancelled", "skipped", "")
+        for plan, full, sdk, real, evidence in itertools.product(
+                ("success", "failure", "skipped"), ("true", "false", ""), results, results, results):
+            if (plan, full, sdk, real, evidence) == ("success", "true", "success", "success", "success"):
+                continue
+            with self.subTest(plan=plan, full=full, sdk=sdk, real=real, evidence=evidence):
+                code, out = self.decide(plan, full, sdk, real, evidence)
+                self.assertEqual(code, 1)
+                self.assertNotIn("PASSED", out)
+
+    def test_a_passed_gate_whose_evidence_was_not_published_is_not_green(self):
+        for evidence in ("failure", "cancelled", "skipped", ""):
+            with self.subTest(evidence=evidence):
+                code, out = self.decide(evidence=evidence)
+                self.assertEqual(code, 1)
+                self.assertIn("NATIVE_QUALIFICATION=EVIDENCE_NOT_PUBLISHED", out)
+        # Published evidence never rescues a gate that did not pass or did not run.
+        self.assertIn("NATIVE_QUALIFICATION=FAILED", self.decide(sdk="failure", real="skipped", evidence="success")[1])
+        self.assertIn("NATIVE_QUALIFICATION=NOT_RUN", self.decide(full="false", sdk="skipped", real="skipped", evidence="success")[1])
+
+    def test_a_run_that_did_not_start_the_sdk_image_fails_and_says_not_run(self):
+        code, out = self.decide(full="false", sdk="skipped", real="skipped")
+        self.assertEqual(code, 1)
+        self.assertIn("NATIVE_QUALIFICATION=NOT_RUN", out)
+        # Even if GitHub reported the skipped jobs as successful, "not planned" can never be green.
+        self.assertEqual(self.decide(full="false", sdk="success", real="success")[0], 1)
+
+    def test_the_final_decision_always_runs_and_depends_on_every_native_job(self):
+        final = self.jobs["qualification"]
+        self.assertRegex(final, r"(?m)^    name: Native qualification decision$")
+        self.assertRegex(final, r"(?m)^    if: always\(\)$")
+        self.assertRegex(final, r"(?m)^    needs: \[plan, sdk, real-output, publish-evidence\]$")
+        self.assertNotIn("permissions:", final)
+        for touches in ("docker", "prism-code", "checkout", "download-artifact", ".holo"):
+            with self.subTest(final_job_never_touches=touches):
+                self.assertNotIn(touches, final)
+                self.assertNotIn(touches, self.jobs["plan"])
 
     def test_the_network_is_internal_with_exactly_the_recorded_allowlist(self):
         sdk = self.jobs["sdk"]

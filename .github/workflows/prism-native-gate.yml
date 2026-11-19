@@ -13,9 +13,28 @@
 # Whatever that difference costs is a recorded finding, not a hidden one.
 name: Prism native gate (isolated runner)
 
+# When the SDK image starts. The complete gate takes about forty minutes, and
+# GitHub's path filter is judged against the whole pull request, so every push
+# to a pull request that touches the overlay matches it, including a merge of
+# unrelated work. The `plan` job therefore decides, and says why:
+#
+#   pull request not a draft            every push runs the complete gate
+#   draft marked ready for review       the complete gate runs on that head
+#   label `prism-native-gate:run` added the complete gate runs on that head,
+#                                       draft or not (remove and re-add to repeat)
+#   workflow_dispatch                   the complete gate runs
+#   any other event on a draft          the SDK image is NOT started
+#
+# Nothing is reduced when it runs: all three phases, the unreduced `just vv`,
+# every control. And a run that did not start the SDK image is never green:
+# the last job, `Native qualification decision`, fails unless every phase and
+# the real-output job passed at this exact head and the evidence was published.
+# Require that one check, never
+# the SDK jobs themselves, which GitHub reports as skipped when they do not run.
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     paths:
       - '.github/workflows/prism-native-gate.yml'
       - 'prism-overlay/**'
@@ -35,8 +54,18 @@ on:
 # No permission at all for the jobs that touch the SDK image or its outputs.
 permissions: {}
 
+# A run that will start the SDK image takes the pull request's one slot and
+# replaces an older such run. A run that will not start it gets a group of its
+# own, so a draft push or an unrelated label never cancels a gate in flight.
+# This expression and the `plan` job state the same rule; a test holds them together.
 concurrency:
-  group: prism-native-gate-${{ github.event.pull_request.number || github.ref }}
+  group: >-
+    prism-native-gate-${{ github.event.pull_request.number || github.ref }}-${{
+    (github.event_name == 'workflow_dispatch'
+    || (github.event.pull_request.head.repo.full_name == github.repository
+    && ((github.event.action != 'labeled' && github.event.pull_request.draft == false)
+    || (github.event.action == 'labeled' && github.event.label.name == 'prism-native-gate:run'))))
+    && 'full' || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -48,10 +77,53 @@ env:
   CLEAN_PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 jobs:
+  plan:
+    name: Plan (does this event start the SDK image?)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      full: ${{ steps.decide.outputs.full }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - name: Decide from the event alone
+        id: decide
+        shell: bash
+        env:
+          # Event fields reach the script as data, never as script text.
+          EVENT_NAME: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          LABEL: ${{ github.event.label.name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          full=false
+          if [[ $EVENT_NAME == workflow_dispatch ]]; then
+            full=true; reason="requested with workflow_dispatch"
+          elif [[ $HEAD_REPO != "$THIS_REPO" ]]; then
+            reason="pull request from a fork: the SDK image is never started for it"
+          elif [[ $ACTION == labeled ]]; then
+            if [[ $LABEL == prism-native-gate:run ]]; then
+              full=true; reason="requested with the label prism-native-gate:run"
+            else
+              reason="a label other than prism-native-gate:run was added"
+            fi
+          elif [[ $DRAFT == false ]]; then
+            full=true; reason="the pull request is not a draft (event: $ACTION)"
+          else
+            reason="the pull request is a draft (event: $ACTION). Mark it ready, or add the label prism-native-gate:run, to run the complete gate on this head"
+          fi
+          echo "full=$full" >>"$GITHUB_OUTPUT"
+          echo "reason=$reason" >>"$GITHUB_OUTPUT"
+          echo "NATIVE_GATE_PLAN full=$full head=$SUBJECT_SHA reason=$reason"
+
   sdk:
     name: SDK / ${{ matrix.phase }}
-    # A pull request from a fork never starts the SDK image here.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: plan
+    # A pull request from a fork never starts the SDK image here, and a draft
+    # starts it only on request: see `plan`.
+    if: needs.plan.outputs.full == 'true' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
@@ -321,8 +393,8 @@ jobs:
     # Only after every phase and the real-output run passed. This is the one job
     # with a write permission. It never runs the SDK image or the holo: it moves
     # files that the jobs above uploaded, byte for byte, onto a new branch.
-    needs: [sdk, real-output]
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [plan, sdk, real-output]
+    if: needs.plan.outputs.full == 'true' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -358,3 +430,58 @@ jobs:
             -m "Files exactly as the workflow's jobs uploaded them. Not edited, not summarised, not an approval."
           git push --quiet origin "HEAD:refs/heads/evidence/prism-native-gate-$run"
           echo "pushed evidence/prism-native-gate-$run ($(git rev-parse HEAD)), $(wc -l <"$dest/SHA256SUMS") files"
+
+  qualification:
+    # The one check to require. It runs whatever happened above and is green
+    # only when the complete gate ran and passed at this head AND its unedited
+    # evidence reached its own branch. GitHub reports a job that did not start
+    # as "skipped", which a required check would accept; this job turns "not
+    # run" into a failure with the reason in its log.
+    #
+    # Why the evidence job counts. The run's uploaded artifacts expire and can
+    # be deleted; the qualification records in docs/evidence/ are built from,
+    # and tested against, the files on the evidence branch. A run whose result
+    # cannot be read back later is not one this repository can cite, so a
+    # passed gate with no published evidence is not green here. This job reads
+    # only that job's result: it holds no permission and touches no file.
+    name: Native qualification decision
+    needs: [plan, sdk, real-output, publish-evidence]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Green only for a complete native run that passed at this head
+        shell: bash
+        env:
+          FULL: ${{ needs.plan.outputs.full }}
+          REASON: ${{ needs.plan.outputs.reason }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+          SDK_RESULT: ${{ needs.sdk.result }}
+          REAL_RESULT: ${{ needs.real-output.result }}
+          EVIDENCE_RESULT: ${{ needs.publish-evidence.result }}
+        run: |
+          set -uo pipefail
+          echo "head=$SUBJECT_SHA plan=$PLAN_RESULT full=${FULL:-unset} sdk=$SDK_RESULT real-output=$REAL_RESULT publish-evidence=$EVIDENCE_RESULT"
+          echo "plan: ${REASON:-no reason recorded}"
+          native=no
+          if [[ $PLAN_RESULT == success && $FULL == true && $SDK_RESULT == success && $REAL_RESULT == success ]]; then
+            native=yes
+          fi
+          if [[ $native == yes && $EVIDENCE_RESULT == success ]]; then
+            echo "NATIVE_QUALIFICATION=FULL_NATIVE_RUN_PASSED head=$SUBJECT_SHA"
+            echo "Evidence: branch evidence/prism-native-gate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo "This is a development P0 observation of this head. It is not P2, not an SDK trust decision and not an approval."
+            exit 0
+          fi
+          if [[ $native == yes ]]; then
+            echo "NATIVE_QUALIFICATION=EVIDENCE_NOT_PUBLISHED head=$SUBJECT_SHA"
+            echo "Every SDK phase and the real-output job passed, but the evidence job did not ($EVIDENCE_RESULT)."
+            echo "Re-run that one job. Until the evidence is on its branch this head is not qualified."
+          elif [[ $PLAN_RESULT == success && $FULL == false ]]; then
+            echo "NATIVE_QUALIFICATION=NOT_RUN head=$SUBJECT_SHA"
+            echo "The SDK image was not started for this head, so this head has no native qualification."
+          else
+            echo "NATIVE_QUALIFICATION=FAILED head=$SUBJECT_SHA"
+          fi
+          exit 1
+
