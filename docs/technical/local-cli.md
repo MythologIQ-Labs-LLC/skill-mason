@@ -1,6 +1,6 @@
 # Qortara Skills local development CLI
 
-**State: request-first source qualification/refusal CLI plus P0 Prism developer evaluation; not an approved skill generator or released product.**
+**State: request-first source qualification/refusal CLI plus P0 Prism developer evaluation; not an approved skill generator or released product.** On 2026-11-18 `status`, `probe` and `evaluate` were run against the real `Qortara Skills Eligibility` holo on the isolated runner: preflight ready, 12 of 12 fixtures, and the guest's actual response for each of 17 requests. The holo is `P0 unverified` and its inputs are fixtures. See the [qualification record](../evidence/prism-qse-20261118/README.md).
 The CLI is the first local access surface. Its `evaluate` and `probe` commands use the real pinned Prism runtime to call an externally built SM-01 holo. The new `create` command uses the separately pinned read-only Skillz catalog and actual C4/C5 preflight to return **a source-grounded typed refusal**; it does **not** create or install an approved SKILL.md, grant permissions, download an SDK image, infer a missing expert method or treat fixture assertions as real rights.
 
 ## Start locally (Node.js 22+)
@@ -78,8 +78,8 @@ The `evaluate` command transports *raw byte input* to `prism.containers.run`, re
 
 ## Completion criteria
 
-1. Native `prism/` instance and final-name holo built through the *entire unreduced* `just vv` on a credential-free isolated runner. Capture exact SDK/runtime source, hashes, host conditions, exit codes and negative controls.
-2. Independent verifier replays vectors on the final holo. Run `qortara-skills probe` and `evaluate` against that **same digest**; preserve outputs and proof limitations.
+1. Native `prism/` instance and final-name holo built through the *entire unreduced* `just vv` on a credential-free isolated runner. Capture exact SDK/runtime source, hashes, host conditions, exit codes and negative controls. **Done for a staged instance (2026-11-18); `prism/` itself is not installed.**
+2. Independent verifier replays vectors on the final holo. Run `qortara-skills probe` and `evaluate` against that **same digest**; preserve outputs and proof limitations. **Done on the isolated runner (2026-11-18), at P0.**
 3. Actual catalog-evidence/rights/authority/coverage assertion adapters implemented with versioned, revocable authority, then a separately governed deterministic skill composer and portable output contract.
 4. Host usage, no-inference instrumentation, repository security reporting and native Qortara governance qualified separately.
 

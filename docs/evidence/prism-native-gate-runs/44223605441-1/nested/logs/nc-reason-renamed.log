@@ -1,0 +1,48 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=278ca52c66d8c00586c1177ccf858a05333b3935 tree=6cb91b286a7fa3d113bd9e9b25db51b26a440ba3 subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-reason-renamed
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling typenum v1.20.1
+   Compiling unicode-ident v1.0.24
+   Compiling serde v1.0.229
+   Compiling winnow v1.0.5
+   Compiling const-oid v0.10.2
+   Compiling hybrid-array v0.4.15
+   Compiling syn v3.0.4
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling toml_writer v1.2.0+spec-1.1.0
+   Compiling cpufeatures v0.3.1
+   Compiling cfg-if v1.0.4
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.1
+   Compiling toml_datetime v1.1.3+spec-1.1.0
+   Compiling serde_spanned v1.1.3
+   Compiling toml v1.2.1+spec-1.1.0
+   Compiling serde_derive v1.0.229
+   Compiling repo-model v0.1.0 (/opt/prism-gate/run/work/nc-reason-renamed/src/prism/crates/model)
+   Compiling repo-conformance v0.1.0 (/opt/prism-gate/run/work/nc-reason-renamed/src/prism/crates/conformance)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.38s
+     Running tests/eligibility.rs (target/debug/deps/eligibility-066fe54d0b2ab60e)
+
+running 1 test
+test eligibility_sm_01 ... FAILED
+
+failures:
+
+---- eligibility_sm_01 stdout ----
+
+thread 'eligibility_sm_01' (637) panicked at crates/conformance/tests/eligibility.rs:84:9:
+a refused rights must be named RIGHTS_UNRESOLVED in the response
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    eligibility_sm_01
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p repo-conformance --test eligibility`
+GATE_EXIT=101 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=10s cmd=cargo test --locked -p repo-conformance --test eligibility

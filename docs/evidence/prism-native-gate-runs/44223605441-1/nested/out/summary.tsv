@@ -1,0 +1,42 @@
+label	network	expected	exit	result	command
+tool-versions	none	exit 0	0	PASS	bash -c prismpm --version; lexlean --version; lean --version; lake --version; rustc --version; cargo --version; just --version; cargo deny --version; node --ver
+pre-canonical	none	exit 0	0	PASS	bash -c cd eligibility && lexlean fmt --check && lexlean lock --check
+refuse-credential-variable	none	exit 77: credential-like variables are set (FAKE_SERVICE_API_TOKEN)	77	PASS	wrapper <checkout> none <log> true
+refuse-credential-store	none	exit 77: credential store	77	PASS	wrapper <checkout> none <log> true
+refuse-symlinked-checkout	none	exit 77: passes through a symlink	77	PASS	wrapper <checkout> none <log> true
+refuse-dirty-tree	none	exit 77: is not clean	77	PASS	wrapper <checkout> none <log> true
+refuse-unexpected-sdk-digest	none	exit 77: not the expected	77	PASS	wrapper <checkout> none <log> true
+refuse-socket-without-exact-opt-in	none	exit 77: accepts only 'disposable-daemon'	77	PASS	wrapper <checkout> none <log> true
+refuse-host-network-without-opt-in	host	exit 77: unfiltered and unlogged	77	PASS	wrapper <checkout> host <log> true
+refuse-shared-network	allowlist	exit 77: dedicated internal network	77	PASS	wrapper <checkout> allowlist <log> true
+refuse-missing-network	allowlist	exit 77: does not exist	77	PASS	wrapper <checkout> allowlist <log> true
+refuse-network-not-internal	allowlist	exit 77: is not internal	77	PASS	wrapper <checkout> allowlist <log> true
+refuse-existing-workdir	none	exit 77: already exists	77	PASS	wrapper <checkout> none <log> true
+refuse-workdir-inside-source	none	exit 77: outside the source repository	77	PASS	wrapper <checkout> none <log> true
+refusals-left-the-source-untouched	-	clean tree	0	PASS	git status
+egress-control	allowlist	exit 0	0	PASS	bash -c    set -uo pipefail   proxy=${HTTPS_PROXY#http://}; host=${proxy%:*}; port=${proxy#*:}   if timeout 8 bash -c "exec 3<>/dev/tcp/1.1.1.1/443" 2>/dev/null
+sm01-vv	allowlist	exit 0	0	PASS	just vv
+sm01-eligibility-offline	none	exit 0	0	PASS	just eligibility
+repeat-identical	none	same holo and attestation	0	PASS	compare
+nc-policy-drift	allowlist	refusal: PP1101: template policy path changed: AGENTS\.md	2	PASS	prismpm template check
+nc-lock-tamper	allowlist	refusal: PP5401	4	PASS	prismpm lock check
+nc-stale-conformance	allowlist	refusal: CONFORMANCE\.md is stale	1	PASS	just model
+nc-ratchet-root-layout	allowlist	refusal: new non-Prism file	1	PASS	just model
+obs-nested-test-added-after-install	allowlist	recorded, not judged	0	OBSERVED	just model
+obs-root-file-added-after-install	allowlist	recorded, not judged	0	OBSERVED	just model
+ratchet-installing-commit	allowlist	exit 0: audit-prism: a root commit; non-Prism implementation is [0-9]+ lines in [0-9]+ files	0	PASS	cargo run -q --locked -p xtask -- audit-prism
+ratchet-engaged-uncounted-change	allowlist	exit 0: files in the parent\); it only shrinks	0	PASS	cargo run -q --locked -p xtask -- audit-prism
+nc-nested-ratchet-new-file	allowlist	refusal: new non-Prism file	1	PASS	cargo run -q --locked -p xtask -- audit-prism
+nc-nested-ratchet-growth	allowlist	refusal: non-Prism implementation grew by	1	PASS	cargo run -q --locked -p xtask -- audit-prism
+nc-nested-ratchet-ignores-justfile	allowlist	refusal: new non-Prism file	1	PASS	cargo run -q --locked -p xtask -- audit-prism
+refuse-ratchet-instance-moved	-	exit 77: moved or removed	77	PASS	prism_nested_ratchet.sh <repo> HEAD <template> <dir>
+refuse-ratchet-audit-altered	-	exit 77: prism/xtask/src/audit.rs differs from the template pin	77	PASS	prism_nested_ratchet.sh <repo> HEAD <template> <dir>
+nc-evidence-check-dropped	allowlist	refusal: PP5001|unsolved goals	1	PASS	prismpm --project eligibility verify
+nc-rights-check-dropped	allowlist	refusal: PP5001|unsolved goals	1	PASS	prismpm --project eligibility verify
+nc-authority-check-dropped	allowlist	refusal: PP5001|unsolved goals	1	PASS	prismpm --project eligibility verify
+nc-coverage-check-dropped	allowlist	refusal: PP5001|unsolved goals	1	PASS	prismpm --project eligibility verify
+nc-admits-code-two	allowlist	refusal: PP5001|unsolved goals|PP5301|disagrees with a modeled vector	1	PASS	prismpm --project eligibility verify
+nc-vector-prohibited-rights-eligible	allowlist	refusal: PP5301|disagrees with a modeled vector	1	PASS	prismpm --project eligibility verify
+nc-five-byte-request-accepted	allowlist	refusal: PP5301|disagrees with a modeled vector	1	PASS	prismpm --project eligibility verify
+nc-undeclared-axiom	allowlist	refusal: LLV7005	1	PASS	prismpm --project eligibility verify
+nc-reason-renamed	allowlist	refusal: must be named RIGHTS_UNRESOLVED	101	PASS	cargo test --locked -p repo-conformance --test eligibility

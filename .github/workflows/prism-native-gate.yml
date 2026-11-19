@@ -1,0 +1,360 @@
+# The native Prism gate on a disposable, credential-free runner (issue #9).
+#
+# What runs the SDK image: three jobs on GitHub-hosted runners, each a fresh VM
+# with its own Docker daemon that is destroyed when the job ends. The workflow
+# holds no secret and its token has no permission. The SDK container is given
+# no Docker socket, no checkout of this repository (only a staged copy), and a
+# network whose only way out is an allowlisting proxy that logs every request.
+#
+# What this is not: the template's own bootstrap.yml. That file stays
+# byte-identical under prism/ and inert, because GitHub runs only root
+# workflows. This workflow runs the same unreduced `just vv`, but without the
+# bootstrap's Docker socket mount, Buildx inspection and devcontainer probe.
+# Whatever that difference costs is a recorded finding, not a hidden one.
+name: Prism native gate (isolated runner)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/prism-native-gate.yml'
+      - 'prism-overlay/**'
+      # No prism/ exists yet. Listed now so that the change that installs it, and
+      # every later change to it, starts this workflow. Until that change wires
+      # the gate for an installed instance, the driver refuses such a revision.
+      - 'prism/**'
+      - 'scripts/prism_instance.sh'
+      - 'scripts/prism_reference_gate.sh'
+      - 'scripts/prism_native_gate.sh'
+      - 'scripts/prism_nested_ratchet.sh'
+      - 'scripts/prism_egress_proxy.py'
+      - 'scripts/sm01_real_holo_acceptance.sh'
+      - 'scripts/sm01_probe.mjs'
+      - 'bin/qortara-skills.mjs'
+
+# No permission at all for the jobs that touch the SDK image or its outputs.
+permissions: {}
+
+concurrency:
+  group: prism-native-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TEMPLATE_PIN: b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
+  SDK_IMAGE: ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3
+  PRISM_CODE_INTEGRITY: sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==
+  SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  BASE: /opt/prism-gate
+  CLEAN_PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+jobs:
+  sdk:
+    name: SDK / ${{ matrix.phase }}
+    # A pull request from a fork never starts the SDK image here.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [reference, author, nested]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      PHASE: ${{ matrix.phase }}
+    steps:
+      - name: The runner must be credential-free (names only; values are never read)
+        shell: bash
+        run: |
+          set -euo pipefail
+          names=$(env | cut -d= -f1 | grep -E 'TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_KEY|ACCESS_KEY|PRIVATE_KEY' || true)
+          if [[ -n $names ]]; then
+            echo "credential-like variables are present in the job environment:"
+            echo "$names"
+            exit 77
+          fi
+          echo "job environment: no credential-like variable names"
+          for store in .ssh .aws .gnupg .config/gh .config/gcloud .netrc .git-credentials .docker/config.json .npmrc; do
+            if [[ -e $HOME/$store ]]; then echo "runner home holds $store (recorded; the SDK container is given no path to it)"; fi
+          done
+          echo "runner: $RUNNER_ENVIRONMENT $RUNNER_OS $RUNNER_ARCH image=${ImageOS:-?} ${ImageVersion:-?}"
+
+      - name: Reserve disk for the locked SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h /
+          # Only if the runner is short: the image needs about 25 GB with its scratch space.
+          if [[ $(df --output=avail -BG / | tail -1 | tr -dc 0-9) -lt 50 ]]; then
+            sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
+
+      - name: Gate user (uid 1000) with an empty home and its own directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          user=$(getent passwd 1000 | cut -d: -f1 || true)
+          if [[ -z $user ]]; then
+            getent group 1000 >/dev/null || sudo groupadd --gid 1000 prismgate
+            sudo useradd --uid 1000 --gid 1000 --no-create-home --shell /bin/bash prismgate
+            user=prismgate
+          fi
+          test "$(id -u "$user"):$(id -g "$user")" = 1000:1000
+          sudo usermod --append --groups docker "$user"
+          sudo install -d -m 0755 -o 1000 -g 1000 "$BASE"
+          sudo install -d -m 0700 -o 1000 -g 1000 "$BASE/home"
+          echo "GATE_USER=$user" >>"$GITHUB_ENV"
+          echo "gate user: $user ($(id "$user"))"
+          # Recorded, not hidden: on a hosted runner uid 1000 is a pre-existing account.
+          sudo -l -U "$user" 2>/dev/null | grep -q NOPASSWD && echo "gate user $user has passwordless sudo on this runner (recorded)" || true
+
+      - name: Anonymous clones of the two exact revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u "$GATE_USER" env -i PATH="$CLEAN_PATH" HOME="$BASE/home" LANG=C.UTF-8 \
+            GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 \
+            BASE="$BASE" REPOSITORY="$GITHUB_REPOSITORY" SUBJECT_SHA="$SUBJECT_SHA" TEMPLATE_PIN="$TEMPLATE_PIN" \
+            SDK_IMAGE_EXPECTED="$SDK_IMAGE" \
+            bash -euo pipefail -c '
+              cd "$BASE"
+              git init --quiet "$BASE/sm"
+              git -C "$BASE/sm" remote add origin "https://github.com/$REPOSITORY"
+              git -C "$BASE/sm" fetch --quiet --depth 1 origin "$SUBJECT_SHA"
+              git -C "$BASE/sm" checkout --quiet --detach FETCH_HEAD
+              test "$(git -C "$BASE/sm" rev-parse HEAD)" = "$SUBJECT_SHA"
+              git clone --quiet https://github.com/UOR-Foundation/template "$BASE/template"
+              git -C "$BASE/template" -c advice.detachedHead=false checkout --quiet --detach "$TEMPLATE_PIN"
+              test "$(git -C "$BASE/template" rev-parse HEAD)" = "$TEMPLATE_PIN"
+              test -z "$(git -C "$BASE/template" status --porcelain)"
+              test "$(sed -n "s/.*\"sdk_image\":\"\([^\"]*\)\".*/\1/p" "$BASE/template/prismpm.lock")" = "$SDK_IMAGE_EXPECTED"
+            '
+
+      - name: Internal network and allowlisting egress proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker network create --internal --subnet 172.30.99.0/24 --gateway 172.30.99.1 \
+            --opt com.docker.network.bridge.name=prismgate0 prism-gate-egress >/dev/null
+          test "$(docker network inspect --format '{{.Internal}}' prism-gate-egress)" = true
+          ip -4 -brief addr show prismgate0
+          # From that network the runner itself answers on the proxy port only.
+          sudo iptables -I INPUT 1 -i prismgate0 -j DROP
+          sudo iptables -I INPUT 1 -i prismgate0 -p tcp -d 172.30.99.1 --dport 3128 -j ACCEPT
+          mkdir -p "$RUNNER_TEMP/egress"
+          nohup python3 "$BASE/sm/scripts/prism_egress_proxy.py" \
+            --listen 172.30.99.1:3128 --log "$RUNNER_TEMP/egress/egress.log" \
+            --allow static.crates.io --allow index.crates.io --allow github.com \
+            >"$RUNNER_TEMP/egress/proxy.out" 2>&1 &
+          for _ in $(seq 1 50); do
+            if (exec 3<>/dev/tcp/172.30.99.1/3128) 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          if ! (exec 3<>/dev/tcp/172.30.99.1/3128) 2>/dev/null; then
+            cat "$RUNNER_TEMP/egress/proxy.out"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/egress/egress.log"
+
+      - name: Pull the SDK image by digest, anonymously
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull --quiet "$SDK_IMAGE"
+          docker image inspect --format 'repo_digests={{json .RepoDigests}} id={{.Id}} size={{.Size}} platform={{.Os}}/{{.Architecture}}' "$SDK_IMAGE" | tee "$RUNNER_TEMP/sdk-image.txt"
+          df -h /
+
+      - name: Run the phase as the gate user, in a scrubbed environment
+        shell: bash
+        run: |
+          set +e -uo pipefail
+          cd "$BASE"
+          sudo -u "$GATE_USER" env -i PATH="$CLEAN_PATH" HOME="$BASE/home" LANG=C.UTF-8 \
+            PRISM_GATE_EGRESS_NETWORK=prism-gate-egress PRISM_GATE_EGRESS_PROXY=http://172.30.99.1:3128 \
+            bash "$BASE/sm/scripts/prism_native_gate.sh" "$PHASE" "$BASE/sm" "$SUBJECT_SHA" "$BASE/template" "$BASE/run"
+          rc=$?
+          echo "phase $PHASE exit: $rc"
+          exit $rc
+
+      - name: Collect the unedited logs and outputs
+        if: always()
+        shell: bash
+        run: |
+          set +e -uo pipefail
+          out="$RUNNER_TEMP/evidence/$PHASE"
+          mkdir -p "$out"
+          sudo cp -r "$BASE/run/logs" "$BASE/run/out" "$out/" 2>/dev/null || echo "no run directory to collect"
+          cp "$RUNNER_TEMP/egress/egress.log" "$out/egress-proxy.log" 2>/dev/null || true
+          cp "$RUNNER_TEMP/sdk-image.txt" "$out/sdk-image.txt" 2>/dev/null || true
+          sudo chown -R "$(id -u):$(id -g)" "$out"
+          find "$out" -type l -delete
+          {
+            echo "run=$GITHUB_RUN_ID attempt=$GITHUB_RUN_ATTEMPT event=$GITHUB_EVENT_NAME phase=$PHASE"
+            echo "subject_sha=$SUBJECT_SHA workflow_sha=$GITHUB_SHA"
+            echo "runner=$RUNNER_ENVIRONMENT $RUNNER_OS $RUNNER_ARCH image=${ImageOS:-?} ${ImageVersion:-?}"
+            echo "docker_socket_bound_into_sdk_container=no token_permissions=none secrets=none"
+          } >"$out/run.txt"
+          echo "::group::identities"; cat "$out/run.txt" "$out/sdk-image.txt" "$out/out/identities.txt" 2>/dev/null; echo "::endgroup::"
+          echo "::group::summary"; cat "$out/out/summary.tsv" 2>/dev/null; echo "::endgroup::"
+          echo "::group::egress (count verdict host)"
+          cut -d' ' -f2- "$out/egress-proxy.log" 2>/dev/null | sort | uniq -c
+          echo "::endgroup::"
+          if [[ $PHASE == author ]]; then
+            echo "::group::tool-written files"
+            for diff in "$out"/out/regenerated/*.diff; do [[ -f $diff ]] && cat "$diff"; done
+            lock="$out/out/regenerated/eligibility/lexlean.lock"
+            if [[ -f $lock ]]; then
+              echo "lexlean.lock sha256=$(sha256sum "$lock" | cut -d' ' -f1) base64 follows"
+              echo "-----BEGIN LEXLEAN LOCK-----"; base64 -w 76 "$lock"; echo "-----END LEXLEAN LOCK-----"
+            fi
+            echo "::endgroup::"
+          fi
+          # A failing step's own words, so the reason is in the job log.
+          for refusal in "$out"/logs/refusals/*.txt "$out"/logs/ratchet/*.txt; do
+            [[ -f $refusal ]] || continue
+            label=$(basename "$refusal" .txt)
+            result=$(awk -F'\t' -v l="$label" '$1 == l {print $5}' "$out/out/summary.tsv" 2>/dev/null)
+            if [[ $result != PASS ]]; then
+              echo "::group::refusal $label (${result:-not recorded})"; cat "$refusal"; echo "::endgroup::"
+            fi
+          done
+          for log in "$out"/logs/*.log; do
+            [[ -f $log ]] || continue
+            label=$(basename "$log" .log)
+            result=$(awk -F'\t' -v l="$label" '$1 == l {print $5}' "$out/out/summary.tsv" 2>/dev/null)
+            if [[ $result != PASS ]]; then
+              echo "::group::tail of $label (${result:-not recorded})"; tail -n 60 "$log"; echo "::endgroup::"
+            fi
+          done
+
+      - name: Upload evidence for this phase
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prism-native-${{ matrix.phase }}-${{ env.SUBJECT_SHA }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  real-output:
+    name: Real holo outputs (independent runtime, probe, CLI)
+    needs: sdk
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: The runner must be credential-free (names only; values are never read)
+        shell: bash
+        run: |
+          set -euo pipefail
+          names=$(env | cut -d= -f1 | grep -E 'TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_KEY|ACCESS_KEY|PRIVATE_KEY' || true)
+          if [[ -n $names ]]; then echo "$names"; exit 77; fi
+          echo "job environment: no credential-like variable names"
+
+      - name: Anonymous clone of the exact revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
+          git init --quiet "$RUNNER_TEMP/sm"
+          git -C "$RUNNER_TEMP/sm" remote add origin "https://github.com/$GITHUB_REPOSITORY"
+          git -C "$RUNNER_TEMP/sm" fetch --quiet --depth 1 origin "$SUBJECT_SHA"
+          git -C "$RUNNER_TEMP/sm" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/sm" rev-parse HEAD)" = "$SUBJECT_SHA"
+
+      - name: Fetch the nested gate's outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: prism-native-nested-${{ env.SUBJECT_SHA }}
+          path: ${{ runner.temp }}/gate
+
+      - name: Setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install the pinned independent runtime after checking its tarball integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/runtime" && cd "$RUNNER_TEMP/runtime"
+          npm pack --silent prism-code@0.9.5
+          actual="sha512-$(openssl dgst -sha512 -binary prism-code-0.9.5.tgz | base64 -w0)"
+          echo "prism-code-0.9.5.tgz integrity observed: $actual"
+          test "$actual" = "$PRISM_CODE_INTEGRITY"
+          cd "$RUNNER_TEMP/sm"
+          npm install --no-save --ignore-scripts --omit=optional --package-lock=false "$RUNNER_TEMP/runtime/prism-code-0.9.5.tgz"
+          npm ls --all >"$RUNNER_TEMP/npm-ls.txt" 2>&1 || true
+          # A second, separate install that keeps the runtime's optional Sigstore
+          # packages. Only the offline assurance experiment uses it.
+          mkdir "$RUNNER_TEMP/experiment-runtime"
+          npm install --prefix "$RUNNER_TEMP/experiment-runtime" --no-save --ignore-scripts --package-lock=false "$RUNNER_TEMP/runtime/prism-code-0.9.5.tgz"
+          npm ls --prefix "$RUNNER_TEMP/experiment-runtime" --all >"$RUNNER_TEMP/npm-ls-experiment.txt" 2>&1 || true
+
+      - name: Run the real holo through the independent runtime, the probe and the CLI
+        shell: bash
+        run: |
+          set +e -uo pipefail
+          cd "$RUNNER_TEMP/sm"
+          export PRISM_CODE_EXPERIMENT_BIN="$RUNNER_TEMP/experiment-runtime/node_modules/.bin/prism-code"
+          bash scripts/sm01_real_holo_acceptance.sh \
+            "$RUNNER_TEMP/gate/nested/out/holo/eligibility.holo" \
+            "$RUNNER_TEMP/gate/nested/out/receipts/eligibility/manifest.json" \
+            "$RUNNER_TEMP/evidence/real-output"
+          rc=$?
+          cp "$RUNNER_TEMP/npm-ls.txt" "$RUNNER_TEMP/npm-ls-experiment.txt" "$RUNNER_TEMP/evidence/real-output/" 2>/dev/null || true
+          echo "::group::assurance experiment (recorded, asserts nothing)"; cat "$RUNNER_TEMP/evidence/real-output/assurance-experiment.txt"; echo "::endgroup::"
+          echo "::group::independent runtime"; cat "$RUNNER_TEMP/evidence/real-output/independent-prism-code.txt"; echo "::endgroup::"
+          echo "::group::CLI evaluate, actual guest responses"; cat "$RUNNER_TEMP/evidence/real-output/cli-evaluate.tsv"; echo "::endgroup::"
+          echo "::group::probe report"; cat "$RUNNER_TEMP/evidence/real-output/sm01-probe-report.json"; echo "::endgroup::"
+          exit $rc
+
+      - name: Upload real-output evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prism-real-output-${{ env.SUBJECT_SHA }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-evidence:
+    name: Publish the unedited evidence to its own branch
+    # Only after every phase and the real-output run passed. This is the one job
+    # with a write permission. It never runs the SDK image or the holo: it moves
+    # files that the jobs above uploaded, byte for byte, onto a new branch.
+    needs: [sdk, real-output]
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+      - name: Fetch every phase's evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: prism-*-${{ env.SUBJECT_SHA }}
+          path: ${{ runner.temp }}/all
+          merge-multiple: true
+      - name: Commit the files as received and push a new evidence branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          run="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          dest="docs/evidence/prism-native-gate-runs/$run"
+          test ! -e "$dest"
+          mkdir -p "$dest"
+          cp -r "$RUNNER_TEMP/all/." "$dest/"
+          find "$dest" -type l -delete
+          # Nothing in a run directory is ever line-ending converted.
+          printf '* -text\n' >"$dest/.gitattributes"
+          (cd "$dest" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS)
+          git switch --quiet --create "evidence/prism-native-gate-$run"
+          git add --force -- "$dest"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit --quiet -m "evidence: native Prism gate run $run at $SUBJECT_SHA" \
+            -m "Files exactly as the workflow's jobs uploaded them. Not edited, not summarised, not an approval."
+          git push --quiet origin "HEAD:refs/heads/evidence/prism-native-gate-$run"
+          echo "pushed evidence/prism-native-gate-$run ($(git rev-parse HEAD)), $(wc -l <"$dest/SHA256SUMS") files"

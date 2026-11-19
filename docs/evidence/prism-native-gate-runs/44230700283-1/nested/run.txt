@@ -1,0 +1,4 @@
+run=44230700283 attempt=1 event=pull_request phase=nested
+subject_sha=fa521f0e10807195f26db183d64ebf552eabeb60 workflow_sha=1b827e860a2a54f54ad52dbd76ca9ff72bd78b06
+runner=github-hosted Linux X64 image=ubuntu24 20261111.370.1
+docker_socket_bound_into_sdk_container=no token_permissions=none secrets=none

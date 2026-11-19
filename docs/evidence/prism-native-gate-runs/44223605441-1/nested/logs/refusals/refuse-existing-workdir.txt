@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: PRISM_GATE_WORKDIR /opt/prism-gate/run/work/refuse-existing-workdir already exists. Give a fresh path so nothing is reused or overwritten.

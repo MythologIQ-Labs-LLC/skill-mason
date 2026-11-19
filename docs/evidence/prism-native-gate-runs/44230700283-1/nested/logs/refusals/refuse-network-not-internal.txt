@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: Docker network prism-gate-not-internal is not internal, so the container could reach hosts the proxy never sees.

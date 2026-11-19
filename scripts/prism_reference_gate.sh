@@ -6,17 +6,31 @@
 # none. What it adds is refusal: it will not start a container unless the
 # preconditions in issue #9 hold.
 #
-# usage: prism_reference_gate.sh <checkout-dir> <none|host> <logfile> [command...]
+# usage: prism_reference_gate.sh <checkout-dir> <none|allowlist|host> <logfile> [command...]
 #
 #   <checkout-dir>  a template instance: a clean Git working tree, or a
 #                   subdirectory of one. It is never mounted and never modified.
 #                   A throwaway copy is staged and the gate runs in the copy.
-#   <none|host>     container network. `none` proves a stage needs no network.
+#   <network>       `none` proves a stage needs no network. `allowlist` attaches
+#                   the container to an internal Docker network whose only way
+#                   out is an allowlisting CONNECT proxy
+#                   (scripts/prism_egress_proxy.py), so every destination is
+#                   named in advance and logged. `host` shares the runner's
+#                   network namespace: nothing is filtered and nothing is
+#                   logged. It is refused unless PRISM_GATE_HOST_NETWORK is set
+#                   to `unfiltered-egress-accepted`.
 #
 # Required environment:
 #   PRISM_GATE_WORKDIR   a directory that does not exist yet. The staged copy,
 #                        the container's /tmp and every output are written here
 #                        and nowhere else. Delete it yourself when done.
+#
+# Required with `allowlist`:
+#   PRISM_GATE_EGRESS_NETWORK  name of an existing Docker network. It must be
+#                              internal (`docker network create --internal`).
+#   PRISM_GATE_EGRESS_PROXY    http://<IPv4>:<port> of the allowlisting proxy on
+#                              that network. The caller's own proxy variables
+#                              and CA bundle are never forwarded in this mode.
 #
 # Optional environment:
 #   PRISM_GATE_EXPECT_IMAGE  the exact image reference the lock must select.
@@ -41,16 +55,19 @@
 #   - the checkout path or its repository root is a symlink or sits under one;
 #   - the working tree is not clean, so the source identity is not fixed;
 #   - the lock selects a different image from the expected one, or a mutable tag;
+#   - `allowlist` is asked for and the named network is missing or not internal;
+#   - `host` is asked for without its explicit opt-in;
 #   - PRISM_GATE_WORKDIR already exists.
 #
 # The copy is identified by commit and tree hash, recorded at the top of the log.
 #
 # Status: the refusals and the argument construction are tested with a stand-in
-# for `docker` (tests/test_prism_gate_wrapper.py). This revision has NOT been run
-# against the real SDK image. The runs in docs/evidence/prism-phase0-20261117/
-# used the earlier revision, which mounted and chowned the checkout directly and
-# always bound the socket. Whether the complete gate passes without the socket
-# is NOT_RUN.
+# for `docker` (tests/test_prism_gate_wrapper.py). This header claims no result.
+# Every run against the real SDK image keeps its own log, which opens with the
+# GATE_SOURCE and GATE_RUN lines written below; committed runs are under
+# docs/evidence/. The runs in docs/evidence/prism-phase0-20261117/ used an
+# earlier revision, which mounted and chowned the checkout directly and always
+# bound the socket, so they say nothing about this one.
 set -uo pipefail
 
 DEFAULT_IMAGE='ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3'
@@ -61,7 +78,7 @@ refuse() {
 }
 
 if [[ $# -lt 3 ]]; then
-  sed -n '2,49p' "$0" >&2
+  sed -n '2,66p' "$0" >&2
   exit 64
 fi
 
@@ -70,8 +87,8 @@ net=$2
 log=$3
 shift 3
 
-case $net in none | host) ;; *)
-  echo "network must be 'none' or 'host'" >&2
+case $net in none | allowlist | host) ;; *)
+  echo "network must be 'none', 'allowlist' or 'host'" >&2
   exit 64
   ;;
 esac
@@ -174,6 +191,34 @@ case ${PRISM_GATE_DOCKER_SOCKET:-} in
   *) refuse "PRISM_GATE_DOCKER_SOCKET accepts only 'disposable-daemon'." ;;
 esac
 
+# --- host network: unfiltered, so never by default ---------------------------
+if [[ $net == host && ${PRISM_GATE_HOST_NETWORK:-} != unfiltered-egress-accepted ]]; then
+  refuse "the host network gives the SDK container the runner's whole network, unfiltered and unlogged. Use 'allowlist', or set PRISM_GATE_HOST_NETWORK=unfiltered-egress-accepted on a throwaway machine."
+fi
+
+# --- allowlist egress: an internal network and one named proxy --------------
+docker_net=$net
+egress_proxy=
+egress_label=none
+if [[ $net == allowlist ]]; then
+  docker_net=${PRISM_GATE_EGRESS_NETWORK:-}
+  egress_proxy=${PRISM_GATE_EGRESS_PROXY:-}
+  [[ $docker_net =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}$ ]] || {
+    echo "PRISM_GATE_EGRESS_NETWORK is required with 'allowlist': the name of an internal Docker network" >&2
+    exit 64
+  }
+  case $docker_net in none | host | bridge | default) refuse "PRISM_GATE_EGRESS_NETWORK must be a dedicated internal network, not '$docker_net'." ;; esac
+  [[ $egress_proxy =~ ^http://([0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}$ ]] || {
+    echo "PRISM_GATE_EGRESS_PROXY is required with 'allowlist': http://<IPv4>:<port>" >&2
+    exit 64
+  }
+  internal=$(docker network inspect --format '{{.Internal}}' "$docker_net" 2>/dev/null) ||
+    refuse "Docker network $docker_net does not exist."
+  [[ $internal == true ]] ||
+    refuse "Docker network $docker_net is not internal, so the container could reach hosts the proxy never sees."
+  egress_label=$docker_net
+fi
+
 log_dir=$(dirname "$log")
 [[ -d $log_dir ]] || {
   echo "log directory does not exist: $log_dir" >&2
@@ -215,16 +260,19 @@ if [[ $net == host ]]; then
     done
   fi
 fi
+if [[ $net == allowlist ]]; then
+  extra+=(--env "HTTPS_PROXY=$egress_proxy" --env "https_proxy=$egress_proxy")
+fi
 
 [[ $# -gt 0 ]] || set -- just vv
 
 {
   echo "GATE_SOURCE repo=$repo commit=$commit tree=$tree subdir=${sub:-.}"
-  echo "GATE_RUN image=$image net=$net uid=$uid docker_socket=${PRISM_GATE_DOCKER_SOCKET:-not-mounted} seed_tmp=${seed:-none} workdir=$work"
+  echo "GATE_RUN image=$image net=$net egress_network=$egress_label egress_proxy=${egress_proxy:-none} uid=$uid docker_socket=${PRISM_GATE_DOCKER_SOCKET:-not-mounted} seed_tmp=${seed:-none} workdir=$work"
 } >"$log"
 
 start=$(date -u +%s)
-docker run --rm --network "$net" \
+docker run --rm --network "$docker_net" \
   --user "$uid" \
   --volume "$scratch:/tmp" \
   --volume "$staged:$staged" \

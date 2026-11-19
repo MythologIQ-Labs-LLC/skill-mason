@@ -1,0 +1,125 @@
+{
+  "schema": "qortara/sm01-output-probe/1",
+  "application": "Qortara Skills Eligibility",
+  "artifact": {
+    "path": "/home/runner/work/_temp/evidence/real-output/tampered.holo",
+    "sha256": "d754a07c8e0876c6bc2cbb61faa48db41f16c367493b0bc432e7da40972f051b",
+    "byteLength": 17346
+  },
+  "engine": "prism-code@0.9.5",
+  "assurance": "P0 unverified - explicit fixture-only policy, not P2",
+  "productionEligible": false,
+  "tests": [
+    {
+      "case": "eligible",
+      "requestHex": "01010101",
+      "expected": "eligible",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "evidence",
+      "requestHex": "00010101",
+      "expected": "refused: EVIDENCE_UNQUALIFIED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "rights",
+      "requestHex": "01000101",
+      "expected": "refused: RIGHTS_UNRESOLVED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "prohibited-rights",
+      "requestHex": "01020101",
+      "expected": "refused: RIGHTS_UNRESOLVED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "authority",
+      "requestHex": "01010001",
+      "expected": "refused: AUTHORITY_EXCEEDED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "coverage",
+      "requestHex": "01010100",
+      "expected": "refused: OUTCOME_UNCOVERED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "all-refused",
+      "requestHex": "00000000",
+      "expected": "refused: EVIDENCE_UNQUALIFIED RIGHTS_UNRESOLVED AUTHORITY_EXCEEDED OUTCOME_UNCOVERED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "unknown-code",
+      "requestHex": "ff010101",
+      "expected": "refused: EVIDENCE_UNQUALIFIED",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "short",
+      "requestHex": "010101",
+      "expected": "invalid request",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "long",
+      "requestHex": "0101010101",
+      "expected": "invalid request",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "empty",
+      "requestHex": "",
+      "expected": "invalid request",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    },
+    {
+      "case": "allocation-boundary",
+      "requestHex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "invalid request",
+      "actual": null,
+      "exitCode": null,
+      "pass": false,
+      "error": "digest_mismatch"
+    }
+  ],
+  "passed": 0,
+  "total": 12,
+  "verdict": "FIXTURE_FAIL"
+}

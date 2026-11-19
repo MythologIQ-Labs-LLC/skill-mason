@@ -132,7 +132,7 @@ class PrismOverlayTests(unittest.TestCase):
     def test_overlay_is_documented_as_a_candidate(self):
         readme = (OVERLAY / "README.md").read_text()
         self.assertIn("candidate, not adopted", readme)
-        self.assertIn("does not make Skill Mason Prism-built", readme)
+        self.assertIn("does not make Qortara Skills Prism-built", readme)
         for request, response in self.vectors:
             if 0 < len(request) <= 5:
                 self.assertIn(f"`{request.hex()}` | `{response.decode()}`", readme)

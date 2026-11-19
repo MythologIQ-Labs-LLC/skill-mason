@@ -1,6 +1,6 @@
-name = "SkillMasonEligibility"
+name = "QortaraSkillsEligibility"
 version = "0.1.0"
-defaultTargets = ["SkillMasonEligibility"]
+defaultTargets = ["QortaraSkillsEligibility"]
 
 [[lean_lib]]
-name = "SkillMasonEligibility"
+name = "QortaraSkillsEligibility"

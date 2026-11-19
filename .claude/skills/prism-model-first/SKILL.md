@@ -38,13 +38,22 @@ Until ADR-0003 is accepted, the application is carried as [`prism-overlay/`](../
 
 Apply patches to a nested instance with `patch -p1`, not `git apply`: inside a subdirectory of an enclosing repository `git apply` skips every path and still exits 0.
 
-### The shrink-only ratchet decides when a capability can be added
+### The shrink-only ratchet: where it engages and where it does not
 
 `audit-prism`, part of `just model`, measures hand-written Rust, JavaScript, Python, shell, CSS and HTML against the commit's first parent. It refuses a new non-Prism file and any net growth in such lines. `.lex.tex`, TOML and JSON are free.
 
-- The conformance test that `just new-capability` scaffolds is a new Rust file, so in an ordinary later commit the gate refuses it: `1 new non-Prism file(s)` and `grew by N lines`.
-- The commit that **installs** the instance is different: `installed here; the parent ran no ratchet, so this commit sets the ceiling`. Capabilities present in that commit are part of the baseline.
-- So put every capability of the first slice in the installing commit. A capability added later must put its test in a file the parent already has and delete at least as many hand-written lines elsewhere. Decide what gets deleted as a design question, with the owner, not as a merge-time trick.
+It finds its ceiling by reading `xtask/src/audit.rs` from the parent commit **at that path from the repository root** (template `xtask/src/audit.rs`, function `audit`). Two layouts therefore behave differently, and both were executed on 2026-11-18:
+
+| Layout | What `audit-prism` does to a hand-written file added after installation | Evidence |
+| --- | --- | --- |
+| Instance at a repository's root | Refuses: `1 new non-Prism file(s)` and `grew by N lines` | control `nc-ratchet-root-layout` |
+| Instance nested at `prism/`, template's own `just model` | **Accepts.** The parent's gate is at `prism/xtask/src/audit.rs`, the lookup misses, and every commit prints `installed here; the parent ran no ratchet, so this commit sets the ceiling` | observation `obs-nested-test-added-after-install` |
+| Instance nested at `prism/`, companion gate | Refuses, with the template's own diagnostic | controls `nc-nested-ratchet-new-file`, `nc-nested-ratchet-growth` |
+
+- Left to itself, the ratchet never engages in the nested layout, and it measures only files under `prism/`.
+- **It is enforced there by a companion gate**, [`scripts/prism_nested_ratchet.sh`](../../../scripts/prism_nested_ratchet.sh). The script projects the nested instance to a repository root, accepted baseline then candidate, and the template's own unmodified `audit-prism` judges the projection. The baseline is named by the caller and is the accepted state, not the candidate's first parent: against a first parent, two commits can carry a new hand-written file past the ratchet. So the rule for `prism/` is the template's rule: the commit that installs the instance sets the ceiling, and a later capability must put its test in a file the parent already has and delete at least as many hand-written lines elsewhere under `prism/`. Decide what gets deleted as a design question, with the owner, not as a merge-time trick.
+- The companion refuses, before any audit runs, a candidate that moves or removes the instance, or that changes anything the audit binary is built from: `prism/xtask/`, `prism/crates/model/`, `prism/crates/conformance/src/` and its manifest, the workspace `Cargo.toml` and `Cargo.lock`, `rust-toolchain.toml`, `.cargo/`, or a universal policy file. Do not edit those; a change there is a governed pin change. Capability tests under `prism/crates/conformance/tests/` are project content and are judged by the audit, not refused.
+- A passing `just model` inside `prism/` says nothing about the ratchet. Only the companion's result does.
 
 ### Order of work (R3: the order is the discipline)
 
