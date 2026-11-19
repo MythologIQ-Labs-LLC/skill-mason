@@ -8,7 +8,7 @@ import {canonicalJSON} from './compose.mjs';
 import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
-// Each immutable method retains its own historical source commit; the snapshot includes v3.
+// Each immutable method retains its own historical source commit; the current snapshot includes v4.
 export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
 export const PILOT_V4_SOURCE_COMMIT='7627d98f081f1335a1c0246e71300416e4b754c5';
