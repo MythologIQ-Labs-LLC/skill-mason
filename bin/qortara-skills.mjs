@@ -28,7 +28,6 @@ const USAGE=[
  '  qortara-skills probe --holo FILE --sha256 SHA256 --allow-p0 [--case ID] [--report NEW.json]',
  '  qortara-skills create --request TEXT --route DOMAIN/SUBDOMAIN --host HOST --handoff DIR --source-checkout DIR [--method governed:ID] [--external-checkout DIR --external-repository-tree GIT_TREE] [--report NEW.json]',
  '  qortara-skills routes (--search TEXT [--limit 1..25] | --path DOMAIN/SUBDOMAIN | --summary) --handoff DIR --source-checkout DIR [--report NEW.json]',
- '  qortara-skills preview --request TEXT --handoff DIR --source-checkout DIR [--limit 1..3] [--report NEW.json] (unassessed leads; manual choice required)',
  '  qortara-skills version',
  '  qortara-skills help',
  '',
@@ -37,7 +36,6 @@ const USAGE=[
  'Create verifies the exact pinned corpus and issues an actionable refusal until genuine approval exists.',
  'Create/routes require Python 3.11+ and the separately pinned local skillz source checkout.',
  'Routes are lexical/explicit source navigation only, not semantic admission or reuse authorization.',
- 'Preview is EXPERIMENTAL and never chooses a route; negation/ambiguity handling is unverified.',
  'No approved SKILL.md generation, skill installation, or source-rights self-authorization.'
 ].join('\n');
 
@@ -46,7 +44,7 @@ export function parseCommand(argv) {
     return {command:'help',flags:{}};
   if (argv[0]==='version' && argv.length===1) return {command:'version',flags:{}};
   const [command,...args]=argv;
-  if (!['status','evaluate','probe','create','routes','preview'].includes(command))
+  if (!['status','evaluate','probe','create','routes'].includes(command))
     throw new ProbeError('USAGE','Unknown command: '+command);
   const flags={};
   for (let i=0;i<args.length;i++) {
@@ -68,8 +66,6 @@ export function parseCommand(argv) {
          '--method','--external-checkout','--external-repository-tree','--report']
     : command==='routes'
       ? ['--search','--path','--summary','--limit','--handoff','--source-checkout','--report']
-    : command==='preview'
-      ? ['--request','--limit','--handoff','--source-checkout','--report']
     : command==='probe'
       ? ['--holo','--sha256','--case','--report','--allow-p0']
       : ['--holo','--sha256','--hex','--report','--allow-p0'];
@@ -97,13 +93,7 @@ export function parseCommand(argv) {
         (!flags['--search'] || !/^(?:[1-9]|1\d|2[0-5])$/.test(flags['--limit'])))
       throw new ProbeError('USAGE','--limit must be 1..25 and valid only with --search');
   }
-  if (command==='preview') {
-    if (!flags['--request'] || !flags['--handoff'] || !flags['--source-checkout'])
-      throw new ProbeError('USAGE','preview needs --request, --handoff and --source-checkout');
-    if (flags['--limit']!==undefined && !/^[1-3]$/.test(flags['--limit']))
-      throw new ProbeError('USAGE','preview limits unassessed leads to 1..3');
-  }
-  if (command!=='status' && command!=='create' && command!=='routes' && command!=='preview') {
+  if (command!=='status' && command!=='create' && command!=='routes') {
     if (!flags['--holo'] || !shaPattern.test(flags['--sha256']??''))
       throw new ProbeError('USAGE','--holo and lowercase 64-character --sha256 required');
     if (!flags['--allow-p0'])
@@ -264,71 +254,6 @@ export async function discoverRoutes(flags,deps={}) {
     throw new ProbeError('ROUTE_PROMOTION','Route graph attempted to bypass read-only source boundary');
   return output;
 }
-/** Optional experimental lexical lead preview, never source/route approval. */
-export function previewPythonArgs(flags,callerDirectory=process.cwd()) {
-  const args=['-m','scripts.manual_route_preview',
-    '--request',flags['--request'],
-    '--handoff',resolve(callerDirectory,flags['--handoff']),
-    '--source-checkout',resolve(callerDirectory,flags['--source-checkout'])];
-  if (flags['--limit']) args.push('--limit',flags['--limit']);
-  return args;
-}
-export async function previewRoutes(flags,deps={}) {
-  let value;
-  if (deps.previewRunner) value=await deps.previewRunner(flags);
-  else {
-    let stdout;
-    try {
-      ({stdout}=await execFileAsync(
-        process.platform==='win32'?'python':'python3',previewPythonArgs(flags),
-        {cwd:SOURCE_ROOT,shell:false,windowsHide:true,timeout:120_000,
-         maxBuffer:4*1024*1024,env:{...process.env,PYTHONPATH:'',PYTHONNOUSERSITE:'1'}}));
-    } catch(err) {
-      if (err?.code!==2 || typeof err.stdout!=='string' || !err.stdout.trim())
-        throw new ProbeError('PREVIEW_RUNTIME','Pinned preview source unavailable or failed');
-      stdout=err.stdout;
-    }
-    try {value=JSON.parse(stdout);}
-    catch {throw new ProbeError('PREVIEW_RUNTIME','Preview did not return valid JSON');}
-  }
-  if (value?.schema!=='qortara/manual-route-preview/1' ||
-      value.production_eligible!==false || value.composition_eligible!==false)
-    throw new ProbeError('PREVIEW_PROMOTION','Preview must never grant eligibility');
-  if (value.state==='REFUSED') {
-    if (!/^[A-Z][A-Z0-9_]*$/.test(value.code??''))
-      throw new ProbeError('PREVIEW_RUNTIME','Invalid preview refusal');
-    return value;
-  }
-  const limit=Number(flags['--limit']??3);
-  if (!['LEADS_REQUIRE_USER_CHOICE','ABSTAIN_NO_AUTOMATIC_ROUTE'].includes(value.state) ||
-      value.pinned_source_commit!=='31a8c518dd97b7828adcc728202fa41388a306d7' ||
-      value.pinned_source_tree!=='e6d5dfeb42bcd7777ddff52605922fead62135ff' ||
-      value.proposal_source_sha256!=='2a9bd2c6efb50cd222c87ce73e787a5fcdccc7a67a278a838d610ba7dddcb345' ||
-      value.route_universe!=='13_UNGOVERNED_WORKFLOW_DESCRIPTIONS_WITHIN_247_RECOGNIZED_ROUTES' ||
-      value.evaluated_route_count!==13 || value.recognized_route_count!==247 ||
-      value.candidate_method_count!==0 ||
-      value.suggestion_quality!=='EXPERIMENTAL_AUTHOR_LABELED_REPLAY_FAILED_NEGATED_AMBIGUOUS' ||
-      value.semantic_negation_handling_verified!==false ||
-      value.user_must_explicitly_select_route!==true || value.selected_route!==null ||
-      value.source_rights_established!==false || value.host_authority_established!==false ||
-      value.prism_invoked!==false || value.composer_invoked!==false ||
-      value.output_package_created!==false ||
-      !/^[0-9a-f]{64}$/.test(value.request_sha256??'') ||
-      !Array.isArray(value.unapproved_route_leads) ||
-      value.unapproved_route_leads.length>limit ||
-      (value.state==='ABSTAIN_NO_AUTOMATIC_ROUTE' && value.unapproved_route_leads.length!==0) ||
-      (value.state==='LEADS_REQUIRE_USER_CHOICE' && value.unapproved_route_leads.length===0) ||
-      new Set(value.unapproved_route_leads.map(x=>x.route)).size!==value.unapproved_route_leads.length ||
-      !value.unapproved_route_leads.every(x=>
-        typeof x.route==='string' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(x.route) &&
-        x.review_status==='UNASSESSED_LEXICAL_LEAD_NOT_A_METHOD_OR_APPROVAL' &&
-        typeof x.similarity_score_not_confidence==='number' &&
-        x.similarity_score_not_confidence>=0 && x.similarity_score_not_confidence<=1 &&
-        Number.isInteger(x.shared_content_token_count) && x.shared_content_token_count>=2))
-    throw new ProbeError('PREVIEW_PROMOTION','Untrusted preview attempted route selection or eligibility');
-  return value;
-}
-
 export async function createRequest(flags,deps={}) {
   let outcome;
   if (deps.requestRunner) outcome=await deps.requestRunner(flags);
@@ -371,12 +296,6 @@ export async function run(argv,deps={}) {
   }
   if (command==='routes') {
     const value=await discoverRoutes(flags,deps);
-    if (flags['--report'])
-      await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
-    return {kind:'json',value,exitCode:value.state==='REFUSED'?2:0};
-  }
-  if (command==='preview') {
-    const value=await previewRoutes(flags,deps);
     if (flags['--report'])
       await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
     return {kind:'json',value,exitCode:value.state==='REFUSED'?2:0};
