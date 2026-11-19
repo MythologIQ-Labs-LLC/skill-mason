@@ -64,8 +64,9 @@ class LiveCapabilityProbeTests(unittest.TestCase):
         self.proposals = {ROUTE: proposal()}
 
     def run_probe(self, **kwargs):
+        verifier = kwargs.pop("preflight", preflight)
         return evaluate(self.graph, self.proposals,
-                        comparator=comparison, preflight=preflight, **kwargs)
+                        comparator=comparison, preflight=verifier, **kwargs)
 
     def test_exact_source_byte_receipt_is_never_method_admission(self):
         r = self.run_probe()
