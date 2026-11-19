@@ -1,0 +1,95 @@
+name: First Skill CI triage host acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'bin/ci-triage-live-host-test.mjs'
+      - 'tests/ci_triage_live_host_test.test.mjs'
+      - 'tests/fixtures/ci-triage-agent-host-cases-v1.json'
+      - '.github/workflows/first-skill-host-acceptance.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Explicit authorized text-only OpenAI model ID'
+        required: true
+        type: string
+      artifact_id:
+        description: 'Pinned previously verified complete P0 candidate bundle'
+        required: false
+        type: string
+        default: '14438994926'
+
+permissions:
+  contents: read
+
+jobs:
+  host-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: First-party source and host Gherkin contract tests (mock only)
+        run: node --test tests/ci_triage_live_host_test.test.mjs
+
+  actual-host:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [host-contract]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.SKILL_MASON_HOST_OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Verify owner opt-in, historical artifact ID and complete archive digest
+        shell: bash
+        env:
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+        run: |
+          set -euo pipefail
+          test -n "$OPENAI_API_KEY" || { echo 'HOST_AUTH: explicitly configured owner secret required'; exit 2; }
+          test "$ARTIFACT_ID" = 14438994926 || { echo 'HISTORICAL_PIN: new artifact requires review'; exit 2; }
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/ci-triage-p0.zip"
+          echo "099bae0715c04add74eb144748f479095a9bd18f6be5c5863d355cc4f8b1d383  $RUNNER_TEMP/ci-triage-p0.zip" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/extracted"
+          unzip -q "$RUNNER_TEMP/ci-triage-p0.zip" -d "$RUNNER_TEMP/extracted"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'extracted'
+          items=list(root.rglob('ci-failure-triage/SKILL.md'))
+          assert len(items)==1, 'expected exactly one sealed original CI triage candidate'
+          with open(os.environ['GITHUB_ENV'],'a') as out:
+              out.write('CANDIDATE_DIR='+str(items[0].parent)+'\n')
+          PY
+      - name: Execute actual host A/B text-only tasks against sealed generated skill
+        shell: bash
+        env:
+          HOST_MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          node bin/ci-triage-live-host-test.mjs \
+            --package-dir "$CANDIDATE_DIR" \
+            --model "$HOST_MODEL" \
+            --report "$RUNNER_TEMP/ci-triage-host-acceptance.json"
+      - name: Preserve raw host responses and resource usage separately from compiler proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: first-skill-ci-triage-host-observations
+          path: ${{ runner.temp }}/ci-triage-host-acceptance.json
+          if-no-files-found: ignore
+          retention-days: 14
