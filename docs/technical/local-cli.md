@@ -1,7 +1,7 @@
 # Qortara Skills local development CLI
 
-**State: initial development CLI, not a skill generator or released product.** On 2026-11-18 `status`, `probe` and `evaluate` were run against the real `Qortara Skills Eligibility` holo on the isolated runner: preflight ready, 12 of 12 fixtures, and the guest's actual response for each of 17 requests. The holo is `P0 unverified` and its inputs are fixtures. See the [qualification record](../evidence/prism-qse-20261118/README.md).
-The CLI is the first local access surface. It uses the real pinned Prism runtime to call an externally built SM-01 holo. It does **not** evaluate catalog claims, create or install SKILL.md, grant permissions, download an SDK image or infer missing methods.
+**State: request-first source qualification/refusal CLI plus P0 Prism developer evaluation; not an approved skill generator or released product.** On 2026-11-18 `status`, `probe` and `evaluate` were run against the real `Qortara Skills Eligibility` holo on the isolated runner: preflight ready, 12 of 12 fixtures, and the guest's actual response for each of 17 requests. The holo is `P0 unverified` and its inputs are fixtures. See the [qualification record](../evidence/prism-qse-20261118/README.md).
+The CLI is the first local access surface. Its `evaluate` and `probe` commands use the real pinned Prism runtime to call an externally built SM-01 holo. The new `create` command uses the separately pinned read-only Skillz catalog and actual C4/C5 preflight to return **a source-grounded typed refusal**; it does **not** create or install an approved SKILL.md, grant permissions, download an SDK image, infer a missing expert method or treat fixture assertions as real rights.
 
 ## Start locally (Node.js 22+)
 
@@ -16,6 +16,25 @@ npm run test:cli         # stand-in guardrails; not a holo execution
 ```
 
 `status` exits nonzero until prerequisites exist and reports `preflightReady`, NOT proof or application qualification. Node v22 or later is necessary for the pinned runtime. This package is private and has no declared automatic SDK dependency.
+
+## Request-to-source-refusal on the ordinary CLI (no Prism or model call)
+
+This path is available via `qortara-skills create` on the implementation branch. It requires **Node.js 22+, Python 3.11+** and separate exact, read-only handoff and original source checkouts. It does not use the P0 fixture key or invoke a Prism container.
+
+```sh
+qortara-skills create \
+  --request "Build an accessible responsive UI component with keyboard interactions" \
+  --route software-engineering/frontend \
+  --host ChatGPT \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source \
+  --method governed:anthropic-skills/frontend-design \
+  --report /new/path/denial.json
+```
+
+The command checks the *whole* pinned catalog/source checkout and returns JSON with an exact route, all evidence-linked candidates and their source inspection state, a refusal code such as `RIGHTS_UNRESOLVED`, and `composer_invoked:false`/`production_eligible:false`. A refusal deliberately exits **2**, avoiding false-success shell pipelines. If no governed review is linked, it returns `MAPPING_GAP`; for more than one linked candidate it requires an explicit inspected record. Free-form semantic route determination is **not** qualified.
+
+See [the implementation and Gherkin acceptance contract](request-to-skill-cli-v1.md). The user-request body is hashed rather than repeated in persistent result JSON. Report paths are new-only (no overwrite). This is not positive rights/host authorization or end-to-end build-token accounting.
 
 ## Test a REAL compiled holo (development fixture only)
 
