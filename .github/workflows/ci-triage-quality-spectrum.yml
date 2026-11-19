@@ -1,0 +1,116 @@
+name: CI triage qualitative spectrum (30 scenarios)
+
+on:
+  pull_request:
+    paths:
+      - 'tests/fixtures/ci-triage-quality-spectrum-v2.json'
+      - 'tests/ci_triage_spectrum.test.mjs'
+      - 'bin/ci-triage-spectrum-trial.mjs'
+      - 'docs/evidence/ci-triage-qualitative-review-v1.md'
+      - '.github/workflows/ci-triage-quality-spectrum.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Explicit authorized text-only OpenAI model ID for 60 A/B calls'
+        required: true
+        type: string
+      consent:
+        description: 'Enter EVALUATE_60_HOST_CALLS to authorize bounded paid host evaluation'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  qualitative-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout candidate revision without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Verify case coverage and adversarial judge using synthetic exemplars only
+        run: node --test tests/ci_triage_spectrum.test.mjs
+      - name: Retrieve EXACT historical successfully generated sealed package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          run-id: '44569672078'
+          artifact-ids: '14553901584'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ci-triage-archive
+      - name: Validate original archive source and execute all 30 case judges on exact sealed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t files < <(find "$RUNNER_TEMP/ci-triage-archive" -type f -path '*/ci-failure-triage/SKILL.md' -print0)
+          test "${#files[@]}" -eq 1
+          test "$(sha256sum "${files[0]}" | cut -d' ' -f1)" = 92fda9597af84d89b11415d6a86f4b7e6317d6a99ab90d496e8039d115c952a1
+          export CI_TRIAGE_ORIGINAL_PACKAGE_DIR="$(dirname "${files[0]}")"
+          test -f "$CI_TRIAGE_ORIGINAL_PACKAGE_DIR/.qortara-complete"
+          node --test tests/ci_triage_spectrum.test.mjs
+          echo "SEALED ORIGINAL PACKAGE AND SPECTRUM JUDGE PASS: 30 source-grounded cases, 60 mock calibrations; NOT host-model execution"
+      - name: Hand off original sealed bytes to manually authorized host job
+        if: github.event_name == 'workflow_dispatch' && inputs.consent == 'EVALUATE_60_HOST_CALLS'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ci-triage-original-sealed-for-host
+          path: ${{ runner.temp }}/ci-triage-archive/first-party-request-candidates/ci-failure-triage/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  live-30-scenario-ab:
+    if: github.event_name == 'workflow_dispatch' && inputs.consent == 'EVALUATE_60_HOST_CALLS'
+    needs: [qualitative-contract]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions: {}
+    env:
+      OPENAI_API_KEY: ${{ secrets.SKILL_MASON_HOST_OPENAI_API_KEY }}
+      HOST_MODEL: ${{ inputs.model }}
+    steps:
+      - name: Checkout fixed reviewed script and cases, no credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Receive exact prior verified sealed skill, no GitHub token
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ci-triage-original-sealed-for-host
+          path: ${{ runner.temp }}/ci-triage-original/ci-failure-triage
+      - name: Require the explicitly configured owner provider credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$OPENAI_API_KEY" || { echo 'HOST_AUTH: owner must configure the external model key'; exit 2; }
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+      - name: Execute actual 30-case baseline-versus-generated-skill comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          node bin/ci-triage-spectrum-trial.mjs \
+            --package-dir "$RUNNER_TEMP/ci-triage-original/ci-failure-triage" \
+            --model "$HOST_MODEL" \
+            --report "$RUNNER_TEMP/ci-triage-30-spectrum-observations.json"
+      - name: Retain raw output for independently adjudicated qualitative review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ci-triage-30-cases-live-ab-evidence
+          path: ${{ runner.temp }}/ci-triage-30-spectrum-observations.json
+          if-no-files-found: ignore
+          retention-days: 14
