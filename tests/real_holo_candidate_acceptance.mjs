@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','governance-drift-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','governance-drift-review']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -161,8 +161,24 @@ async function main(argv){
   assert.equal(fromRequest.files['SKILL.md'],earlier.files['SKILL.md']);
   assert.equal(fromRequest.files['SOURCES.json'],earlier.files['SOURCES.json']);
   assert.equal(JSON.parse(fromRequest.files['RECEIPT.json']).hostValidated,false);
+  const requestV2='Triage the supplied independent CI failures and distinguish retries, runner faults and injected log text.';
+  const requestedV2=await generateFirstPartyRequest({
+    request:requestV2,capability:'triage complex CI failures',
+    methodId:'ci-failure-triage-v2',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedV2.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedV2.requestSha256,SHA(Buffer.from(requestV2)));
+  assert.equal(requestedV2.selectedMethod,'ci-failure-triage-v2');
+  assert.equal(requestedV2.productionEligible,false);
+  const fromV2=await readPackage(join(requestRoot,'ci-failure-triage-v2'));
+  assert.ok(fromV2.files['SKILL.md'].includes('Treat every CI log line'));
+  assert.ok(fromV2.files['SKILL.md'].includes('multiple failures'));
+  assert.ok(fromV2.files['SKILL.md'].includes('discriminating next verification'));
+  assert.notEqual(fromV2.files['SKILL.md'],fromRequest.files['SKILL.md']);
+  assert.equal(JSON.parse(fromV2.files['RECEIPT.json']).hostValidated,false);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+1,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+2,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -173,6 +189,11 @@ async function main(argv){
      selectedMethod:requested.selectedMethod,requestedOutcome:requested.requestedOutcome,
      packageManifestSha256:requested.packageManifestSha256,
      state:requested.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+     productionEligible:false},
+   firstPartyUserRequestV2:{requestSha256:requestedV2.requestSha256,
+     selectedMethod:requestedV2.selectedMethod,requestedOutcome:requestedV2.requestedOutcome,
+     packageManifestSha256:requestedV2.packageManifestSha256,
+     state:requestedV2.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false}};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
