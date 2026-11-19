@@ -1,0 +1,5 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=0e7448329166afd315aa0667a69c6279b85d5579 tree=84d4949b5ff3c9e9a028be7776bcf1030486bf69 subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none egress_network=none egress_proxy=none uid=1000:1000 docker_socket=not-mounted seed_tmp=none workdir=/opt/prism-gate/run/work/pre-canonical
+3 modules are canonical
+lexlean.lock is current
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=8s cmd=bash -c cd eligibility && lexlean fmt --check && lexlean lock --check
