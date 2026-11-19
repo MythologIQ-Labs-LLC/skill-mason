@@ -1,0 +1,319 @@
+name: Source-approval receipt integrity (P0 candidate only)
+on:
+  pull_request:
+    paths:
+      - 'src/backend/compose.mjs'
+      - 'src/backend/source-proof-replay.mjs'
+      - 'tests/backend_compose.test.mjs'
+      - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'src/backend/host-task-evidence.mjs'
+      - 'bin/host-task-evidence.mjs'
+      - 'tests/backend_host_task_evidence.test.mjs'
+      - 'docs/technical/host-task-acceptance-v1.md'
+      - 'tests/integration/strict_source_receipt_fixture.mjs'
+      - 'docs/technical/backend-source-approval-receipt-v1.md'
+      - '.github/workflows/backend-source-receipt.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/backend/compose.mjs'
+      - 'src/backend/source-proof-replay.mjs'
+      - 'tests/backend_source_approval_receipt.test.mjs'
+      - 'src/backend/host-task-evidence.mjs'
+      - 'bin/host-task-evidence.mjs'
+      - 'tests/backend_host_task_evidence.test.mjs'
+      - 'docs/technical/host-task-acceptance-v1.md'
+      - 'tests/integration/strict_source_receipt_fixture.mjs'
+      - '.github/workflows/backend-source-receipt.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sealed-source-proof-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout exact independently developed corpus source guard
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          ref: 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          path: pinned-corpus-gate
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Run offline composer and dual proof-digest replay regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
+          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
+          git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
+      - name: Cross-branch two-signature P0 fixture through exclusive disk seal (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C pinned-corpus-gate rev-parse HEAD)" = 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" > source-receipt-interop.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("source-receipt-interop.json","utf8"));
+            for(const [key,value] of Object.entries({
+              exactPinnedSourceGateImported:true,
+              sourceApprovalRequiredByComposer:true,
+              bothProofDigestsSealed:true,
+              sourceApprovalSignatureReplayedByActualGate:true,
+              independentlySignedFourFactProofReplayedByActualAdapter:true,
+              pinnedGuestReplayedUsingFixtureMock:true,
+              exclusiveDiskSealVerified:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReceiptRefused:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
+              missingSourceApprovalStoppedBeforeGuest:true,
+              positiveFactsAreFixturesOnly:true,
+              prismGuestIsMock:true,
+              realPinnedPrismGuestExecuted:false,
+              signedRightsDenialReachedGuest:true,
+              signedRightsDenialRefused:true,
+              productionEligible:false,
+              hostValidated:false,
+              sourceRightsEstablished:false
+            }))if(r[key]!==value)throw Error("fixture integration failure "+key);
+            console.log("PINNED SOURCE GATE + STRICT P0 COMPOSER: two fixture signatures sealed, missing signature refused, NO PRODUCT AUTHORITY");
+          '
+
+  # Scoped to #38. Original native artifact expires 2026-12-18.
+  # Not a standing requirement for other PRs or main.
+  strict-p0-native-stage:
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 38
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      actions: read
+    steps:
+      - name: Retrieve recorded native evidence by immutable run/artifact identity
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          run-id: '44235570627'
+          artifact-ids: '14399257681'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p0-native-evidence
+      - name: Verify pinned compiled holo and native manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t holos < <(find "$RUNNER_TEMP/p0-native-evidence" -type f -path '*/nested/out/holo/eligibility.holo' -print0)
+          mapfile -d '' -t manifests < <(find "$RUNNER_TEMP/p0-native-evidence" -type f -path '*/nested/out/receipts/eligibility/manifest.json' -print0)
+          test "${#holos[@]}" -eq 1 && test "${#manifests[@]}" -eq 1
+          test "$(stat -c %s "${holos[0]}")" -eq 17346
+          test "$(sha256sum "${holos[0]}" | cut -d' ' -f1)" = '9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e'
+          test "$(sha256sum "${manifests[0]}" | cut -d' ' -f1)" = 'cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518'
+          mkdir "$RUNNER_TEMP/p0-standalone"
+          cp -- "${holos[0]}" "$RUNNER_TEMP/p0-standalone/eligibility.holo"
+          chmod 0600 "$RUNNER_TEMP/p0-standalone/eligibility.holo"
+      - name: Transfer only verified holo to credential-free runner
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strict-receipt-pinned-p0-holo
+          path: ${{ runner.temp }}/p0-standalone/eligibility.holo
+          retention-days: 3
+          if-no-files-found: error
+
+  strict-p0-real-guest:
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 38
+    needs: strict-p0-native-stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions: {}
+    steps:
+      - name: Checkout review code without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout independent source gate by exact commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          ref: 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          path: pinned-corpus-gate
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          lfs: false
+      - name: Download same-run verified holo with no token
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: strict-receipt-pinned-p0-holo
+          path: ${{ runner.temp }}/p0-holo
+      - name: Verify holo and independent runtime tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          holo="$RUNNER_TEMP/p0-holo/eligibility.holo"
+          test "$(stat -c %s "$holo")" -eq 17346
+          test "$(sha256sum "$holo" | cut -d' ' -f1)" = '9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e'
+          mkdir "$RUNNER_TEMP/npm-pin" && cd "$RUNNER_TEMP/npm-pin"
+          npm pack --silent prism-code@0.9.5
+          actual="sha512-$(openssl dgst -sha512 -binary prism-code-0.9.5.tgz | base64 -w0)"
+          test "$actual" = 'sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA=='
+          cd "$GITHUB_WORKSPACE"
+          npm install --no-save --ignore-scripts --omit=optional --package-lock=false "$RUNNER_TEMP/npm-pin/prism-code-0.9.5.tgz"
+          node -e 'if(require("prism-code/package.json").version!=="0.9.5")process.exit(1)'
+      - name: Run exact pinned Prism guest with two fixture proofs, offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          test "$(git -C pinned-corpus-gate rev-parse HEAD)" = 79a70b6e0b88fa1988ff83bc6280b35930a944f0
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" \
+              --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+            > strict-p0-real-replay.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("strict-p0-real-replay.json","utf8"));
+            for(const [k,v] of Object.entries({
+              realPinnedPrismGuestExecuted:true, realGuestCalls:4,
+              prismGuestIsMock:false, pinnedGuestReplayedUsingFixtureMock:false,
+              bothProofDigestsSealed:true,
+              sourceApprovalSignatureReplayedByActualGate:true,
+              independentlySignedFourFactProofReplayedByActualAdapter:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
+              missingSourceApprovalStoppedBeforeGuest:true,
+              positiveFactsAreFixturesOnly:true,
+              signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
+              productionEligible:false,hostValidated:false,sourceRightsEstablished:false
+            }))if(r[k]!==v)throw Error("unqualified strict P0 receipt "+k);
+            console.log("REAL PINNED P0 PRISM + TWO FIXTURE ED25519 PROOFS + DISK REPLAY; NO RIGHTS OR HOST AUTHORITY");
+          '
+      - name: Repeat real strict P0 path with immutable first-party CI procedure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" \
+              --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+              --pilot ci-failure-triage \
+              --evidence-output "$RUNNER_TEMP/ci-failure-triage" \
+            > strict-p0-first-party.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("strict-p0-first-party.json","utf8"));
+            for(const [k,v] of Object.entries({
+              realPinnedPrismGuestExecuted:true,realGuestCalls:5,
+              prismGuestIsMock:false,
+              firstPartyOriginalMethodSourceUsed:true,
+              exportedSealedFirstPartyDevelopmentCandidate:true,
+              originalFirstPartySourceBytesIndependentlyPinned:true,
+              firstPartyOriginalMethodSha256:"9821237913b05e0baea2e85994191dee1d4b794e9e1160348fdafd6dfe04bd47",
+              firstPartyExactGitBlob:"23bd3a94a3da68996f406892dcbb94be247a6db9",
+              selectedMethodId:"ci-failure-triage",
+              skillzC4GovernedReviewOrRightsQualified:false,
+              signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
+              productionEligible:false,hostValidated:false,sourceRightsEstablished:false
+            }))if(r[k]!==v)throw Error("first-party strict P0 scope or provenance mismatch "+k);
+            console.log("ORIGINAL IMMUTABLE FIRST-PARTY METHOD + STRICT TWO SIGNATURES + FOUR REAL P0 GUEST DECISIONS; AUTHORITY UNQUALIFIED");
+          '
+
+
+      - name: Repeat real strict P0 path with immutable first-party governance procedure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" \
+            env "PATH=$PATH" "HOME=$HOME" \
+            node tests/integration/strict_source_receipt_fixture.mjs \
+              --source-gate-root "$PWD/pinned-corpus-gate" \
+              --holo "$RUNNER_TEMP/p0-holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+              --pilot governance-drift-review \
+              --evidence-output "$RUNNER_TEMP/governance-drift-review" \
+            > strict-p0-governance.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("strict-p0-governance.json","utf8"));
+            for(const [k,v] of Object.entries({
+              realPinnedPrismGuestExecuted:true,realGuestCalls:5,
+              prismGuestIsMock:false,
+              firstPartyOriginalMethodSourceUsed:true,
+              exportedSealedFirstPartyDevelopmentCandidate:true,
+              originalFirstPartySourceBytesIndependentlyPinned:true,
+              firstPartyOriginalMethodSha256:"949abaa21513610ce2d9b4a1b64da75af6edb4b9cea73266979eda85aec043d1",
+              firstPartyExactGitBlob:"0d18cb3c2a5a08ad64f395ce3adf48eec88a0c07",
+              selectedMethodId:"governance-drift-review",
+              skillzC4GovernedReviewOrRightsQualified:false,
+              signedRightsDenialReachedGuest:true,signedRightsDenialRefused:true,
+              independentDiskSealedReplayWithRealSignatureVerifiers:true,
+              tamperedDiskReplayRefusedBeforeVerifiers:true,
+              maliciousRecrosshashedDiskSealRefusedBeforeVerifiers:true,
+              originalPackageIdentityIndependentlyPinned:true,
+              productionEligible:false,hostValidated:false,sourceRightsEstablished:false
+            }))if(r[k]!==v)throw Error("governance strict P0 scope or provenance mismatch "+k);
+            console.log("ORIGINAL IMMUTABLE FIRST-PARTY METHOD + STRICT TWO SIGNATURES + FIVE REAL P0 GUEST DECISIONS; AUTHORITY UNQUALIFIED");
+          '
+
+
+      - name: Stage portable candidate and exact receipts into one review root
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/strict-p0-export"
+          mkdir -p "$stage/receipts"
+          cp -a -- "$RUNNER_TEMP/ci-failure-triage" "$stage/ci-failure-triage"
+          cp -a -- "$RUNNER_TEMP/governance-drift-review" "$stage/governance-drift-review"
+          cp -- strict-p0-real-replay.json strict-p0-first-party.json strict-p0-governance.json "$stage/receipts/"
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import {readPackage,verifyPackage} from "./src/backend/compose.mjs";
+            const directories=process.argv.slice(1);
+            assert.equal(directories.length,2);
+            for(const directory of directories){
+            const pkg=await readPackage(directory);
+            const verified=verifyPackage(pkg);
+            const r=JSON.parse(pkg.files["RECEIPT.json"]);
+            assert.equal(r.productionEligible,false);
+            assert.equal(r.hostValidated,false);
+            assert.equal(r.sourceApprovalRequired,true);
+            assert.equal(verified.sourceAcceptanceSignatureVerified,false);
+            assert.equal(verified.signedFourFactAssertionReverified,false);
+            console.log("PORTABLE FIRST-PARTY CANDIDATE RECHECK",directory,verified.packageSha256);
+            }
+          ' "$stage/ci-failure-triage" "$stage/governance-drift-review"
+          test "$(find "$stage/ci-failure-triage" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 5
+          test "$(find "$stage/governance-drift-review" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 5
+          test "$(find "$stage/receipts" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 3
+      - name: Preserve bounded evidence receipts without source or signing secrets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strict-p0-method-replay-receipts
+          path: ${{ runner.temp }}/strict-p0-export/
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: error
