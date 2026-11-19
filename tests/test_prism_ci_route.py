@@ -28,7 +28,14 @@ class RouterTests(unittest.TestCase):
         self.write("README.md", "original\n")
         self.write("prism-overlay/template.patch", "locked overlay\n")
         self.write("scripts/prism_nested_ratchet.sh", "locked ratchet\n")
-        self.write(".github/workflows/prism-native-gate.yml", "locked gate\n")
+        self.write(".github/workflows/prism-native-gate.yml",
+                   "name: Prism native gate (isolated runner)\\n"
+                   "env:\\n"
+                   "  TEMPLATE_PIN: b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b\\n"
+                   "  SDK_IMAGE: ghcr.io/afflom/prismpm-sdk-patched@sha256:"
+                   "3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3\\n"
+                   "  PRISM_CODE_INTEGRITY: "
+                   "sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==\\n")
         self.write("bin/qortara-skills.mjs", "locked holo consumer\n")
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "baseline")
@@ -57,7 +64,9 @@ class RouterTests(unittest.TestCase):
             return {"head_sha": self.baseline, "status": "completed",
                     "conclusion": "success",
                     "name": self.manifest["workflow_name"],
-                    "repository": {"full_name": self.manifest["repository"]}}
+                    "path": ".github/workflows/prism-native-gate.yml",
+                    "repository": {"full_name": self.manifest["repository"]},
+                    "head_repository": {"full_name": self.manifest["repository"]}}
         if endpoint == f"/actions/runs/{run_id}/jobs?per_page=100":
             names = self.manifest["required_jobs"]
             return {"total_count": len(names), "jobs": [
@@ -151,7 +160,9 @@ class RouterTests(unittest.TestCase):
             {"production_eligible": True},
             {"sdk_trust_root_accepted": True},
             {"template_commit": "x" * 40},
+            {"template_commit": "a" * 40},  # syntactically valid, but wrong source
             {"sdk_image": "ghcr.io/untrusted/payload:latest"},
+            {"sdk_image": "ghcr.io/afflom/prismpm-sdk-patched@sha256:" + "f" * 64},
             {"required_artifacts": ["faked"]},
         ):
             with self.subTest(change=value):
