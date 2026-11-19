@@ -13,6 +13,9 @@ on:
       - 'tests/test_prism_input_preflight.py'
       - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
+      - 'scripts/live_capability_probe.py'
+      - 'tests/test_live_capability_probe.py'
+      - 'docs/technical/live-capability-evaluation-v1.md'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
       - 'docs/technical/essential-workflow-proposals-v1.json'
@@ -45,6 +48,9 @@ on:
       - 'tests/test_prism_input_preflight.py'
       - 'docs/technical/prism-input-preflight-v1.md'
       - 'scripts/capability_gap_backlog.py'
+      - 'scripts/live_capability_probe.py'
+      - 'tests/test_live_capability_probe.py'
+      - 'docs/technical/live-capability-evaluation-v1.md'
       - 'tests/test_capability_gap_backlog.py'
       - 'docs/technical/capability-gap-backlog-v1.md'
       - 'docs/technical/essential-workflow-proposals-v1.json'
@@ -83,6 +89,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
+          python3 -m unittest discover -s tests -p 'test_live_capability_probe.py' -v
           python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
           python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
       - name: Checkout immutable published handoff (no submodules)
@@ -125,6 +132,11 @@ jobs:
             --source-checkout skillz-source \
             --proposals docs/technical/essential-workflow-proposals-v1.json \
             summary --limit 40 > corpus-capability-gaps.json
+          python3 -m scripts.live_capability_probe \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            > corpus-live-capability-probe.json
           python3 -m scripts.capability_gap_backlog \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
@@ -264,6 +276,20 @@ jobs:
 
           print("C2 recognized capability outcome definitions missing:", graph["outcome_definitions_missing"])
           print("C2 routes with unqualified/unknown essential outcomes:", graph["unqualified_or_unknown_outcome_routes"])
+          probe = json.loads(Path("corpus-live-capability-probe.json").read_text())
+          assert probe["state"] == "LIVE_PINNED_SOURCE_INSPECTION_NOT_SKILL_QUALIFICATION"
+          assert probe["tested_distinct_routes"] == probe["proposal_count"] == 13
+          assert len({row["route"] for row in probe["scenarios"]}) == 13
+          assert all(row["state"] == "REFUSED_PRE_ADMISSION" and
+                     not row["composition_eligible"] and not row["prism_invoked"] and
+                     row["chosen_method"] is None for row in probe["scenarios"])
+          assert probe["qualified_skills"] == 0 and not probe["rights_accepted"]
+          assert probe["real_host_invocations"] == probe["actual_prism_guest_invocations"] == 0
+          assert probe["routes_with_evidence_linked_reviews"] + probe["routes_with_no_evidence_linked_reviews"] == 13
+          print("LIVE PINNED CAPABILITY PROBE:", probe["tested_distinct_routes"],
+                "cross-domain task requests, sources inspected", probe["sampled_governed_records_count"],
+                "byte-verified", probe["sampled_original_source_bytes_verified_count"],
+                "admitted 0; refusal codes", probe["refusal_code_occurrences_not_unique_skills"])
           print("C1 PINNED OPPORTUNITY INDEX: PASS (not rights or host qualification)")
           PY
       - name: Upload non-content reconciliation receipt
@@ -279,6 +305,7 @@ jobs:
             corpus-comparison-example.json
             corpus-prism-denial-preflight.json
             corpus-capability-gaps.json
+            corpus-live-capability-probe.json
             corpus-workflow-proposal-example.json
           retention-days: 14
           if-no-files-found: error
