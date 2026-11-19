@@ -6,6 +6,10 @@ on:
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/capability_gap_backlog.py'
+      - 'tests/test_capability_gap_backlog.py'
+      - 'docs/technical/capability-gap-backlog-v1.md'
+      - 'docs/technical/essential-workflow-proposals-v1.json'
       - 'tests/test_candidate_comparison.py'
       - 'docs/technical/candidate-comparison-v1.md'
       - 'tests/test_package_resolver.py'
@@ -28,6 +32,10 @@ on:
       - 'scripts/corpus_evolution.py'
       - 'scripts/package_resolver.py'
       - 'scripts/candidate_comparison.py'
+      - 'scripts/capability_gap_backlog.py'
+      - 'tests/test_capability_gap_backlog.py'
+      - 'docs/technical/capability-gap-backlog-v1.md'
+      - 'docs/technical/essential-workflow-proposals-v1.json'
       - 'tests/test_candidate_comparison.py'
       - 'docs/technical/candidate-comparison-v1.md'
       - 'tests/test_package_resolver.py'
@@ -62,6 +70,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
+          python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
       - name: Checkout immutable published handoff (no submodules)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -97,6 +106,16 @@ jobs:
           python3 -m scripts.capability_graph \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source show "software-engineering/frontend" > corpus-capability-example.json
+          python3 -m scripts.capability_gap_backlog \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            summary --limit 40 > corpus-capability-gaps.json
+          python3 -m scripts.capability_gap_backlog \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            focus memory-context/provenance > corpus-workflow-proposal-example.json
           python3 -m scripts.candidate_comparison \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
@@ -130,6 +149,22 @@ jobs:
           example = json.loads(Path("corpus-capability-example.json").read_text())
           assert example["path"] == "software-engineering/frontend"
           assert example["explicit_gaps"]["rights_not_assessed"] and not example["composition_eligible"]
+          gaps = json.loads(Path("corpus-capability-gaps.json").read_text())
+          assert (gaps["recognized_domains"], gaps["recognized_subdomains"]) == (33, 247)
+          assert gaps["essential_outcome_definitions_missing"] == 246
+          assert gaps["unqualified_or_unknown_outcome_routes"] == 247
+          assert gaps["reviewed_identities_with_evidence_links"] == 122
+          assert gaps["governed_reviews_unmapped"] == 921
+          assert gaps["draft_workflow_proposals_pending_review"] == 13
+          assert gaps["work_queue_total"] == 247
+          assert len(set(row["domain"] for row in gaps["queue_sample"][:33])) == 33
+          assert not gaps["composition_eligible"] and gaps["methods_admitted"] == 0
+          focus = json.loads(Path("corpus-workflow-proposal-example.json").read_text())
+          assert focus["route"]["route"] == "memory-context/provenance"
+          assert focus["proposed_workflow"]["proposal_status"] == "DRAFT_NOT_GOVERNED"
+          assert not focus["actual_registered_essential_outcomes"] and not focus["composition_eligible"]
+          print("Recognized capability gap categories:", gaps["gap_categories"])
+          print("Cross-domain draft outcomes pending upstream review:", gaps["draft_workflow_proposals_pending_review"])
           cmp = json.loads(Path("corpus-comparison-example.json").read_text())
           assert cmp["route"] == "software-engineering/frontend"
           assert cmp["declared_observation_rows_swept"] == 66139
@@ -168,5 +203,7 @@ jobs:
             corpus-evolution-summary.json
             corpus-package-scan.json
             corpus-comparison-example.json
+            corpus-capability-gaps.json
+            corpus-workflow-proposal-example.json
           retention-days: 14
           if-no-files-found: error
