@@ -7,6 +7,9 @@ on:
       - 'tests/test_evaluate_request_language.py'
       - 'benchmarks/verdant-request-holdout-v1.json'
       - 'docs/technical/verdant-request-benchmark-v1.md'
+      - 'scripts/manual_route_preview.py'
+      - 'tests/test_manual_route_preview.py'
+      - 'docs/technical/manual-route-preview-v1.md'
       - '.github/workflows/request-language-benchmark.yml'
 
 permissions:
@@ -24,7 +27,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Check held-out author labels and refusal boundaries
-        run: python3 -m unittest discover -s tests -p 'test_evaluate_request_language.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_evaluate_request_language.py' -v
+          python3 -m unittest discover -s tests -p 'test_manual_route_preview.py' -v
       - name: Checkout exact original Skillz export and historical source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -62,6 +67,41 @@ jobs:
             assert m['out_of_13_scope_false_positive_of_6']+m['out_of_13_scope_abstentions_of_6']==6
           print('ACTUAL PINNED CORPUS BENCHMARK COMPLETE: 45 original task prompts, 13 draft routes, 6 out-of-scope controls')
           print(json.dumps({key:d[key] for key in ('schema','baseline','candidate','baseline_metrics','grounded_metrics','ground_truth_quality','native_verdant','essential_outcome_precision_recall','rights_assessed','host_validated','composition_eligible','evidence_sha256')},indent=2,sort_keys=True))
+          PY
+      - name: Verify safe Python-only manual preview on real pinned source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m scripts.manual_route_preview \
+            --request "Check signed packages and build provenance before shipping a release" \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > /tmp/preview-positive.json
+          python3 -m scripts.manual_route_preview \
+            --request "Do not review medical evidence, translate my invitation instead" \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > /tmp/preview-negated.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('/tmp/preview-positive.json').read_text())
+          b=json.loads(Path('/tmp/preview-negated.json').read_text())
+          for item in (a,b):
+            assert item['schema']=='qortara/manual-route-preview/1'
+            assert item['selected_route'] is None
+            assert item['user_must_explicitly_select_route'] is True
+            assert item['semantic_negation_handling_verified'] is False
+            assert item['source_rights_established'] is False
+            assert item['prism_invoked'] is False and item['composer_invoked'] is False
+            assert item['output_package_created'] is False
+            assert item['production_eligible'] is False
+            assert item['pinned_source_commit']=='31a8c518dd97b7828adcc728202fa41388a306d7'
+            assert item['pinned_source_tree']=='e6d5dfeb42bcd7777ddff52605922fead62135ff'
+            assert item['evaluated_route_count']==13 and item['recognized_route_count']==247
+          assert a['state']=='LEADS_REQUIRE_USER_CHOICE'
+          assert a['unapproved_route_leads']
+          print('REAL SOURCE PREVIEW PASS: ordinary and negated inputs cannot auto-select or authorize methods')
           PY
       - name: Retain raw case-by-case result from original pinned source
         if: always()
