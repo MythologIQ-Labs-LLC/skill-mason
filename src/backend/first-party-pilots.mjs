@@ -10,7 +10,7 @@ import {parseTextProcedure,PROCEDURE_VERSION} from './text-procedure.mjs';
 export const PILOT_SOURCE_COMMIT='87a6a5965a25af95a50127f26ec5afb404e0f2b8';
 // Each immutable method retains its own historical source commit; the snapshot includes v3.
 export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
-export const PILOT_SNAPSHOT_COMMIT='776604fe13258844e3da9ae358f0bbe0dadf18f5';
+export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -33,8 +33,8 @@ export const PILOT_DEFINITIONS=Object.freeze([
     outcome:'triage sensitive CI failure logs',
     path:'pilots/first-party/ci-failure-triage-v3/procedure.json',
     sourceCommit:PILOT_SNAPSHOT_COMMIT,
-    gitBlob:'9e3cedf7d2d412a5be819fe826cccd3b4f9e109f',
-    sha256:'ec03d3c1c9703fcbf70df2f8a9da1b198786abf8a99885ec064bd327eed139ba'}),
+    gitBlob:'020d6850472c9f3fad80c07a1b6d2a5af78c34c4',
+    sha256:'fcc156c7ac3c369716ab0fa957159996ae25d193b22c7805790fb100ee5669d5'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
