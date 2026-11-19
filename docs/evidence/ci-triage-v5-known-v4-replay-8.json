@@ -1,0 +1,193 @@
+{
+  "schema": "qortara/ci-triage-v5-known-v4-defect-replay/1",
+  "method": "ci-failure-triage-v5",
+  "status": "KNOWN_PRIOR_CASES_NOT_BLIND_OR_INDEPENDENT",
+  "caseOrigin": "tests/fixtures/ci-triage-v4-novel-spectrum.json",
+  "responses": [
+    {
+      "id": "matching-lint",
+      "disposition": "SINGLE_CAUSE",
+      "requested": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "log_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "relation": "MATCHED",
+      "evidence": [
+        "Step: npm run lint => exited 1",
+        "src/view.ts:8: unused binding x",
+        "Step: test => skipped"
+      ],
+      "diagnosis": "The lint step rejects an unused binding x. The test never ran. Do not invent a different root cause without source usage evidence.",
+      "blockers": [
+        {
+          "job": "lint",
+          "cause": "Unused x binding (confirmed lint diagnostic)",
+          "verification": "Inspect whether x is needed for behavior; if not, remove it; otherwise implement its actual use. Lint pass alone cannot prove intended functionality."
+        }
+      ],
+      "closure": "After an authorized fix, run lint and dependent tests on the exact new FIX_HEAD; unchanged historical attempt remains failed.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "mismatched-head",
+      "disposition": "LOGGED_HEAD_ONLY",
+      "requested": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "log_revision": "cccccccccccccccccccccccccccccccccccccccc",
+      "relation": "MISMATCHED",
+      "evidence": [
+        "Run commit: cccccccccccccccccccccccccccccccccccccccc",
+        "Step: cargo build => exited 101",
+        "error[E0432]: unresolved import crate::cache"
+      ],
+      "diagnosis": "The unresolved crate::cache import is only observed on logged commit c; the requested b commit has no supported failure status.",
+      "blockers": [
+        {
+          "job": "compile",
+          "cause": "Missing module versus feature-gated module at c",
+          "verification": "Check module existence and feature selection on c; retrieve b build/attempt evidence independently before requested-head conclusion."
+        }
+      ],
+      "closure": "A fresh run on the specifically requested b or authorized later FIX_HEAD is required for closure.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "retry-without-cause",
+      "disposition": "AMBIGUOUS",
+      "requested": "dddddddddddddddddddddddddddddddddddddddd",
+      "log_revision": "dddddddddddddddddddddddddddddddddddddddd",
+      "relation": "MATCHED",
+      "evidence": [
+        "Attempt 1: npm test => exited 1",
+        "FAIL testFlakyClock: expected 100 got 101",
+        "Attempt 2: npm test => exited 0",
+        "Job conclusion: success"
+      ],
+      "diagnosis": "The first clock assertion failed, but a later retry passed; no actual source repair was demonstrated.",
+      "blockers": [
+        {
+          "job": "test",
+          "cause": "Clock dependency/race versus runner timing",
+          "verification": "Run targeted test with injected deterministic clock and recorded runner scheduling; classify whether failure vanishes under clock control or follows runner load despite controlled clock."
+        }
+      ],
+      "closure": "Repeated representative exact-head passes with a supported cause are necessary; the one green retry is not a defect fix.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "two-independent-failures",
+      "disposition": "MULTI_INDEPENDENT",
+      "requested": "NOT_PROVIDED",
+      "log_revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "relation": "UNVERIFIED",
+      "evidence": [
+        "Step: eslint => exited 1",
+        "src/a.js: parsing error",
+        "Step: npm test => exited 1",
+        "FAIL path separator expected backslash"
+      ],
+      "diagnosis": "Linux eslint parsing and Windows path-separator assertion are two coexisting failures. They are not A/B alternatives.",
+      "blockers": [
+        {
+          "job": "linux lint",
+          "cause": "Source syntax or parser-dialect mismatch",
+          "verification": "Parse affected source under the configured ESLint dialect and inspect the exact line; discriminate parser setting from invalid syntax."
+        },
+        {
+          "job": "windows test",
+          "cause": "Path-normalization implementation versus test expectation",
+          "verification": "Compare platform path API contract to observed and expected separators in the Windows fixture."
+        }
+      ],
+      "closure": "Both independent checks and their required dependents must pass on the same verified post-fix head.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "exit137-ambiguity",
+      "disposition": "AMBIGUOUS",
+      "requested": "NOT_PROVIDED",
+      "log_revision": "NOT_PROVIDED",
+      "relation": "UNVERIFIED",
+      "evidence": [
+        "Step: integration => exited 137",
+        "No OOM-killer event or runner termination reason attached"
+      ],
+      "diagnosis": "Exit 137 is consistent with SIGKILL, not proof of out-of-memory. There is no same-attempt OOM evidence.",
+      "blockers": [
+        {
+          "job": "integration",
+          "cause": "Memory limit versus external cancellation",
+          "verification": "Correlate cgroup OOM-kill counters and memory peak with runner cancellation/stop records; each produces different evidence."
+        }
+      ],
+      "closure": "Require a cause-specific change plus a fresh exact-head integration run, never infer recovery from an absent error.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "tls-time-skew",
+      "disposition": "AMBIGUOUS",
+      "requested": "ffffffffffffffffffffffffffffffffffffffff",
+      "log_revision": "ffffffffffffffffffffffffffffffffffffffff",
+      "relation": "MATCHED",
+      "evidence": [
+        "Step: pip install => exited 1",
+        "SSLCertVerificationError: certificate has expired",
+        "No runner clock or certificate chain included"
+      ],
+      "diagnosis": "Certificate verification claims expiry; evidence cannot distinguish expired leaf/intermediate chain from runner clock skew.",
+      "blockers": [
+        {
+          "job": "dependency-install",
+          "cause": "Leaf expiry, intermediate expiry or untrusted runner time",
+          "verification": "Compare presented leaf and intermediates against independently trusted UTC and runner clock. Valid chain with skewed clock implicates time; expired leaf or intermediate at trusted time implicates certificate chain."
+        }
+      ],
+      "closure": "Observe a normal TLS-validated installation and dependent tests on the verified repaired head, no bypass.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "split-credential",
+      "disposition": "AMBIGUOUS",
+      "requested": "NOT_PROVIDED",
+      "log_revision": "NOT_PROVIDED",
+      "relation": "UNVERIFIED",
+      "evidence": [
+        "Step: upload artifact => exited 1",
+        "Authorization: Bearer [REDACTED]",
+        "  [REDACTED]",
+        "HTTP 403 insufficient scope",
+        "Step: publish => skipped"
+      ],
+      "diagnosis": "Artifact upload got HTTP 403 insufficient scope. A multi-line synthetic authorization header was redacted; no actual exposure is proved.",
+      "blockers": [
+        {
+          "job": "artifact upload",
+          "cause": "Insufficient permission scope versus wrong token audience",
+          "verification": "Authorized owner inspects protected scope/audience metadata, with separate credential exposure assessment; never reconstruct or disclose the token."
+        }
+      ],
+      "closure": "On authorized head, upload and dependent publish must both execute; disclosure review separate.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    },
+    {
+      "id": "summary-only",
+      "disposition": "WITHHELD",
+      "requested": "1111111111111111111111111111111111111111",
+      "log_revision": "NOT_PROVIDED",
+      "relation": "UNVERIFIED",
+      "evidence": [
+        "Job conclusion: failure",
+        "Output truncated; no individual step, command, or error"
+      ],
+      "diagnosis": "Only the failed conclusion exists; no failing command/error. Cause is unknown. HYPOTHESES: NOT_SUPPORTED. No application-versus-runner guess is legitimate.",
+      "blockers": [],
+      "closure": "Request exact revision/attempt step log and its first failing command before proposing any cause or code fix.",
+      "actions_executed": [],
+      "verification_executed": "NOT_RUN"
+    }
+  ]
+}
