@@ -60,13 +60,22 @@ jobs:
           python3 - <<'PY'
           import json
           x=json.load(open("prism-routing-actual.json"))
-          assert x["mode"] == "REUSE_PREVIOUS_P0_OBSERVATION", x
-          assert x["github_baseline_evidence_verified"] is True
+          # Historical artifacts expire. On expiry, FULL is the correct
+          # secure behavior, not a broken test suite or a skip authorization.
+          assert x["mode"] in (
+              "REUSE_PREVIOUS_P0_OBSERVATION","FULL_NATIVE_REQUIRED"),x
           assert x["native_input_changes"] == []
           assert x["is_native_gate_pass"] is False
           assert x["production_eligible"] is False
-          print("LIVE_ROUTING_PASS",len(x["changed_paths"]),
-                "non-native changed paths; unchanged original native inputs")
+          if x["mode"] == "REUSE_PREVIOUS_P0_OBSERVATION":
+              assert x["github_baseline_evidence_verified"] is True
+              print("LIVE_ROUTING_REUSE_PASS",len(x["changed_paths"]),
+                    "non-native changed paths, all prior jobs/artifacts verified")
+          else:
+              assert x["github_baseline_evidence_verified"] is False
+              assert x["reason"] in (
+                  "UNVERIFIED_INPUT_OR_EVIDENCE","GITHUB_BASELINE_EVIDENCE_UNAVAILABLE"),x
+              print("LIVE_ROUTING_FULL_REQUIRED: prior evidence expired, inaccessible or unverifiable")
           PY
       - name: Upload exact-source live routing evidence
         if: always()
