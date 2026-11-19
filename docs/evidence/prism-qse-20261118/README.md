@@ -29,7 +29,7 @@ Committed runs:
 | Independent proof-level verification of the artifact | **Not established: `P0 unverified check_exit=1`.** The SDK at this pin writes nothing that could be signed (section 8) |
 | `prism/` installed in this repository | **NOT_INSTALLED.** Blocked on the owner's remaining decisions in [ADR-0003](../../adr/0003-prism-application-adoption.md) |
 | SDK image as a trust root | **Not accepted.** The image ran as a development candidate on throwaway runners |
-| Native Qortara checks | `NOT_RUN` |
+| Native Qortara checks | `NOT_RUN` as part of this qualification. The repository's own native-check status is kept in [`ARCHITECTURE_INDEX.md`](../../../ARCHITECTURE_INDEX.md) and [issue #4](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/4), and this record adds nothing to it |
 
 ## 1. Identities
 
@@ -361,7 +361,7 @@ No hosted verifier was used; `mcp.uor.foundation` is not on the allowlist and no
 - Continuous enforcement of anything on this repository: `prism/` is NOT_INSTALLED.
 - The template's `bootstrap.yml` pre-checks, which need the Docker socket, and `linux/arm64`.
 - Isolation stronger than a container on a throwaway virtual machine.
-- Native Qortara checks, including how they treat a second `AGENTS.md` under `prism/`: `NOT_RUN`.
+- Native Qortara checks of this work, including how they treat a second `AGENTS.md` under `prism/`: `NOT_RUN` here. Native checks run elsewhere on this repository are recorded in [`ARCHITECTURE_INDEX.md`](../../../ARCHITECTURE_INDEX.md), not in this record.
 - Anything about generated skills, source rights, the catalog, or a consuming host.
 
 ## 12. Runs that are not this record's evidence
