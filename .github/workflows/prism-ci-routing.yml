@@ -1,0 +1,148 @@
+name: Prism CI evidence-aware routing (not native qualification)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/prism_ci_route.py'
+      - 'tests/test_prism_ci_route.py'
+      - '.github/prism-ci/**'
+      - '.github/workflows/prism-ci-routing.yml'
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'prism/**'
+      - 'prism-overlay/**'
+      - 'scripts/prism_*.sh'
+      - 'scripts/prism_*.py'
+      - 'scripts/sm01_*'
+      - 'bin/qortara-skills.mjs'
+      - '.github/workflows/prism-native-gate.yml'
+      - '.github/prism-ci/**'
+      - 'scripts/prism_ci_route.py'
+      - '.github/workflows/prism-ci-routing.yml'
+
+# The routing check NEVER asserts native qualification or runs the SDK.
+# The pull_request_target event executes ONLY trusted base branch code,
+# and reads candidate Git objects without executing their contents.
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  router-unit-tests:
+    name: Prism routing / Gherkin unit tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR with no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Execute Gherkin routing tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_prism_ci_route.py' -v
+      - name: Compare actual successful baseline with observed latest Prism revision
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 70ee027a1bfbcf05c98e80833c93b779c8e5fe8b 25bd1ee1500a9a46338706cd158b46dfb1859aca
+          python3 scripts/prism_ci_route.py \
+            --repo . \
+            --manifest .github/prism-ci/previous-p0-observation.json \
+            --candidate 25bd1ee1500a9a46338706cd158b46dfb1859aca \
+            --output prism-routing-actual.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open("prism-routing-actual.json"))
+          # Historical artifacts expire. On expiry, FULL is the correct
+          # secure behavior, not a broken test suite or a skip authorization.
+          assert x["mode"] in (
+              "REUSE_PREVIOUS_P0_OBSERVATION","FULL_NATIVE_REQUIRED"),x
+          assert x["native_input_changes"] == []
+          assert x["is_native_gate_pass"] is False
+          assert x["production_eligible"] is False
+          if x["mode"] == "REUSE_PREVIOUS_P0_OBSERVATION":
+              assert x["github_baseline_evidence_verified"] is True
+              print("LIVE_ROUTING_REUSE_PASS",len(x["changed_paths"]),
+                    "non-native changed paths, all prior jobs/artifacts verified")
+          else:
+              assert x["github_baseline_evidence_verified"] is False
+              assert x["reason"] in (
+                  "UNVERIFIED_INPUT_OR_EVIDENCE","GITHUB_BASELINE_EVIDENCE_UNAVAILABLE"),x
+              print("LIVE_ROUTING_FULL_REQUIRED: prior evidence expired, inaccessible or unverifiable")
+          PY
+      - name: Upload exact-source live routing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prism-router-actual-baseline-observation
+          path: prism-routing-actual.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  trusted-native-routing:
+    name: Prism native routing / trusted base decision only
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout ONLY trusted base source and script
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Fetch candidate HEAD as inert Git objects only
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ "$SAME_REPOSITORY" == true ]]; then
+            git fetch --no-tags origin "$PR_HEAD_SHA" || echo "Candidate unreachable: FULL required"
+          fi
+      - name: Produce fail-closed routing recommendation from trusted code
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "$SAME_REPOSITORY" == true ]]; then
+            python3 scripts/prism_ci_route.py --repo . \
+              --manifest .github/prism-ci/previous-p0-observation.json \
+              --candidate "$PR_HEAD_SHA" --output prism-native-routing.json
+          else
+            python3 scripts/prism_ci_route.py --repo . --fork \
+              --manifest .github/prism-ci/previous-p0-observation.json \
+              --candidate "$PR_HEAD_SHA" --output prism-native-routing.json
+          fi
+          python3 - <<'PY'
+          import json
+          x=json.load(open("prism-native-routing.json"))
+          assert x["schema"] == "qortara/prism-native-routing/1"
+          assert x["mode"] in ("FULL_NATIVE_REQUIRED","REUSE_PREVIOUS_P0_OBSERVATION")
+          assert x["is_native_gate_pass"] is False
+          assert x["owner_approval_established"] is False
+          assert x["production_eligible"] is False
+          if x["mode"] == "REUSE_PREVIOUS_P0_OBSERVATION":
+              assert x["github_baseline_evidence_verified"] is True
+              assert x["native_input_changes"] == []
+          print("ROUTING_DECISION_ONLY",x["mode"],x["reason"])
+          PY
+      - name: Retain read-only routing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: prism-ci-trust-input-decision
+          path: prism-native-routing.json
+          if-no-files-found: warn
+          retention-days: 14
