@@ -5,6 +5,10 @@ on:
     paths:
       - 'bin/request-first-party-pilot.mjs'
       - 'tests/request_first_party_positive.test.mjs'
+      - 'tests/first_party_pilot_cli.test.mjs'
+      - 'tests/ci_triage_v2_source.test.mjs'
+      - 'src/backend/first-party-pilots.mjs'
+      - 'pilots/first-party/ci-failure-triage-v2/procedure.json'
       - 'docs/technical/request-first-party-positive-v1.md'
       - '.github/workflows/request-first-party-positive.yml'
       - 'tests/real_holo_candidate_acceptance.mjs'
@@ -34,7 +38,8 @@ jobs:
           node --test \
             tests/request_first_party_positive.test.mjs \
             tests/first_party_pilot_cli.test.mjs \
-            tests/backend_first_party_pilots.test.mjs
+            tests/backend_first_party_pilots.test.mjs \
+            tests/ci_triage_v2_source.test.mjs
       - name: Prove no positive output on missing native Prism runtime
         shell: bash
         run: |
@@ -65,7 +70,7 @@ jobs:
   stage-native-p0:
     # One-shot proof for the named first positive development PR only.
     # Preserves the manual-only historical workflow and avoids a universal SDK gate.
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/request-first-party-positive-pipeline'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator')
     needs: [user-request-to-first-party-contract]
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -101,7 +106,7 @@ jobs:
           retention-days: 7
 
   execute-real-request-p0:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/request-first-party-positive-pipeline'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator')
     needs: [stage-native-p0]
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -150,11 +155,14 @@ jobs:
             import {readFileSync} from "node:fs";
             const p=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/first-positive-real-guest.json","utf8"));
             const q=p.firstPartyUserRequest;
-            if(p.guestCalls!==6||q?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
+            if(p.guestCalls!==8||q?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
                q?.selectedMethod!=="ci-failure-triage"||
                q?.productionEligible!==false||
                q?.hostBehaviorValidated!==false||
                q?.sourceRightsVerified!==false||
+               p.firstPartyUserRequestV2?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
+               p.firstPartyUserRequestV2?.selectedMethod!=="ci-failure-triage-v2"||
+               p.firstPartyUserRequestV2?.productionEligible!==false||
                !/^[a-f0-9]{64}$/.test(q?.packageManifestSha256??""))
               process.exit(1);
             console.log("REAL P0 USER REQUEST POSITIVE PASS, sealed skill, rights and host still unqualified");

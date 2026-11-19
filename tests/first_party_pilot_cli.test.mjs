@@ -4,19 +4,20 @@ import {mkdtemp,rm,stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parseArgs,runFirstPartyPilot,DEV_HOLO_SHA256} from '../bin/first-party-pilot.mjs';
-import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,PILOT_SOURCE_COMMIT}
+import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,PILOT_SOURCE_COMMIT,PILOT_SNAPSHOT_COMMIT}
   from '../src/backend/first-party-pilots.mjs';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 
-test('the two original first-party methods remain pinned to the original source commit',async()=>{
+test('three first-party method versions preserve individual exact source commits',async()=>{
  const registry=await loadFirstPartyPilots();
- assert.equal(registry.sourceSnapshot.commit,PILOT_SOURCE_COMMIT);
- assert.equal(registry.components.length,2);
+ assert.equal(registry.sourceSnapshot.commit,PILOT_SNAPSHOT_COMMIT);
+ assert.equal(registry.components.length,3);
  assert.match(registry.sourceSnapshot.sha256,/^[0-9a-f]{64}$/);
  for(const p of registry.components){
    assert.match(p.package_sha256,/^[0-9a-f]{64}$/);
    assert.equal(p.method.sha256,p.package_sha256);
-   assert.equal(p.method.commit,PILOT_SOURCE_COMMIT);
+   const definition=PILOT_DEFINITIONS.find(x=>x.id===p.method_id);
+   assert.equal(p.method.commit,definition.sourceCommit??PILOT_SOURCE_COMMIT);
    const publicRecipe=recipeForPilot(p.method_id,registry);
    assert.equal(createRecipeAdapter(registry)(publicRecipe).methods[0].id,p.method_id);
  }
