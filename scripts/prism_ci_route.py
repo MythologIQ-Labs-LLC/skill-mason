@@ -84,6 +84,30 @@ def list_changed_paths(repo: Path, base: str, candidate: str) -> list[str]:
     return sorted(set(paths))
 
 
+def verify_historical_workflow_pins(repo: Path, baseline: str,
+                                    manifest: dict) -> None:
+    """Bind the manifest's execution pin values to the exact prior workflow.
+
+    An independently successful run is insufficient if its recorded SDK,
+    template or runtime pin was accidentally replaced in the manifest.
+    This only reads the original baseline commit as inert Git source.
+    """
+    source = git(repo, "show",
+                 baseline + ":.github/workflows/prism-native-gate.yml")
+    mapping = {
+        "TEMPLATE_PIN": "template_commit",
+        "SDK_IMAGE": "sdk_image",
+        "PRISM_CODE_INTEGRITY": "prism_code_integrity",
+    }
+    for env_name, record_field in mapping.items():
+        matches = re.findall(r"^  " + re.escape(env_name) +
+                             r":\\s*([^\\r\\n#]+?)\\s*$",
+                             source, flags=re.MULTILINE)
+        if len(matches) != 1 or matches[0].strip().strip("\"'") != manifest.get(record_field):
+            raise RuntimeError(
+                "prior native workflow pin does not match manifest: " + env_name)
+
+
 def github_json(repo: str, route: str, token: str) -> dict:
     if not token:
         raise RuntimeError("read-only GitHub evidence credential unavailable")
@@ -140,7 +164,9 @@ def verify_observed_baseline(manifest: dict, api) -> None:
     run = api(f"/actions/runs/{run_id}")
     if run.get("head_sha") != base or run.get("status") != "completed" or (
         run.get("conclusion") != "success" or run.get("name") != manifest.get("workflow_name")
-    ) or run.get("repository", {}).get("full_name") != REPOSITORY:
+    ) or run.get("repository", {}).get("full_name") != REPOSITORY or (
+        run.get("path") != ".github/workflows/prism-native-gate.yml"
+    ) or run.get("head_repository", {}).get("full_name") != REPOSITORY:
         raise RuntimeError("full native run not independently confirmed")
     found_jobs = api(f"/actions/runs/{run_id}/jobs?per_page=100")
     if found_jobs.get("total_count", 101) > 100:
@@ -223,6 +249,7 @@ def route(repo: Path, candidate: str, manifest: dict, api=None,
         if result["native_input_changes"]:
             result["reason"] = "TRUSTED_OR_UNKNOWN_INPUT_CHANGED"
             return result
+        verify_historical_workflow_pins(repo, baseline, manifest)
         if api is None:
             result["reason"] = "GITHUB_BASELINE_EVIDENCE_UNAVAILABLE"
             return result
