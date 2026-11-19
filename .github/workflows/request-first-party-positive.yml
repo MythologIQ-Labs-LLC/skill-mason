@@ -7,6 +7,8 @@ on:
       - 'tests/request_first_party_positive.test.mjs'
       - 'docs/technical/request-first-party-positive-v1.md'
       - '.github/workflows/request-first-party-positive.yml'
+      - 'tests/real_holo_candidate_acceptance.mjs'
+      - '.github/workflows/real-holo-candidate.yml'
   workflow_dispatch:
 
 permissions:
@@ -59,3 +61,112 @@ jobs:
             console.log("PASS: actual user request cannot create a fake skill without real Prism");
           '
           rmdir "$root"
+
+  stage-native-p0:
+    # One-shot proof for the named first positive development PR only.
+    # Preserves the manual-only historical workflow and avoids a universal SDK gate.
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/request-first-party-positive-pipeline'
+    needs: [user-request-to-first-party-contract]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      actions: read
+    steps:
+      - name: Retrieve already verified original P0 holo artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: MythologIQ-Labs-LLC/skill-mason
+          run-id: '44235570627'
+          artifact-ids: '14399257681'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/p0-original
+      - name: Check independent manifest and exact original native bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t holos < <(find "$RUNNER_TEMP/p0-original" -type f -path '*/nested/out/holo/eligibility.holo' -print0)
+          mapfile -d '' -t receipts < <(find "$RUNNER_TEMP/p0-original" -type f -path '*/nested/out/receipts/eligibility/manifest.json' -print0)
+          test "${#holos[@]}" -eq 1 && test "${#receipts[@]}" -eq 1
+          test "$(sha256sum "${holos[0]}" | cut -d' ' -f1)" = 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e
+          test "$(sha256sum "${receipts[0]}" | cut -d' ' -f1)" = cca7f46f31b909a22602505e3ccf3a6fbeb1ec0bc9a692c381bc7db2d0988518
+          test "$(stat -c %s "${holos[0]}")" = 17346
+          mkdir "$RUNNER_TEMP/standalone-holo"
+          cp -- "${holos[0]}" "$RUNNER_TEMP/standalone-holo/eligibility.holo"
+      - name: Transfer only verified holo to credential-free consumer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: first-positive-real-p0-holo
+          path: ${{ runner.temp }}/standalone-holo/eligibility.holo
+          if-no-files-found: error
+          retention-days: 7
+
+  execute-real-request-p0:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/request-first-party-positive-pipeline'
+    needs: [stage-native-p0]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions: {}
+    steps:
+      - name: Checkout exact candidate without credential persistence
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Setup pinned runtime environment
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Receive exact P0 guest binary from prior verification job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: first-positive-real-p0-holo
+          path: ${{ runner.temp }}/holo
+      - name: Verify guest and original Prism runtime supply chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$RUNNER_TEMP/holo/eligibility.holo" | cut -d' ' -f1)" = 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e
+          mkdir "$RUNNER_TEMP/npm-pin" && cd "$RUNNER_TEMP/npm-pin"
+          npm pack --silent prism-code@0.9.5
+          actual="sha512-$(openssl dgst -sha512 -binary prism-code-0.9.5.tgz | base64 -w0)"
+          test "$actual" = sha512-PcXiUzhYJwY4ZM9wKpzazq5m/KVCWooj8dFF+7l57KcUQpNdiVDbETyYFo4A9O6OoY9tVghg5YawkIlgYYUjNA==
+          cd "$GITHUB_WORKSPACE"
+          npm install --no-save --ignore-scripts --omit=optional --package-lock=false "$RUNNER_TEMP/npm-pin/prism-code-0.9.5.tgz"
+      - name: Actually compile one user-selected skill through the native P0 guest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${GH_TOKEN:-}" && test -z "${GITHUB_TOKEN:-}"
+          sudo -n unshare --net -- sudo -n -u "$(id -un)" env \
+            "PATH=$PATH" "HOME=$HOME" "RUNNER_TEMP=$RUNNER_TEMP" \
+            node tests/real_holo_candidate_acceptance.mjs \
+              --holo "$RUNNER_TEMP/holo/eligibility.holo" \
+              --sha256 9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e \
+              --report "$RUNNER_TEMP/first-positive-real-guest.json"
+      - name: Verify actual request to complete sealed output evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const p=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/first-positive-real-guest.json","utf8"));
+            const q=p.firstPartyUserRequest;
+            if(p.guestCalls!==6||q?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
+               q?.selectedMethod!=="ci-failure-triage"||
+               q?.productionEligible!==false||
+               q?.hostBehaviorValidated!==false||
+               q?.sourceRightsVerified!==false||
+               !/^[a-f0-9]{64}$/.test(q?.packageManifestSha256??""))
+              process.exit(1);
+            console.log("REAL P0 USER REQUEST POSITIVE PASS, sealed skill, rights and host still unqualified");
+          '
+      - name: Retain real generated candidates and hidden completion seals
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: request-first-party-real-p0-generated
+          path: |
+            ${{ runner.temp }}/first-positive-real-guest.json
+            ${{ runner.temp }}/first-party-request-candidates/**
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
