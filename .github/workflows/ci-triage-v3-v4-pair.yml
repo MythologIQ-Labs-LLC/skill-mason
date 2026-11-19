@@ -1,3 +1,7 @@
+# TEMPORARY OWNER-AUTHORIZED ONE-SHOT PR TEST.
+# Executes real model calls on pull_request OPENED only, for the exact same-repository
+# branch named below. It is removed from the PR before merge; all other PRs remain
+# cost-free. Authorized in chat 2026-11-19. No fork or synchronize can trigger it.
 name: CI triage v3-v4 qualitative pair (sealed real P0 packages)
 
 on:
@@ -60,7 +64,7 @@ jobs:
              node --test tests/ci_triage_v3_v4_compare.test.mjs
           echo "Pinned v3/v4 generated skill bytes and 60 mock transport calls passed; NO host model has been invoked"
       - name: Stage exact pair for separately authorized host job
-        if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS'
+        if: (github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS') || (github.event_name == 'pull_request' && github.event.action == 'opened' && github.head_ref == 'test/ci-triage-v3-v4-one-shot-20261119' && github.event.pull_request.head.repo.full_name == github.repository)
         shell: bash
         run: |
           set -euo pipefail
@@ -68,7 +72,7 @@ jobs:
           cp -a "$RUNNER_TEMP/real-p0-source/request-first-party-real-p0-generated/first-party-request-candidates/ci-failure-triage-v3" "$RUNNER_TEMP/paired-for-model/"
           cp -a "$RUNNER_TEMP/real-p0-source/request-first-party-real-p0-generated/first-party-request-candidates/ci-failure-triage-v4" "$RUNNER_TEMP/paired-for-model/"
       - name: Hand off only validated sealed packages (never source retrieval credential)
-        if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS'
+        if: (github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS') || (github.event_name == 'pull_request' && github.event.action == 'opened' && github.head_ref == 'test/ci-triage-v3-v4-one-shot-20261119' && github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pinned-v3-v4-generated-skill-pair
@@ -78,14 +82,14 @@ jobs:
           retention-days: 3
 
   live-paired-model:
-    if: github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS'
+    if: (github.event_name == 'workflow_dispatch' && inputs.consent == 'COMPARE_60_V3_V4_CALLS') || (github.event_name == 'pull_request' && github.event.action == 'opened' && github.head_ref == 'test/ci-triage-v3-v4-one-shot-20261119' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: [sealed-source-contract]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions: {}
     env:
       OPENAI_API_KEY: ${{ secrets.SKILL_MASON_HOST_OPENAI_API_KEY }}
-      HOST_MODEL: ${{ inputs.model }}
+      HOST_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.model || 'gpt-4o-mini' }}
     steps:
       - name: Checkout comparator only, no credentials persisted
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
