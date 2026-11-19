@@ -1,0 +1,56 @@
+name: Verdant language fit (source-screen only)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/verdant_fit_eval.py'
+      - 'tests/test_verdant_fit_eval.py'
+      - 'docs/technical/verdant-language-fit-v1.md'
+      - '.github/workflows/verdant-fit-eval.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-screen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Checkout Skill Mason without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run fail-closed Gherkin evaluator tests
+        run: python3 -m unittest discover -s tests -p 'test_verdant_fit_eval.py' -v
+      - name: Checkout immutable Verdant source for inspection only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: afflom/verdant-engine
+          ref: 9e356f25dce15ae15dfd87169baf0fb0fba549a5
+          path: verdant-evaluation-source
+          submodules: false
+          persist-credentials: false
+      - name: Evaluate original Verdant interfaces against real 13 Skill Mason drafts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C verdant-evaluation-source rev-parse HEAD)" = 9e356f25dce15ae15dfd87169baf0fb0fba549a5
+          python3 -m scripts.verdant_fit_eval \
+            --verdant-repo verdant-evaluation-source \
+            --proposals docs/technical/essential-workflow-proposals-v1.json \
+            > /tmp/verdant-fit-screen.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('/tmp/verdant-fit-screen.json').read_text())
+          assert x['external_revision_verified'] is True
+          assert x['intent_count'] == 16
+          assert x['benchmark_objectives'] == 13
+          assert x['direct_shared_route_identifiers'] == []
+          assert x['semantic_route_accuracy'] == 'NOT_MEASURED'
+          assert x['native_execution'] == 'NOT_RUN'
+          assert x['source_rights_or_authority'] == 'NOT_ASSESSED'
+          print('VERDANT SOURCE FIT SCREEN PASS: 16 game-engine intents / 13 Skill Mason drafts; no semantic or positive eligibility claim')
+          print(json.dumps(x, sort_keys=True, indent=2))
+          PY
