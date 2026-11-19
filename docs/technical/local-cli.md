@@ -17,6 +17,28 @@ npm run test:cli         # stand-in guardrails; not a holo execution
 
 `status` exits nonzero until prerequisites exist and reports `preflightReady`, NOT proof or application qualification. Node v22 or later is necessary for the pinned runtime. This package is private and has no declared automatic SDK dependency.
 
+## Discover an exact capability before creating a skill
+
+The ordinary CLI now exposes the **existing, exact pinned Skillz capability graph**. You no longer need to know the route name in advance or run a separate Python developer command.
+
+```sh
+qortara-skills routes --summary \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+
+qortara-skills routes --search frontend --limit 10 \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+
+qortara-skills routes --path software-engineering/frontend \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+```
+
+The output gives a recognized route ID suitable for the subsequent `create --route`, the essential outcomes, the actual evidence-linked governed reviews and unqualified leads. Search is **lexical filtering**, not semantic expertise or an eligibility ranking; no matches does not mean no source exists. All methods remain `rights_clearance:not-established` and `composition_eligible:false`. The source SHA and snapshot tree are verified independently before search. Relative directories are resolved against the invoking operator's working directory, not the installed CLI's source root. You can write the JSON to a new, private receipt with `--report`; existing receipts are never overwritten.
+
+The three modes are mutually exclusive: `--summary`, `--search TEXT [--limit 1..25]`, or `--path DOMAIN/SUBDOMAIN`. Invalid routes and tampered source checkouts refuse with a nonzero exit. **This discovery feature does not execute a source skill, invoke Prism or an LLM, approve reuse, or create an installation.**
+
 ## Request-to-source-refusal on the ordinary CLI (no Prism or model call)
 
 This path is available via `qortara-skills create` on the implementation branch. It requires **Node.js 22+, Python 3.11+** and separate exact, read-only handoff and original source checkouts. It does not use the P0 fixture key or invoke a Prism container.
