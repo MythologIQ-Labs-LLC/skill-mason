@@ -1,0 +1,7 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=86f1d8a9f98430e07f96ac8dc9fb8bfbcd3d82e3 tree=793e526048df3c4724d87c071dbd5d457646dd92 subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/nc-stale-conformance
+cargo run -q --locked -p xtask -- validate
+gate failed: /opt/prism-gate/run/work/nc-stale-conformance/src/prism/CONFORMANCE.md is stale: it disagrees with model/ids.toml.
+R2: a claim cannot exist in the documentation without a ledger row. Run `cargo xtask check-model --write`.
+error: recipe `model` failed on line 21 with exit code 1
+GATE_EXIT=1 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=14s cmd=just model

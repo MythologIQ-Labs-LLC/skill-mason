@@ -1,0 +1,9 @@
+phase=reference
+skill_mason_commit=6d4836bda7c722cad49e0499ac69428d5ab43239
+template_commit=b64cc73c94773ed5bcc9d0549b1ae2c836fa1e0b
+sdk_image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3
+runner_kernel=Linux 7.0.0-1017-azure arch=x86_64 cpus=4
+docker_server=28.0.4
+ref-vv reference attestation_id=271b467076164392817e28116e278d726a53d7c8e87f2ab19dc44f60584ac730 manifest_sha256=271b467076164392817e28116e278d726a53d7c8e87f2ab19dc44f60584ac730
+holo_name='Template contract.holo' holo_bytes=28472 manifest_bytes=28472 holo_sha256=da1a5c9fea5180e13f2b25e91ce65a18bfb796e5245ff32272cf874f0ed8650e copies=1 unnamed_holo_files=0
+failures=0
