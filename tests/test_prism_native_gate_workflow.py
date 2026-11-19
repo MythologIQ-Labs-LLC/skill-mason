@@ -209,10 +209,11 @@ class NativeGateWorkflowTests(unittest.TestCase):
         # A run that will not start the SDK image must not share the slot of one that will.
         self.assertIn("&& 'full' || github.run_id }}", self.text)
 
-    def decide(self, plan="success", full="true", sdk="success", real="success") -> tuple:
+    def decide(self, plan="success", full="true", sdk="success", real="success", evidence="success") -> tuple:
         script = self.step_script("qualification", "Green only for a complete native run that passed at this head")
         code, out, _ = self.run_step(script, {
-            "PLAN_RESULT": plan, "FULL": full, "REASON": "test", "SDK_RESULT": sdk, "REAL_RESULT": real})
+            "PLAN_RESULT": plan, "FULL": full, "REASON": "test", "SDK_RESULT": sdk, "REAL_RESULT": real,
+            "EVIDENCE_RESULT": evidence, "GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"})
         return code, out
 
     def test_the_final_decision_is_green_only_for_a_complete_run_that_passed(self):
@@ -220,14 +221,26 @@ class NativeGateWorkflowTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("NATIVE_QUALIFICATION=FULL_NATIVE_RUN_PASSED", out)
         self.assertIn("not P2", out)
+        self.assertIn("Evidence: branch evidence/prism-native-gate-1-1", out)
         results = ("success", "failure", "cancelled", "skipped", "")
-        for plan, full, sdk, real in itertools.product(("success", "failure", "skipped"), ("true", "false", ""), results, results):
-            if (plan, full, sdk, real) == ("success", "true", "success", "success"):
+        for plan, full, sdk, real, evidence in itertools.product(
+                ("success", "failure", "skipped"), ("true", "false", ""), results, results, results):
+            if (plan, full, sdk, real, evidence) == ("success", "true", "success", "success", "success"):
                 continue
-            with self.subTest(plan=plan, full=full, sdk=sdk, real=real):
-                code, out = self.decide(plan, full, sdk, real)
+            with self.subTest(plan=plan, full=full, sdk=sdk, real=real, evidence=evidence):
+                code, out = self.decide(plan, full, sdk, real, evidence)
                 self.assertEqual(code, 1)
                 self.assertNotIn("PASSED", out)
+
+    def test_a_passed_gate_whose_evidence_was_not_published_is_not_green(self):
+        for evidence in ("failure", "cancelled", "skipped", ""):
+            with self.subTest(evidence=evidence):
+                code, out = self.decide(evidence=evidence)
+                self.assertEqual(code, 1)
+                self.assertIn("NATIVE_QUALIFICATION=EVIDENCE_NOT_PUBLISHED", out)
+        # Published evidence never rescues a gate that did not pass or did not run.
+        self.assertIn("NATIVE_QUALIFICATION=FAILED", self.decide(sdk="failure", real="skipped", evidence="success")[1])
+        self.assertIn("NATIVE_QUALIFICATION=NOT_RUN", self.decide(full="false", sdk="skipped", real="skipped", evidence="success")[1])
 
     def test_a_run_that_did_not_start_the_sdk_image_fails_and_says_not_run(self):
         code, out = self.decide(full="false", sdk="skipped", real="skipped")
@@ -240,7 +253,8 @@ class NativeGateWorkflowTests(unittest.TestCase):
         final = self.jobs["qualification"]
         self.assertRegex(final, r"(?m)^    name: Native qualification decision$")
         self.assertRegex(final, r"(?m)^    if: always\(\)$")
-        self.assertRegex(final, r"(?m)^    needs: \[plan, sdk, real-output\]$")
+        self.assertRegex(final, r"(?m)^    needs: \[plan, sdk, real-output, publish-evidence\]$")
+        self.assertNotIn("permissions:", final)
         for touches in ("docker", "prism-code", "checkout", "download-artifact", ".holo"):
             with self.subTest(final_job_never_touches=touches):
                 self.assertNotIn(touches, final)

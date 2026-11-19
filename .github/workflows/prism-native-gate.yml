@@ -28,7 +28,8 @@ name: Prism native gate (isolated runner)
 # Nothing is reduced when it runs: all three phases, the unreduced `just vv`,
 # every control. And a run that did not start the SDK image is never green:
 # the last job, `Native qualification decision`, fails unless every phase and
-# the real-output job passed at this exact head. Require that one check, never
+# the real-output job passed at this exact head and the evidence was published.
+# Require that one check, never
 # the SDK jobs themselves, which GitHub reports as skipped when they do not run.
 on:
   workflow_dispatch:
@@ -432,11 +433,19 @@ jobs:
 
   qualification:
     # The one check to require. It runs whatever happened above and is green
-    # only when the complete gate ran and passed at this head. GitHub reports a
-    # job that did not start as "skipped", which a required check would accept;
-    # this job turns "not run" into a failure with the reason in its log.
+    # only when the complete gate ran and passed at this head AND its unedited
+    # evidence reached its own branch. GitHub reports a job that did not start
+    # as "skipped", which a required check would accept; this job turns "not
+    # run" into a failure with the reason in its log.
+    #
+    # Why the evidence job counts. The run's uploaded artifacts expire and can
+    # be deleted; the qualification records in docs/evidence/ are built from,
+    # and tested against, the files on the evidence branch. A run whose result
+    # cannot be read back later is not one this repository can cite, so a
+    # passed gate with no published evidence is not green here. This job reads
+    # only that job's result: it holds no permission and touches no file.
     name: Native qualification decision
-    needs: [plan, sdk, real-output]
+    needs: [plan, sdk, real-output, publish-evidence]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -449,16 +458,26 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
           SDK_RESULT: ${{ needs.sdk.result }}
           REAL_RESULT: ${{ needs.real-output.result }}
+          EVIDENCE_RESULT: ${{ needs.publish-evidence.result }}
         run: |
           set -uo pipefail
-          echo "head=$SUBJECT_SHA plan=$PLAN_RESULT full=${FULL:-unset} sdk=$SDK_RESULT real-output=$REAL_RESULT"
+          echo "head=$SUBJECT_SHA plan=$PLAN_RESULT full=${FULL:-unset} sdk=$SDK_RESULT real-output=$REAL_RESULT publish-evidence=$EVIDENCE_RESULT"
           echo "plan: ${REASON:-no reason recorded}"
+          native=no
           if [[ $PLAN_RESULT == success && $FULL == true && $SDK_RESULT == success && $REAL_RESULT == success ]]; then
+            native=yes
+          fi
+          if [[ $native == yes && $EVIDENCE_RESULT == success ]]; then
             echo "NATIVE_QUALIFICATION=FULL_NATIVE_RUN_PASSED head=$SUBJECT_SHA"
+            echo "Evidence: branch evidence/prism-native-gate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             echo "This is a development P0 observation of this head. It is not P2, not an SDK trust decision and not an approval."
             exit 0
           fi
-          if [[ $PLAN_RESULT == success && $FULL == false ]]; then
+          if [[ $native == yes ]]; then
+            echo "NATIVE_QUALIFICATION=EVIDENCE_NOT_PUBLISHED head=$SUBJECT_SHA"
+            echo "Every SDK phase and the real-output job passed, but the evidence job did not ($EVIDENCE_RESULT)."
+            echo "Re-run that one job. Until the evidence is on its branch this head is not qualified."
+          elif [[ $PLAN_RESULT == success && $FULL == false ]]; then
             echo "NATIVE_QUALIFICATION=NOT_RUN head=$SUBJECT_SHA"
             echo "The SDK image was not started for this head, so this head has no native qualification."
           else
