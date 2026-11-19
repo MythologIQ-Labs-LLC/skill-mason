@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','governance-drift-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','ci-failure-triage-v5','governance-drift-review']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -223,8 +223,29 @@ async function main(argv){
   const v4Pilot=await readPackage(join(pilotRoot,'ci-failure-triage-v4'));
   assert.equal(v4Pilot.files['SKILL.md'],fromV4.files['SKILL.md']);
   assert.equal(v4Pilot.files['SOURCES.json'],fromV4.files['SOURCES.json']);
+  const requestV5='Diagnose supplied CI evidence without inventing causes for missing logs, with each independent failing job separate and a post-fix verification head.';
+  const requestedV5=await generateFirstPartyRequest({
+    request:requestV5,capability:'triage causally grounded CI failure evidence',
+    methodId:'ci-failure-triage-v5',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedV5.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedV5.selectedMethod,'ci-failure-triage-v5');
+  assert.equal(requestedV5.sourceRightsVerified,false);
+  assert.equal(requestedV5.productionEligible,false);
+  const fromV5=await readPackage(join(requestRoot,'ci-failure-triage-v5'));
+  assert.match(fromV5.files['SKILL.md'],/HYPOTHESES: NOT_SUPPORTED/);
+  assert.match(fromV5.files['SKILL.md'],/SINGLE_CAUSE/);
+  assert.match(fromV5.files['SKILL.md'],/FIX_HEAD:/);
+  const fromV5Receipt=JSON.parse(fromV5.files['RECEIPT.json']);
+  assert.equal(fromV5Receipt.productionEligible,false);
+  assert.equal(fromV5Receipt.hostValidated,false);
+  assert.equal(fromV5Receipt.modelCallsMeasured,false);
+  const v5Pilot=await readPackage(join(pilotRoot,'ci-failure-triage-v5'));
+  assert.equal(fromV5.files['SKILL.md'],v5Pilot.files['SKILL.md']);
+  assert.equal(fromV5.files['SOURCES.json'],v5Pilot.files['SOURCES.json']);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+4,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+5,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -250,6 +271,11 @@ async function main(argv){
      selectedMethod:requestedV4.selectedMethod,requestedOutcome:requestedV4.requestedOutcome,
      packageManifestSha256:requestedV4.packageManifestSha256,
      state:requestedV4.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+     productionEligible:false},
+   firstPartyUserRequestV5:{requestSha256:requestedV5.requestSha256,
+     selectedMethod:requestedV5.selectedMethod,requestedOutcome:requestedV5.requestedOutcome,
+     packageManifestSha256:requestedV5.packageManifestSha256,
+     state:requestedV5.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false}};
   await writeFile(report,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(record,null,2));
