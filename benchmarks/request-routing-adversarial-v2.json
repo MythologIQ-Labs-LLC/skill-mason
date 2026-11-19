@@ -1,0 +1,290 @@
+{
+  "schema": "qortara/untuned-retrieval-holdout/1",
+  "status": "AUTHOR_LABELED_SECOND_SET_NOT_INDEPENDENT_HUMAN_ADJUDICATION",
+  "source_of_route_descriptions": "docs/technical/essential-workflow-proposals-v1.json",
+  "frozen_retriever": "scripts/evaluate_request_language.py:GroundedLexicalRetriever",
+  "purpose": "falsify preliminary retrieval improvement; no parameter tuning on this benchmark",
+  "in_scope_count": 26,
+  "outside_count": 12,
+  "adversarial_count": 8,
+  "total": 46,
+  "expected_route_interpretation": "experimental labels within 13 proposed capability routes, not truth about all 247 Skillz routes",
+  "cases": [
+    {
+      "id": "IN-01",
+      "prompt": "Implement a mobile friendly purchase form with usable tab navigation and form field descriptions",
+      "kind": "in_scope",
+      "expected_route": "software-engineering/frontend"
+    },
+    {
+      "id": "IN-02",
+      "prompt": "Build a browser page widget that adapts its layout to small and large viewports",
+      "kind": "in_scope",
+      "expected_route": "software-engineering/frontend"
+    },
+    {
+      "id": "IN-03",
+      "prompt": "Investigate whether a screen reader user can complete the registration journey without focus getting lost",
+      "kind": "in_scope",
+      "expected_route": "testing/accessibility"
+    },
+    {
+      "id": "IN-04",
+      "prompt": "Evaluate an online checkout against keyboard navigation and assistive technology criteria",
+      "kind": "in_scope",
+      "expected_route": "testing/accessibility"
+    },
+    {
+      "id": "IN-05",
+      "prompt": "Audit dependency chain signatures before a software package is published",
+      "kind": "in_scope",
+      "expected_route": "security/supply-chain"
+    },
+    {
+      "id": "IN-06",
+      "prompt": "Determine whether application artifact provenance is trustworthy enough for a release",
+      "kind": "in_scope",
+      "expected_route": "security/supply-chain"
+    },
+    {
+      "id": "IN-07",
+      "prompt": "Check whether initiative order gives either faction an unfair combat advantage",
+      "kind": "in_scope",
+      "expected_route": "game-design/systems-balancing"
+    },
+    {
+      "id": "IN-08",
+      "prompt": "Balance energy expenditure against player actions in a competitive battle scenario",
+      "kind": "in_scope",
+      "expected_route": "game-design/systems-balancing"
+    },
+    {
+      "id": "IN-09",
+      "prompt": "Trace a remembered assertion back to the conversation revision and its removal status",
+      "kind": "in_scope",
+      "expected_route": "memory-context/provenance"
+    },
+    {
+      "id": "IN-10",
+      "prompt": "Investigate the original provenance of a fact returned by persistent agent recall",
+      "kind": "in_scope",
+      "expected_route": "memory-context/provenance"
+    },
+    {
+      "id": "IN-11",
+      "prompt": "Confirm a paper's numerical results using its original public data and specified methods",
+      "kind": "in_scope",
+      "expected_route": "science/reproducibility"
+    },
+    {
+      "id": "IN-12",
+      "prompt": "Repeat a published calculation to check if its reported measurements can be recovered",
+      "kind": "in_scope",
+      "expected_route": "science/reproducibility"
+    },
+    {
+      "id": "IN-13",
+      "prompt": "Facilitate a consented observation session and document participants' interface struggles",
+      "kind": "in_scope",
+      "expected_route": "ux-ui/usability-testing"
+    },
+    {
+      "id": "IN-14",
+      "prompt": "Study how real users complete a workflow and catalogue usability friction",
+      "kind": "in_scope",
+      "expected_route": "ux-ui/usability-testing"
+    },
+    {
+      "id": "IN-15",
+      "prompt": "Assess whether lower weight precision preserves inference quality under GPU limits",
+      "kind": "in_scope",
+      "expected_route": "ml-accelerators/model-quantization"
+    },
+    {
+      "id": "IN-16",
+      "prompt": "Compare quantized model variants for peak memory, latency and evaluation accuracy",
+      "kind": "in_scope",
+      "expected_route": "ml-accelerators/model-quantization"
+    },
+    {
+      "id": "IN-17",
+      "prompt": "Define a safe typed contract for an assistant's external tool actions",
+      "kind": "in_scope",
+      "expected_route": "agent-mcp-development/tool-design"
+    },
+    {
+      "id": "IN-18",
+      "prompt": "Review function schemas and privilege boundaries for a tool-serving agent",
+      "kind": "in_scope",
+      "expected_route": "agent-mcp-development/tool-design"
+    },
+    {
+      "id": "IN-19",
+      "prompt": "Produce a voice and background soundtrack mix that meets delivery loudness requirements",
+      "kind": "in_scope",
+      "expected_route": "audio-voice-sound/mixing"
+    },
+    {
+      "id": "IN-20",
+      "prompt": "Adjust multiple sound stems until dialogue remains intelligible without clipping",
+      "kind": "in_scope",
+      "expected_route": "audio-voice-sound/mixing"
+    },
+    {
+      "id": "IN-21",
+      "prompt": "Check blueprint callouts and tolerances against the mechanical model",
+      "kind": "in_scope",
+      "expected_route": "3d-cad-animation/technical-drawing"
+    },
+    {
+      "id": "IN-22",
+      "prompt": "Inspect engineering print dimensions for discrepancies with the CAD revision",
+      "kind": "in_scope",
+      "expected_route": "3d-cad-animation/technical-drawing"
+    },
+    {
+      "id": "IN-23",
+      "prompt": "Design a mocked robot emergency stop validation without enabling hardware outputs",
+      "kind": "in_scope",
+      "expected_route": "robotics-iot/safety"
+    },
+    {
+      "id": "IN-24",
+      "prompt": "Enumerate simulator hazards and protective checks for connected actuator controls",
+      "kind": "in_scope",
+      "expected_route": "robotics-iot/safety"
+    },
+    {
+      "id": "IN-25",
+      "prompt": "Assess trial methodology and risk of bias in medical journal studies without giving medical advice",
+      "kind": "in_scope",
+      "expected_route": "medicine/evidence-appraisal"
+    },
+    {
+      "id": "IN-26",
+      "prompt": "Appraise the certainty of clinical review evidence for an informational research question",
+      "kind": "in_scope",
+      "expected_route": "medicine/evidence-appraisal"
+    },
+    {
+      "id": "OOD-01",
+      "prompt": "Find the nearest train station and the fastest route home",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-02",
+      "prompt": "Draft a congratulatory note for my coworker's promotion",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-03",
+      "prompt": "Tell me what color paint complements walnut furniture",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-04",
+      "prompt": "Book two seats at a restaurant for tomorrow evening",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-05",
+      "prompt": "Convert three cups of flour to grams for a baking recipe",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-06",
+      "prompt": "Show the release date of my favorite movie franchise",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-07",
+      "prompt": "Calculate the interest on a savings account next year",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-08",
+      "prompt": "Provide a history overview of the ancient Roman aqueducts",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-09",
+      "prompt": "Translate this short paragraph from English into French",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-10",
+      "prompt": "Tell me the weather forecast for Saturday afternoon",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-11",
+      "prompt": "Explain the difference between a solar eclipse and a lunar eclipse",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "OOD-12",
+      "prompt": "Recommend a mystery novel for a long flight",
+      "kind": "outside_13",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-01",
+      "prompt": "Do not audit software dependencies or release provenance. I only need a birthday greeting.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-02",
+      "prompt": "Do not change audio loudness or mix sound tracks; generate a grocery shopping list instead.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-03",
+      "prompt": "Ignore robotics hazard tests entirely. Please make a weekend picnic menu.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-04",
+      "prompt": "Do not review medical evidence. Translate my holiday invitation instead.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-05",
+      "prompt": "I need both a technical CAD drawing and a clinical trial assessment in one request; identify missing details instead of silently choosing.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-06",
+      "prompt": "Can you either balance my combat game or verify package supply-chain signatures? I have not decided yet.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-07",
+      "prompt": "Choose between an accessibility audit and model quantization, but I have not specified which outcome matters.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    },
+    {
+      "id": "ADV-08",
+      "prompt": "I want a skill for something technical; I have not supplied the actual task or target host.",
+      "kind": "ambiguous_or_negated",
+      "expected_route": null
+    }
+  ]
+}
