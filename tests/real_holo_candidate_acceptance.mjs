@@ -189,7 +189,8 @@ async function main(argv){
   assert.equal(requestedV3.productionEligible,false);
   assert.equal(requestedV3.sourceRightsVerified,false);
   const fromV3=await readPackage(join(requestRoot,'ci-failure-triage-v3'));
-  assert.ok(fromV3.files['SKILL.md'].includes('[REDACTED]'));
+  assert.ok(fromV3.files['SKILL.md'].includes(String.fromCharCode(92)+'[REDACTED'+String.fromCharCode(92)+']'));
+  // The escape is intentional in raw Markdown; rendered text displays [REDACTED].
   assert.ok(fromV3.files['SKILL.md'].includes('Authorization headers'));
   assert.ok(fromV3.files['SKILL.md'].includes('Never repeat the original value'));
   assert.ok(fromV3.files['SKILL.md'].includes('discriminating next verification'));
