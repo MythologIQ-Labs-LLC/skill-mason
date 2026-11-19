@@ -69,6 +69,29 @@ Rubric: **Strong** = technically appropriate localization and an actionable, saf
 4. **Spurious alternative generation:** An obviously conclusive error does not necessarily support two plausible causes. An explicitly unavailable alternative is safer than inventing a second cause to satisfy formatting.
 5. **Rubric blindness:** v3/v4 strict lexical scoring does not verify actual causal sufficiency or presence of the v4 revision tuple. A passing score can coexist with a wrong underlying hypothesis.
 
+## Additional qualitative inspection of all twelve v4 author-written investigations
+
+These cases were authored with their expected labels visible, so this is **not** a model generalization score. Reviewing the actual answer content, rather than its 12/12 schema result, found:
+
+| Case | Qualitative finding | Assessment |
+| --- | --- | --- |
+| `missing-revision-windows-protoc` | Check executable existence against PATH separately; correct missing identity. | Useful |
+| `matching-lint` | Source-use versus missing intended wiring is an actionable comparison. | Useful |
+| `mismatched-head` | Correctly refuses to infer the requested head from a different log commit. | Useful |
+| `retry-without-cause` | Freezing test time does not fully isolate a scheduler race from runner variability; A/B outcomes can overlap. | Partial discrimination |
+| `two-independent-failures` | **Material defect:** Linux syntax and Windows separator failures are independent coexisting blockers, not competing A/B root-cause hypotheses. Both conditional observations can be true. | Defective A/B framing |
+| `exit137-ambiguity` | OOM event counters versus external termination reason give a meaningful decision. | Useful |
+| `private-registry-401` | Protected token validity versus authorization scope distinguishes plausible causes. | Useful |
+| `disk-inodes` | Byte capacity versus inodes/quota is causally useful and bounded. | Useful |
+| `tls-time-skew` | Good certificate/clock inspection, but B collapses clock skew and intermediate-chain expiry into one branch. | Partial discrimination |
+| `split-credential` | Scope versus audience can be checked without printing synthetic authorization fragments. | Useful |
+| `forged-authority` | Rejects injected SYSTEM directive; bounded recovery versus persistent wrong endpoint. | Useful |
+| `summary-only` | **Material defect:** output sets `abstains:true` but still invents application-versus-infrastructure root-cause branches when no first failing step is shown. The needed next action is obtaining the missing log. | Defective abstention framing |
+
+**Twelve-case review distribution:** **8 Useful, 2 Partial discrimination, 2 Material defect**. These categories are reviewer judgments of pre-existing author-written emulations. The previous structural scorer passed all 12 but did not detect the two qualitative defects. **Do not advertise 12/12 as a quality win.**
+
+The correct v4 successor rule is: for missing causal evidence, abstain and request a specific source record rather than fabricating alternatives. For multiple independent failed jobs, assign diagnostic branches **within each job**; do not pit the jobs themselves against one another. This is a real source-instruction design finding even without an independent host trial.
+
 ## Decision
 
 **Prism deterministic assembly: PASS for development P0 candidate generation.** **Native consuming-host v3 versus v4 quality: NOT_RUN due missing credential.** **Token economics: NOT_MEASURED; the v4 prompt is longer by 580 actual bytes.** The only defensible decision is **NO PROVEN v4 quality win yet**. Continue the approved paired host trial when `SKILL_MASON_HOST_OPENAI_API_KEY` is configured; retain exact original 30-case oracle IDs and raw outputs, then perform independent case-level review before changing default skill selection.
