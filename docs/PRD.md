@@ -32,6 +32,19 @@ The producer/consumer relationship is asymmetric: `skillz` advances discovery an
 
 No autonomous crawling, cross-account personalization, third-party code execution, remote connectors, silent source copying, unconditional trust in catalog metadata, dependency installation, recursive self-modification, LLM inference, general behavioral truth proofs or universal skill coverage.
 
+## Component adoption: evidence before dependency
+
+**Owner direction (2026-11-19):** Do not add components, model runtimes, services, or permanent CI solely because they appear sophisticated. A working dependency is not automatically a useful dependency. Before adopting a consequential component, record in the relevant issue/PR, proportionate to impact:
+
+1. **Customer job and existing baseline:** What user-visible outcome is currently missing, what is measured today, and what is the simplest viable alternative (including no new dependency)?
+2. **Predeclared benefit:** A measurable improvement in real task success, correctness/coverage, reliability, usability, or a demonstrable cost reduction. Use representative independent/held-out cases, disclose label quality, adverse cases, abstentions and limits; do not tune to and then claim victory on the same data.
+3. **Total cost and failure modes:** Build and CI time, runtime latency, model compute/tokens, storage, supply-chain/license obligations, maintenance, security, portability and operational burden. New safety or authority boundaries must preserve existing checks.
+4. **Decision and reversibility:** GO, RESEARCH_ONLY, or NO-GO with exact evidence; state the rollback/removal path and what would falsify the expected benefit.
+
+Keep the evaluation lightweight for small, low-risk changes; scale effort with cost and consequences. **Do not create a universal heavyweight gate or block needed product development just to prove process compliance.** Correctness/security controls remain mandatory where relevant. A proposal, passing CI, static inspection, model output or working native demo is not measured customer value. If no meaningful advantage over the simpler baseline is demonstrated, do not integrate the component.
+
+For request-understanding experiments see [the Verdant comparison and native evidence](technical/verdant-request-benchmark-v1.md). Measured route discovery is separate from actual qualified skill generation and host task success.
+
 ## First-pilot functional requirements
 
 | ID | Requirement | Acceptance |
