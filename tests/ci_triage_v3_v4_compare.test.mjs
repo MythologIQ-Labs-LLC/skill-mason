@@ -1,10 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PAIR_PINS,openPinnedSkill,compareSealedSkills,messagesForSkill} from '../bin/ci-triage-v3-v4-compare.mjs';
+import {PAIR_PINS,openPinnedSkill,compareSealedSkills,messagesForSkill,loadComparisonCases} from '../bin/ci-triage-v3-v4-compare.mjs';
 import {exemplarForJudgeTest} from '../bin/ci-triage-spectrum-trial.mjs';
 
 const data=JSON.parse(await readFile(new URL('./fixtures/ci-triage-quality-spectrum-v2.json',import.meta.url)));
+test('the live-model entrypoint actually loads and validates all 30 frozen CI scenarios',async()=>{
+ const {cases,raw}=await loadComparisonCases();
+ assert.equal(cases.cases.length,30);
+ assert.equal(cases.case_count,30);
+ assert.equal(cases.schema,'qortara/ci-triage-quality-spectrum/2');
+ assert.equal(raw.length>20000,true);
+ assert.deepEqual(cases.cases.map(x=>x.id),data.cases.map(x=>x.id));
+});
 test('v3 and v4 source pins target actual different P0 generated instructions',()=>{
  assert.equal(PAIR_PINS.v3.id,'ci-failure-triage-v3');
  assert.equal(PAIR_PINS.v4.id,'ci-failure-triage-v4');
