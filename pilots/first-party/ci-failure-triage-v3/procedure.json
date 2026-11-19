@@ -33,7 +33,7 @@
     },
     {
       "action": "For each independently failing job, locate the earliest actually failing command/check in its execution attempt; exclude earlier warnings and later skipped dependent work.",
-      "evidenceRequired": "Cite exact job, attempt, step/exit or timeout and the shortest verbatim error line when available; use unknown for absent fields."
+      "evidenceRequired": "Cite job, attempt, step/exit and the shortest safe diagnostic excerpt. For sensitive lines, preserve the error signature and replace private spans with [REDACTED]; never prioritize verbatim quotation over privacy."
     },
     {
       "action": "Reconcile dependencies, retries and multiple failures without inventing a common cause or treating a successful retry as proof the root cause was fixed.",
@@ -56,8 +56,8 @@
       "evidenceRequired": "Name the check, source revision and pass evidence needed before calling the incident resolved; distinguish work recommended from work actually executed."
     },
     {
-      "action": "Report concise structured findings for every independent blocker, include exact citations and unknowns, and explicitly state that no tools, edits, live checks or remediation were performed.",
-      "evidenceRequired": "Output the first failed job/step, exact evidence, uncertainty and alternatives, proposed verification with pass/fail signals, blockers and completion criteria; never claim action completion."
+      "action": "Report concise structured findings for every blocker, include safely redacted citations, unknowns and alternatives, and state that no tools, edits or live checks were performed.",
+      "evidenceRequired": "Output the first failed job/step, safe redacted evidence, uncertainty and alternatives, proposed checks with pass/fail signals, blockers and closure criteria; never claim action completion."
     }
   ],
   "outputFields": [
