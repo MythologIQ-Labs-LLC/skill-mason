@@ -192,7 +192,7 @@
         }
       ],
       "proposed_verification": "Inspect the surrounding syntax and intended block structure, correct it at a2 and validate parsing plus test execution.",
-      "closure_criteria": "Only an observed lint and test pass on FIX_HEAD a2 proves repair; original f1 remains failed.",
+      "closure_criteria": "FIX_HEAD a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2: Only an observed lint and test pass on FIX_HEAD a2 proves repair; original f1 remains failed.",
       "actions_executed": [],
       "verification_executed": "NOT_RUN"
     },
@@ -220,7 +220,7 @@
         }
       ],
       "proposed_verification": "Contrast producer payload against authoritative API schema: numeric schema points to producer mismatch; string schema points to incorrect declaration.",
-      "closure_criteria": "Pass requires a fresh tsc and dependent checks on b2, not a green rerun of unchanged f2.",
+      "closure_criteria": "FIX_HEAD b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2: Pass requires a fresh tsc and dependent checks on b2, not a green rerun of unchanged f2.",
       "actions_executed": [],
       "verification_executed": "NOT_RUN"
     },
