@@ -64,6 +64,14 @@ Feature: Generated CI triage instructions must improve real failure investigatio
     Then no rights, Prism trust root, native skill installation or production eligibility is inferred
 ```
 
+## Actual v2 method improvement implemented (not yet host-accepted)
+
+The review now includes a **new original, separately pinned** [CI failure triage v2 source](../../pilots/first-party/ci-failure-triage-v2/procedure.json), introduced at Git commit `ef8bd8046df65ca2a7419a7191f8f2e959d53156`, Git blob `fa036a2fa7ffc2e95e2bb79523321e583d65f045`, SHA-256 `0b3350725eee7c5ef8c6d7bff5db7538ba546a8597c35c601499c85434cbe2c1`. It leaves the original v1 method **byte-for-byte unchanged**.
+
+v2 is not merely a longer template. It adds explicit untrusted-log precedence, source-revision binding, per-job first failures, skip/dependency/retry reasoning, non-causal warnings, explicit uncertainty for exit 137/timeout/401, sensitive-data refusal, discriminating pass/fail tests and verifiable same-revision closure. Its text-only procedure now has 10 bounded steps, nine output fields and six stop conditions. [Structural source/compiler tests](../../tests/ci_triage_v2_source.test.mjs) enforce the historical original pin and verify that a **mock-authorized in-memory composition** would emit a substantive v2 `SKILL.md` without claiming real Prism or host acceptance.
+
+**What has not happened:** v2 has not replaced the first-party supported pilot registry, has not been run through actual Prism as a new source and has not passed a real 30-case consuming-host test. Its addition is a source-method improvement backed by the original v1 qualitative audit. The **next experiment** must compare original sealed v1 against a separately generated and pinned v2 under the same 30 adversarial tasks. Do not tune the test or call a mock a host benefit.
+
 ## Advancement decision
 
 **Current source revision:** RETAIN AS DEVELOPMENT EVIDENCE; **do not promote to production-quality** on integrity checks or mock A/B tests. For v2, revise the *first-party method source* with the three P1 improvements before regenerating a separately pinned version. Do not edit an already sealed artifact in place. Re-run the complete spectrum unchanged, obtain a real consuming-model comparison and qualitatively review failures. If it does not improve actual answer utility, revert the new complexity.
