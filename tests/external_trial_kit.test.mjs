@@ -24,8 +24,8 @@ test('trial candidate cannot appear to be production qualified or have consented
  assert.match(skill,/not authorization to install or run tools/);
  assert.match(skill,/Missing provenance, rights, source freshness or permissions require refusal/);
  assert.match(provenance,/development trial only/);
- assert.match(provenance,/\\*\\*not\\*\\* a rights-qualified, production-installed/);
- assert.match(provenance,/browser.*starter-draft/i);
+ assert.ok(provenance.includes('**not** a rights-qualified, production-installed'));
+ assert.ok(provenance.includes('template-based **starter-draft**'));
  assert.match(provenance,/not.*automatically collect/i);
 });
 test('case set spans missing evidence, independent jobs, injection and fix-head identity',()=>{
