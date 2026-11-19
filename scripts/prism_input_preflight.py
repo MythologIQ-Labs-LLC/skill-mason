@@ -13,10 +13,10 @@ import json
 import re
 import sys
 
-from scripts.catalog_handoff import Refusal, canonical, require, sha256
+from scripts.catalog_handoff import COMMIT, Refusal, canonical, require, sha256
 from scripts.catalog_index import CorpusIndex
 from scripts.capability_graph import CapabilityGraph
-from scripts.candidate_comparison import compare
+from scripts.candidate_comparison import compare, _status
 
 SCHEMA = "qortara/method-to-prism-preflight/1"
 GUEST = "Qortara Skills Eligibility"
@@ -65,7 +65,7 @@ def preflight_from_comparison(graph, route, host, governed_id, comparison, *,
     require(isinstance(comparison, dict) and
             comparison.get("schema") == "qortara/candidate-comparison/1" and
             comparison.get("state") == "READ_ONLY_COMPARISON_NO_ADMISSION" and
-            comparison.get("exact_source_commit") == "31a8c518dd97b7828adcc728202fa41388a306d7" and
+            comparison.get("exact_source_commit") == COMMIT and
             comparison.get("route") == route and
             comparison.get("target_host_requested_not_approved") == host and
             comparison.get("externally_inspected_governed_id") ==
@@ -93,6 +93,8 @@ def preflight_from_comparison(graph, route, host, governed_id, comparison, *,
                 indexed["family"] == "governed" and
                 row.get("review_status") == indexed["raw"]["review"]["semantic_status"] and
                 row.get("source_class") == indexed["source_class"] and
+                row.get("disposition") ==
+                    _status(indexed["raw"]["review"]["semantic_status"]) and
                 row.get("eligible") is False and
                 row.get("reuse_rights_assessed") is False and
                 row.get("target_host_assessed") is False and
