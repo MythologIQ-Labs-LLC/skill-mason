@@ -106,7 +106,7 @@ jobs:
           retention-days: 7
 
   execute-real-request-p0:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/request-first-party-positive-pipeline'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator')
     needs: [stage-native-p0]
     runs-on: ubuntu-24.04
     timeout-minutes: 12
