@@ -1,0 +1,4 @@
+GATE_SOURCE repo=/opt/prism-gate/run/work/obs-first-parent-comparison-resets-the-ceiling.projection commit=dcd93fdbf1cf4bdaeab57467f544a6fb84934bc9 tree=9ba5f47211f24efbd9cb4f636444ba521f29e167 subdir=.
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist egress_network=prism-gate-egress egress_proxy=http://172.30.99.1:3128 uid=1000:1000 docker_socket=not-mounted seed_tmp=/opt/prism-gate/run/work/sm01-vv/tmp workdir=/opt/prism-gate/run/work/obs-first-parent-comparison-resets-the-ceiling
+audit-prism: a root commit; non-Prism implementation is 13503 lines in 79 files
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=allowlist elapsed=14s cmd=cargo run -q --locked -p xtask -- audit-prism

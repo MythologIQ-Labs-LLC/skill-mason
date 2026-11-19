@@ -1,0 +1,1 @@
+prism_nested_ratchet: REFUSED before any audit runs: prism/crates/model/src/lib.rs differs from the template pin b64cc73c9477 (or is missing). The ratchet cannot be trusted to judge a candidate that changes what the ratchet is built from.

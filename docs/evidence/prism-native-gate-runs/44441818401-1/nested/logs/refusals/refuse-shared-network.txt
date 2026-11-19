@@ -1,0 +1,1 @@
+prism_reference_gate: REFUSED before starting a container: PRISM_GATE_EGRESS_NETWORK must be a dedicated internal network, not 'bridge'.

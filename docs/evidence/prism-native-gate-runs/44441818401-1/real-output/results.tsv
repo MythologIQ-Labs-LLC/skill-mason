@@ -1,0 +1,15 @@
+check	expected	observed	result
+holo-matches-manifest	9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e	9ebac1a33da068be7c1c81bc7652938811936089df5a026b7ce5aee1f8f7ed3e	PASS
+independent-vectors	exit 0, 12 of 12 vectors passed	exit 0, 12 of 12 vectors passed (holo, Qortara Skills Eligibility, identities verified)	PASS
+independent-assurance-grade	recorded as observed	P0 unverified (check exit 1)	PASS
+independent-inspect	exit 0	exit 0	PASS
+tampered-holo-refused-by-runtime	non-zero, digest_mismatch	exit 1	PASS
+tampered-holo-refused-by-probe-digest	exit 2, DIGEST_MISMATCH	exit 2	PASS
+tampered-holo-not-run-without-override	exit 1, FIXTURE_FAIL, 0 passed	exit 1	PASS
+probe-twelve-fixtures	exit 0, 12 passed	exit 0, 12 passed	PASS
+probe-refuses-without-allow-p0	exit 2, ASSURANCE_HOLD	exit 2	PASS
+cli-status-preflight	exit 0, preflightReady true	exit 0	PASS
+cli-probe-twelve-fixtures	exit 0, 12 passed	exit 0, 12 passed	PASS
+cli-evaluate-twelve-fixtures	exit 0, 12 PASS rows	exit 0, 12 PASS rows	PASS
+cli-refuses-without-allow-p0	exit 2, ASSURANCE_HOLD	exit 2	PASS
+cli-refuses-wrong-digest	exit 2, DIGEST_MISMATCH	exit 2	PASS

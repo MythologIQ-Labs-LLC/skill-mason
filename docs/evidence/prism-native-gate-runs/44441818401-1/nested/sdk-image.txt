@@ -1,0 +1,1 @@
+repo_digests=["ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3"] id=sha256:b707da3d9e220d9a9bacce9efa7015f32e6671c26bf08985f0912679e805e4fd size=15173314776 platform=linux/amd64
