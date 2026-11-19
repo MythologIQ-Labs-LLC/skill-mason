@@ -13,7 +13,7 @@ Two distinct facts must remain separate:
 
 ## Existing successful P0 observation
 
-The separately pinned [observation record](../../.github/prism-ci/previous-p0-observation.json) points to [workflow #44437233577](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44437233577), head \`70ee027a1bfbcf05c98e80833c93b779c8e5fe8b\`, and records full reference/author/nested/real-output jobs and four original nonexpired GitHub artifacts. Every routing decision independently checks GitHub's **actual run head, success, required jobs, artifact identities and expiry** through a read-only API token; the manifest itself does not manufacture success. This observation is **P0 unverified**, not P2, and the SDK publisher is not owner-trusted.
+The separately pinned [observation record](../../.github/prism-ci/previous-p0-observation.json) points to [workflow #44437233577](https://github.com/MythologIQ-Labs-LLC/skill-mason/actions/runs/44437233577), head \`70ee027a1bfbcf05c98e80833c93b779c8e5fe8b\`, and records full reference/author/nested/real-output jobs and four original nonexpired GitHub artifacts. Every routing decision independently checks GitHub's **actual run head, workflow path, source repository, success, required jobs, artifact identities and expiry** through a read-only API token. It additionally reads the **exact historical workflow file from that original Git commit** and verifies the declared SDK image digest, template commit and Prism runtime integrity against the manifest. A syntactically valid but altered manifest pin cannot borrow the prior run; the manifest itself does not manufacture success. This observation is **P0 unverified**, not P2, and the SDK publisher is not owner-trusted.
 
 ## Historical observation expiry and renewal
 
