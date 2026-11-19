@@ -51,6 +51,50 @@ def _snapshot(graph):
     }
 
 
+
+def _source_outcome_coverage(graph, route, comparison):
+    """Explain pinned outcome gaps; never convert definitions into permission."""
+    rows = getattr(graph, "outcome_by_path", None)
+    require(isinstance(rows, dict) and route in rows,
+            "OUTCOME_SOURCE_MISSING", "recognized route lacks a pinned source outcome row")
+    row = rows[route]
+    require(isinstance(row, dict) and row.get("path") == route and
+            isinstance(row.get("essential_outcomes"), list),
+            "OUTCOME_SOURCE_DRIFT", "source outcome row is malformed or mismatched")
+    defined = row["essential_outcomes"]
+    qualified = row.get("qualified_essential_outcome_count")
+    require(qualified is None or
+            (type(qualified) is int and 0 <= qualified <= len(defined)),
+            "OUTCOME_SOURCE_DRIFT", "source qualification count is malformed")
+    # C4 is a separate consumer of the same immutable C2 source. A forged or
+    # stale count cannot quietly make a blocked route appear fully specified.
+    require(comparison.get("outcome_definition_status") ==
+                row.get("outcome_definition_status") and
+            comparison.get("defined_essential_outcomes") == len(defined) and
+            comparison.get("essential_outcome_qualification_count") == qualified,
+            "OUTCOME_COMPARISON_DRIFT", "C2 source and C4 comparison disagree")
+    gap_code = ("OUTCOME_DEFINITION_MISSING" if not defined else
+                "OUTCOME_QUALIFICATION_UNVERIFIED")
+    return {
+        "schema": "qortara/route-outcome-coverage/1",
+        "route": route,
+        "source_outcome_row": graph.corpus.taxonomy_paths["outcomes"],
+        "source_outcome_row_sha256": sha256(canonical(row)),
+        "outcome_definition_status": row.get("outcome_definition_status"),
+        "defined_essential_outcomes": defined,
+        "defined_essential_outcome_count": len(defined),
+        "source_claimed_qualified_count_not_independent_proof": qualified,
+        "gap_code": gap_code,
+        "next_action": ("Define and govern testable inputs, outputs and "
+                        "acceptance criteria through the upstream source "
+                        "process, then explicitly accession the new snapshot."
+                        if not defined else
+                        "Independently establish outcome coverage, rights and "
+                        "host behavior before authorizing composition."),
+        "outcomes_independently_qualified": False,
+        "composition_eligible": False,
+    }
+
 def evaluate_request(graph, request, host, route=None, governed_method=None,
                      *, external_selection=None, comparator=compare,
                      preflight=prepare_preflight):
@@ -91,6 +135,7 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
             comparison.get("chosen_method") is None and
             comparison.get("eligible_candidate_count") == 0,
             "UNTRUSTED_PROMOTION", "comparison tried to assert an authorized method")
+    coverage = _source_outcome_coverage(graph, route, comparison)
     reviewed = comparison.get("evidence_linked_reviews")
     require(isinstance(reviewed, list) and
             comparison.get("evidence_linked_review_count") == len(reviewed) and
@@ -181,6 +226,12 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         code, refusal_codes = "METHOD_SELECTION_REQUIRED", [
             "METHOD_SELECTION_REQUIRED", "RIGHTS_UNRESOLVED", "OUTCOME_UNCOVERED"]
 
+    # Keep the primary source/method refusal stable; report the independent
+    # source-outcome blocker alongside it, never as permission to compose.
+    refusal_codes = list(refusal_codes)
+    if coverage["gap_code"] not in refusal_codes:
+        refusal_codes.append(coverage["gap_code"])
+
     return {
         "schema": SCHEMA,
         "state": "REFUSED_PRE_ADMISSION",
@@ -189,6 +240,7 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         "target_host_label_not_approved": host,
         "pinned_source": snapshot,
         "comparison_receipt_sha256": sha256(canonical(comparison)),
+        "source_outcome_coverage": coverage,
         "evidence_linked_review_count": len(reviewed),
         "candidates": [{
             "governed_id": x["governed_id"],
