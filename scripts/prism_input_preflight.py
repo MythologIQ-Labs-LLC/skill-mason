@@ -29,6 +29,26 @@ SHA1 = re.compile(r"^[0-9a-f]{40}$")
 def prepare_preflight(graph, route, host, governed_id, *,
                       external_selection=None, package_inspector=None,
                       external_inspector=None):
+    """Standalone C5 preflight; perform an actual fresh C4 source comparison."""
+    opts = {"include_lexical": False, "external_selection": external_selection}
+    if package_inspector is not None:
+        opts["package_inspector"] = package_inspector
+    if external_inspector is not None:
+        opts["external_inspector"] = external_inspector
+    comparison = compare(graph, route, host, **opts)
+    return preflight_from_comparison(
+        graph, route, host, governed_id, comparison,
+        external_selection=external_selection)
+
+
+def preflight_from_comparison(graph, route, host, governed_id, comparison, *,
+                              external_selection=None):
+    """Single-pass C4->C5: consume the SAME in-process comparison evidence.
+
+    This is internal provenance binding, never an admission/signature API.
+    Do not accept caller-supplied JSON for this parameter: it must be the
+    object just returned by the real source inspector in this process.
+    """
     require(isinstance(governed_id, str) and governed_id.startswith("governed:") and
             len(governed_id) > len("governed:"),
             "METHOD_SELECTION", "explicit governed method ID required")
@@ -37,12 +57,50 @@ def prepare_preflight(graph, route, host, governed_id, *,
                 external_selection.get("record_id") == governed_id,
                 "METHOD_SELECTION",
                 "inspected external package must be the selected governed method")
-    opts = {"include_lexical": False, "external_selection": external_selection}
-    if package_inspector is not None:
-        opts["package_inspector"] = package_inspector
-    if external_inspector is not None:
-        opts["external_inspector"] = external_inspector
-    comparison = compare(graph, route, host, **opts)
+    require(isinstance(comparison, dict) and
+            comparison.get("schema") == "qortara/candidate-comparison/1" and
+            comparison.get("state") == "READ_ONLY_COMPARISON_NO_ADMISSION" and
+            comparison.get("exact_source_commit") == "31a8c518dd97b7828adcc728202fa41388a306d7" and
+            comparison.get("route") == route and
+            comparison.get("target_host_requested_not_approved") == host and
+            comparison.get("externally_inspected_governed_id") ==
+                (external_selection["record_id"] if external_selection else None) and
+            comparison.get("composition_eligible") is False and
+            comparison.get("prism_invoked") is False and
+            comparison.get("chosen_method") is None and
+            comparison.get("eligible_candidate_count") == 0 and
+            comparison.get("full_package_rights_and_host_qualification_established") is False,
+            "COMPARISON_INTEGRITY",
+            "selected C4 evidence differs from source, route, host or admission boundary")
+    reviewed = comparison.get("evidence_linked_reviews")
+    require(isinstance(reviewed, list) and
+            comparison.get("evidence_linked_review_count") == len(reviewed) and
+            len(reviewed) == len(graph.paths[route]["matched"]) and
+            {x.get("governed_id") for x in reviewed if isinstance(x, dict)} ==
+                set(graph.paths[route]["matched"]),
+            "COMPARISON_INTEGRITY",
+            "C4 did not preserve exact pinned evidence-linked candidates")
+    for row in reviewed:
+        indexed = graph.corpus.by_id.get("governed:" + row["governed_id"])
+        require(isinstance(row, dict) and indexed is not None and
+                indexed["family"] == "governed" and
+                row.get("review_status") == indexed["raw"]["review"]["semantic_status"] and
+                row.get("source_class") == indexed["source_class"] and
+                row.get("eligible") is False and
+                row.get("reuse_rights_assessed") is False and
+                row.get("target_host_assessed") is False and
+                isinstance(row.get("package_bytes"), dict),
+                "COMPARISON_INTEGRITY",
+                "C4 candidate review or admitted fact differs from pinned source")
+        package = row["package_bytes"]
+        require(package.get("status") != "EXTERNAL_PACKAGE_PINNED_BYTES_VERIFIED" or (
+                    external_selection is not None and
+                    external_selection["record_id"] == "governed:" + row["governed_id"] and
+                    package.get("source_asset_rights_and_dependencies_still_unqualified") is True and
+                    package.get("rights_and_host_still_unapproved") is True and
+                    package.get("reference_dependency_closure_proven") is False),
+                "EXTERNAL_ASSET_REVIEW",
+                "externally verified bytes cannot be recycled as source or rights approval")
     selected_id = governed_id[len("governed:"):]
     found = [x for x in comparison["evidence_linked_reviews"]
              if x["governed_id"] == selected_id]
@@ -100,6 +158,7 @@ def prepare_preflight(graph, route, host, governed_id, *,
         "requested_route": comparison["route"],
         "requested_host_label_not_authority": comparison["target_host_requested_not_approved"],
         "package_inspection_sha256": sha256(canonical(package)),
+        "comparison_receipt_sha256": sha256(canonical(comparison)),
         "package_bytes_verified": package_verified,
         "review_status": selected["review_status"],
         "review_disposition": selected["disposition"],
