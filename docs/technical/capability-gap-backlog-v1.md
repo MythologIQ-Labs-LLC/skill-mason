@@ -55,3 +55,23 @@ python3 -m scripts.capability_gap_backlog \
 tests/test_capability_gap_backlog.py covers full route cardinality, domain distribution, name-only lead separation, stale outcomes, missing correctness or failure criteria, fabricated paths, duplicate proposals and false authority promotion. The existing pinned corpus CI executes the complete ledger and representative focus receipts.
 
 No automated discovery crawl, model-generated semantic match, external host execution, legal rights check, or Prism composition happens here. Remaining core gaps are independently reviewed method and package relevance, on-demand third-party full-package retrieval, provenance/license verification, exact host permissions, publisher authentication, real acceptance tests and versioned snapshot accession. This tranche does not close Skill Mason #30 or #17.
+
+## SM-01B: exact-source scope-gap review (nonadmitting)
+
+A matched review in the recognized directory is an invitation to inspect a source, **not** evidence that its method covers the requested essential workflow. The source/workflow review script uses the existing pinned, complete first-party package inspector, the same immutable C2 route/crosswalk and the 13 governed-*draft* requirements. It verifies the original source Git object and SHA-256, the complete package file inventory, exact source passage locations, and the proposal objective before recording a negative scope assessment.
+
+The initial [MCP-vetting scope record](../evidence/source-outcome-scope-mcp-vetting-v1.json) explains a concrete mismatch: the original method is a static, nonexecuting MCP-server preconnection review, while the proposed security/supply-chain objective reaches generic software release dependencies and signing provenance. It does not condemn the original method, silently revise the passive Skillz repository or infer a legal grant from the repository's ownership or the source's author field. A narrower MCP preconnection outcome is explicitly only a candidate for separate upstream review and source snapshot accession.
+
+The machine check establishes **which exact bytes and passages the negative reviewer judgment is based on**. It cannot prove semantic completeness, authenticate the human reviewer or make a positive skill eligible. A changed source/proposal/crosswalk, tampered package receipt, missing or ambiguous quote, forged rights assertion, or inconsistent source pin refuses. Both a successful gap record and a typed refusal leave rights, host validation, Prism admission, composition and actual behavioral coverage **false**.
+
+Run it on the two independently pinned source checkouts:
+
+~~~sh
+python3 -m scripts.source_outcome_scope_review \
+  --handoff /path/to/skillz-published/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-original-pinned \
+  --proposals docs/technical/essential-workflow-proposals-v1.json \
+  --review docs/evidence/source-outcome-scope-mcp-vetting-v1.json
+~~~
+
+The existing request-to-skill CI runs this real original-source review and its adverse controls without adding a separate workflow or an expensive native Prism execution. Its receipt is included with the existing bounded user-request evidence artifact. **Next development dependency:** independently establish source-supported essential outcomes and author/reuse authority under the appropriate Skillz review process; then accession the new snapshot before enabling any candidate in the composer.
