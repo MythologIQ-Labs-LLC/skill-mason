@@ -20,7 +20,7 @@ def reference(rid=METHOD, route=ROUTE):
                      "SAFETY_BOUNDARY")
     ]
     return {
-        "schema": "qortara/source-task-fit-reference/1",
+        "schema": "qortara/source-task-fit-reference-review/1",
         "state": "BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED",
         "governed_review_id": "governed:" + rid,
         "source_snapshot_commit": COMMIT,
