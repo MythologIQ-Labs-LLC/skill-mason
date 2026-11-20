@@ -4,6 +4,10 @@ on:
     paths:
       - 'scripts/catalog_index.py'
       - 'scripts/corpus_reference_dossier.py'
+      - 'scripts/source_task_fit_review.py'
+      - 'tests/test_source_task_fit_review.py'
+      - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
+      - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
       - 'docs/technical/corpus-reference-dossier-v1.md'
       - 'scripts/snapshot_accession.py'
@@ -42,6 +46,10 @@ on:
     paths:
       - 'scripts/catalog_index.py'
       - 'scripts/corpus_reference_dossier.py'
+      - 'scripts/source_task_fit_review.py'
+      - 'tests/test_source_task_fit_review.py'
+      - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
+      - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
       - 'docs/technical/corpus-reference-dossier-v1.md'
       - 'scripts/snapshot_accession.py'
@@ -94,6 +102,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_corpus_reference_dossier.py' -v
+          python3 -m unittest discover -s tests -p 'test_source_task_fit_review.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
           python3 -m unittest discover -s tests -p 'test_live_capability_probe.py' -v
@@ -136,6 +145,11 @@ jobs:
             --method governed:local-skills/mcp-vetting \
             --file SKILL.md --lines 17:21 \
             > corpus-reference-evidence/mcp-pinned-citation.json
+          python3 -m scripts.source_task_fit_review \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --review docs/evidence/source-task-fit-mcp-vetting-v1.json \
+            > corpus-reference-evidence/mcp-narrow-task-fit.json
           python3 - <<'PY'
           from pathlib import Path
           import hashlib, json
@@ -155,6 +169,30 @@ jobs:
           assert not whole['rights_qualified'] and not whole['host_validated']
           assert not whole['composition_eligible'] and not whole['production_eligible']
           print('FIRST-PARTY ORIGINAL SOURCE QUEUE PASS:',whole['next_qualification_action_counts'])
+          fit=json.loads((root/'mcp-narrow-task-fit.json').read_text())
+          assert fit['schema']=='qortara/source-task-fit-reference-review/1'
+          assert fit['state']=='BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED'
+          assert fit['governed_review_id']=='governed:local-skills/mcp-vetting'
+          assert fit['route']=='security/supply-chain'
+          assert fit['source_snapshot_commit']=='31a8c518dd97b7828adcc728202fa41388a306d7'
+          assert fit['source_snapshot_tree']=='e6d5dfeb42bcd7777ddff52605922fead62135ff'
+          assert fit['entrypoint_git_blob_sha1']=='37a13d7296c7d3d87dc360988bc6aca1f873c4db'
+          assert {x['role'] for x in fit['source_evidence']}=={
+              'TRIGGER_AND_LIMIT','METHOD_STEPS','EVIDENCE_AND_REPORT','SAFETY_BOUNDARY'}
+          assert len(fit['source_evidence'])==4
+          assert fit['acceptance_scenarios_planned_not_executed']==5
+          assert fit['actual_consumer_host_task_runs']==0
+          assert len(fit['broader_claims_not_supported'])>=2
+          assert fit['source_quotes_prove_bytes_not_reviewers_semantic_conclusion']
+          for row in fit['source_evidence']:
+              assert row['source_url'].startswith(
+                  'https://github.com/Knapp-Kevin/skillz/blob/31a8c518dd97b7828adcc728202fa41388a306d7/')
+              assert hashlib.sha256(row['original_lines_for_review'].encode()).hexdigest()==row['exact_excerpt_sha256']
+          for field in ('rights_qualified','host_validated','outcome_coverage_qualified',
+                        'operator_source_acceptance_signed','prism_invoked',
+                        'composition_eligible','production_eligible'):
+              assert fit[field] is False
+          print('PINNED TASK-FIT SOURCE PASS: bounded MCP procedure, four original source roles, five future scenarios, zero admission')
           route=json.loads((root/'mcp-route.json').read_text())
           cited=json.loads((root/'mcp-pinned-citation.json').read_text())
           assert route['schema']=='qortara/original-source-reference-dossier/1'
