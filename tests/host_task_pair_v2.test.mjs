@@ -20,17 +20,18 @@ function ready({requestHex,holoSha256}){return {schema:'qortara/local-eligibilit
  status:'GUEST_COMPLETED',application:'Qortara Skills Eligibility',
  requestHex,response:'eligible',responseHex:'656c696769626c65',
  engine:'prism-code@0.9.5',artifact:{sha256:holoSha256},productionEligible:false,exitCode:0};}
-async function makeCandidate(id,{nonce='b'}={}){
+async function makeCandidate(id,{nonce='b',sourceBound=true}={}){
  const registry=await loadFirstPartyPilots();
  const {plan,methods}=createRecipeAdapter(registry)(recipeForPilot(id,registry));
  const signer=createComposer({
   holoSha256:PIN,runPrism:ready,
-  sourceApprovalBindings:{[id]:'1'.repeat(64)},
+  ...(sourceBound?{sourceApprovalBindings:{[id]:'1'.repeat(64)}}:{}),
   assertMethod:async({subjectSha256})=>({
    issuer:'fixture-only-not-real-approval',subjectSha256,
    proofDigest:nonce.repeat(64),
-   sourceBindingSha256:'1'.repeat(64),
-   sourceAcceptanceProofSha256:'2'.repeat(64),
+   ...(sourceBound?{
+    sourceBindingSha256:'1'.repeat(64),
+    sourceAcceptanceProofSha256:'2'.repeat(64)}:{}),
    evidence:true,rights:true,authority:true,coverage:true})
  });
  const pkg=await signer(plan,methods);
@@ -70,6 +71,33 @@ test('all eight historical original source commits enter strict unqualified host
   assert.equal(verifyHostTaskEvidence(input).rawTranscriptBytesMatched,true);
  }
  assert.equal(PILOT_DEFINITIONS.length,8);
+});
+test('real-guest-format P0 fixture can be observed without signing or source acceptance',async()=>{
+ const pkg=await makeCandidate('release-readiness-review-v2',{sourceBound:false});
+ const receipt=JSON.parse(pkg.files['RECEIPT.json']);
+ assert.equal(receipt.sourceApprovalRequired,undefined);
+ const p=makeCase(pkg,'release-readiness-review-v2','positive','chatgpt','p0-plus');
+ const n=makeCase(pkg,'release-readiness-review-v2','negative','chatgpt','p0-minus');
+ assert.equal(p.record.candidate.sourceProofMode,
+  'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL');
+ assert.equal(n.record.candidate.sourceProofMode,
+  'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL');
+ assert.equal(verifyHostTaskEvidence(p).rawTranscriptBytesMatched,true);
+ const pair=inspectHostTaskPair([p,n]);
+ assert.equal(pair.skillId,'release-readiness-review-v2');
+ assert.equal(pair.behavioralOutcome,'NOT_ADJUDICATED');
+ assert.equal(pair.sourceRightsEstablished,false);
+ assert.equal(pair.hostValidated,false);
+});
+test('a P0 fixture transcript record cannot impersonate a strict source-bound receipt',async()=>{
+ const pkg=await makeCandidate('release-readiness-review-v2',{sourceBound:false});
+ const p=makeCase(pkg,'release-readiness-review-v2','positive','claude','p0-original');
+ const forged=structuredClone(p.record);
+ delete forged.candidate.sourceProofMode;
+ assert.throws(()=>verifyHostTaskEvidence({...p,record:forged}),error('RECORD_TAMPERED'));
+ const strict=await makeCandidate('release-readiness-review-v2',{sourceBound:true});
+ assert.throws(()=>inspectHostTaskPair([p,makeCase(strict,'release-readiness-review-v2',
+  'negative','claude','strict')]),error('PAIR_SCOPE'));
 });
 test('new release readiness v2 skill supports a complete two-control intake without inventing host success',async()=>{
  const pkg=await makeCandidate('release-readiness-review-v2');
