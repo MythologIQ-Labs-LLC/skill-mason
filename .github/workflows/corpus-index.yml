@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_reference_dossier.py'
+      - 'tests/test_corpus_reference_dossier.py'
+      - 'docs/technical/corpus-reference-dossier-v1.md'
       - 'scripts/snapshot_accession.py'
       - 'tests/test_snapshot_accession.py'
       - 'docs/technical/snapshot-accession-v1.md'
@@ -38,6 +41,9 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'scripts/corpus_reference_dossier.py'
+      - 'tests/test_corpus_reference_dossier.py'
+      - 'docs/technical/corpus-reference-dossier-v1.md'
       - 'scripts/snapshot_accession.py'
       - 'tests/test_snapshot_accession.py'
       - 'docs/technical/snapshot-accession-v1.md'
@@ -87,6 +93,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_catalog_index.py' -v
           python3 -m unittest discover -s tests -p 'test_corpus_evolution.py' -v
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
+          python3 -m unittest discover -s tests -p 'test_corpus_reference_dossier.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
           python3 -m unittest discover -s tests -p 'test_live_capability_probe.py' -v
@@ -108,6 +115,55 @@ jobs:
           test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
           git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
           test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Inspect source-grounded reference method and line citation from pinned corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p corpus-reference-evidence
+          python3 -m scripts.corpus_reference_dossier \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route security/supply-chain \
+            > corpus-reference-evidence/mcp-route.json
+          python3 -m scripts.corpus_reference_dossier \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --route security/supply-chain \
+            --method governed:local-skills/mcp-vetting \
+            --file SKILL.md --lines 17:21 \
+            > corpus-reference-evidence/mcp-pinned-citation.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          root=Path('corpus-reference-evidence')
+          route=json.loads((root/'mcp-route.json').read_text())
+          cited=json.loads((root/'mcp-pinned-citation.json').read_text())
+          assert route['schema']=='qortara/original-source-reference-dossier/1'
+          assert route['route']==cited['route']=='security/supply-chain'
+          assert route['original_source_citation'] is None
+          assert route['linked_governed_review_count']==len(route['candidates'])
+          assert route['linked_governed_review_count']==len(cited['candidates'])
+          assert route['linked_governed_review_count']>0
+          rows={r['governed_review_id']:r for r in route['candidates']}
+          assert 'governed:local-skills/mcp-vetting' in rows
+          method=rows['governed:local-skills/mcp-vetting']
+          assert method['source_class']=='first-party'
+          assert method['inspection_state']=='PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED'
+          assert method['original_package']['entrypoint_url'].endswith('/skills/mcp-vetting/SKILL.md')
+          assert method['original_package']['complete_source_bytes_verified'] is True
+          assert method['original_package']['full_dependency_closure_proven'] is False
+          excerpt=cited['original_source_citation']
+          assert excerpt['source_url'].endswith('/skills/mcp-vetting/SKILL.md#L17-L21')
+          assert 'without installing, connecting, running, or invoking it' in excerpt['exact_original_lines_for_human_review']
+          assert hashlib.sha256(excerpt['exact_original_lines_for_human_review'].encode()).hexdigest()==excerpt['exact_source_excerpt_sha256']
+          for report in (route,cited):
+              assert report['exact_source_commit']=='31a8c518dd97b7828adcc728202fa41388a306d7'
+              assert report['exact_source_tree']=='e6d5dfeb42bcd7777ddff52605922fead62135ff'
+              for state in ('composition_eligible','production_eligible','host_validated',
+                            'rights_qualified','outcome_coverage_qualified','prism_invoked'):
+                  assert report[state] is False
+          print('PINNED REFERENCE DOSSIER PASS: original MCP source and bounded line evidence, no rights or host promotion')
+          PY
       - name: Reconcile complete opportunity space and perform cross-family lexical search
         shell: bash
         run: |
