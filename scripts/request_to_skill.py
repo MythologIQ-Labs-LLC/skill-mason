@@ -122,7 +122,7 @@ def _verified_scope_gap(graph, route, selected):
 
 
 
-# Four exact source-verified reviews. Three are source-only (route:null).
+# Six exact source-verified reviews. Five are source-only (route:null).
 # MCP vetting is route-bound to security/supply-chain but expressly DOES NOT
 # qualify that route's broader outcomes or the current user's free-text task.
 # Only expose the review for the selected pinned governed method and route.
@@ -131,6 +131,8 @@ _SOURCE_TASK_REVIEWS = {
     "local-skills/agent-postmortem": "source-task-fit-agent-postmortem-v1.json",
     "local-skills/permissions-review": "source-task-fit-permissions-review-v1.json",
     "local-skills/mcp-vetting": "source-task-fit-mcp-vetting-v1.json",
+    "local-skills/automation-receipts": "source-task-fit-automation-receipts-v1.json",
+    "local-skills/fact-check": "source-task-fit-fact-check-v1.json",
 }
 
 
