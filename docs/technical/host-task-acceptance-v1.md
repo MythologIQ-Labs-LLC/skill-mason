@@ -170,3 +170,34 @@ A successful pair reports `CAPTURE_PAIR_COMPLETE_AWAITING_INDEPENDENT_REVIEW`, o
 
 **It does not score the host answers.** Independent behavioral review of the raw, source-scoped positive and negative responses is still required, and the result deliberately remains `behavioralOutcome:NOT_ADJUDICATED`, `hostValidated:false`, `productionEligible:false`, `sourceRightsEstablished:false`. No credentials, private prompts, or raw transcripts are uploaded by this CLI. The new [focused test suite](../../tests/host_task_pair_v2.test.mjs) exercises real sealed-package filesystem reads, source-version changes, both receipt modes, missing controls and tampering, using fixture responses only; no actual consuming host was contacted.
 
+
+
+## Offline release-readiness-v2 answer scoring (no API key)
+
+The six already frozen fictional task cases in `tests/fixtures/release-readiness-v2-focused-6.json` can now be used for an **operator-controlled six-response trial**, without a provider API key. The `grade_release_readiness_v2_host.mjs` tool checks response schema, mandatory gate outcomes, exact case evidence, release decisions, unauthorized-action claims and missing/duplicate controls. It refuses oracle changes using the original Git blob pin.
+
+Use an operator-owned JSON answer file of this shape, with a **full structured answer for each of the six existing fixture IDs**:
+
+```json
+{
+  "schema": "qortara/release-readiness-v2-offline-host-answers/1",
+  "sourceMethod": "release-readiness-review-v2",
+  "sourceSha256": "608bb8a70626faae7083bcd9fc97a4b284d5f53cb6a083285da273145f06792f",
+  "sourceCommit": "1166781731db2c2b1456125ac4876a5853a557e2",
+  "evidenceClass": "OPERATOR_SUPPLIED_UNATTESTED",
+  "reportedHost": {"provider": "chatgpt", "model": "operator-reported-model-id"},
+  "answers": []
+}
+```
+
+The empty `answers` array is a **nonpassing skeleton**, not a completed trial. Each actual response must have `id`, `sourceMethod`, `policyState`, `decision`, `analysis`, `gateResults` (with gate/status/verbatim case evidence), `nextCheck`, `toolsExecuted:[]`, `releasePublished:false`, and `ownerApprovalGranted:false`. The existing non-independent authored example `docs/evidence/release-readiness-v2-direct-6.json` illustrates six complete response objects, but **is not an actual consuming-host transcript**.
+
+```sh
+node scripts/grade_release_readiness_v2_host.mjs \
+  --answers /absolute/path/host-answers.json \
+  --out /absolute/path/new-score.json
+```
+
+The scorer runs offline, invokes **zero models**, requires all six cases, refuses output overwrite and symlinked input, and writes a private mode-0600 report with individual failure codes and input hash. A six-of-six match means **frozen case constraints matched**, not that a host installed the generated skill or an independent reviewer verified the model. Even at six-of-six, the report says `hostValidated:false`, `actualHostOriginVerified:false`, `semanticQualityIndependentlyReviewed:false`, `sourceRightsEstablished:false`, and `productionEligible:false`.
+
+For a full host claim, separately capture the original prompt, input, skill package hash, actual response, source-pinned candidate, and verified positive/negative pair using `host-task-evidence.mjs`. A human reviewer still needs to examine the *actual* response quality beyond these deterministic oracle constraints. Do not commit private operator transcripts or session details.
