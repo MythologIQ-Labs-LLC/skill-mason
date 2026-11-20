@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1930">
+  <meta name="description" content="Try four evidence-grounded agent skill configurations in your own host. No model API key. No transcript upload.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./trial.css">
+  <link rel="icon" type="image/webp" href="./assets/qortara-skills-icon.webp">
+  <title>Four-arm skill trial | Qortara Skills</title>
+</head>
+<body>
+  <a href="#trial-main" class="skip">Skip to trial</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Qortara Skills home"><img src="./assets/qortara-skills-icon.webp" alt="" width="40" height="40"><span>ortara <strong>Skills</strong></span></a>
+    <span class="pill">Unqualified public trial</span>
+    <a class="repo" href="https://github.com/MythologIQ-Labs-LLC/skill-mason" rel="noopener noreferrer">GitHub</a>
+  </header>
+  <main id="trial-main" class="container trial-container">
+    <section class="trial-hero">
+      <p class="trial-kicker">REAL AGENT OUTPUTS · NO API KEYS</p>
+      <h1>Does combining skills actually help?</h1>
+      <p>Compare a baseline, CI triage, release readiness and their combined instructions on the same eight fictional cases. Copy the task into a fresh session in your own agent, then paste the complete reply here. This browser does not invoke a model, upload your answers, or issue production authority.</p>
+      <p class="trial-disclaimer">Research preview only. Source instructions are historically pinned but <strong>not</strong> source-rights approved, Prism-qualified, or native host installed. An answer and its reported host are not independently verified.</p>
+    </section>
+    <section class="trial-panel" aria-label="Trial workspace">
+      <div class="trial-toolbar">
+        <div>
+          <p class="trial-kicker">YOUR LOCAL WORKSPACE</p>
+          <h2 id="progress-label">0 of 32 trial slots recorded</h2>
+          <progress id="trial-progress" value="0" max="32" aria-label="Recorded trial slots"></progress>
+          <p class="trial-muted">One new agent session per case and arm. The site keeps replies in memory until you export them.</p>
+        </div>
+        <div class="trial-actions">
+          <button id="export-progress" type="button" class="secondary" disabled>Save progress</button>
+          <label class="trial-import-label" for="import-progress">Resume from file</label>
+          <input id="import-progress" type="file" accept=".json,application/json" aria-label="Import previously saved trial workspace">
+          <button id="export-complete" type="button" class="primary" disabled>Export 32 replies</button>
+        </div>
+      </div>
+      <div class="trial-fields">
+        <div>
+          <label for="trial-host">Agent host for all 32 sessions</label>
+          <select id="trial-host">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
+            <option value="other">Other agent</option>
+          </select>
+        </div>
+        <div>
+          <label for="trial-arm">Instruction arm</label>
+          <select id="trial-arm">
+            <option value="baseline">Baseline: no skill</option>
+            <option value="ci_only">CI Triage v5 only</option>
+            <option value="release_only">Release Readiness v2 only</option>
+            <option value="combined">Combined source-pinned skill</option>
+          </select>
+        </div>
+        <div>
+          <label for="trial-case">Fictional evidence case</label>
+          <select id="trial-case"></select>
+        </div>
+      </div>
+      <p id="trial-state" class="trial-status" role="status" aria-live="polite">Loading the original source-pinned trial packet…</p>
+      <p id="trial-version" class="trial-muted trial-version"></p>
+      <div class="trial-workspace">
+        <section class="trial-step">
+          <div class="trial-step-head"><h3>1. Copy to a fresh agent session</h3><button id="copy-prompt" class="primary" type="button" disabled>Copy full task</button></div>
+          <p>For nonbaseline arms, this includes the complete original method instructions and the selected evidence case. It is pasted-instruction emulation, not native skill installation. Keep tools disabled.</p>
+          <label for="trial-prompt">Exact trial prompt</label>
+          <textarea id="trial-prompt" rows="12" readonly spellcheck="false" aria-label="Read-only prompt for selected trial arm and case"></textarea>
+        </section>
+        <section class="trial-step">
+          <div class="trial-step-head"><h3>2. Record the actual reply</h3><span class="trial-muted" id="slot-label">Not recorded</span></div>
+          <p>Paste the agent's unedited answer, even if it is wrong or refuses. Do not paste real credentials, private logs or personally identifying information.</p>
+          <label for="trial-response">Raw host reply</label>
+          <textarea id="trial-response" rows="12" maxlength="16000" spellcheck="false" placeholder="Paste the complete response from your fresh agent session here…" disabled></textarea>
+          <div class="trial-step-actions">
+            <button id="save-answer" type="button" class="primary" disabled>Record this reply</button>
+            <button id="remove-answer" type="button" class="secondary" disabled>Remove this reply</button>
+            <button id="next-slot" type="button" class="secondary" disabled>Next unrecorded slot</button>
+          </div>
+        </section>
+      </div>
+      <p class="trial-muted">The output JSON is compatible with the repository's <code>public-four-arm-trial.mjs --score</code> and blind qualitative review tools. Slot labels are local pseudonyms, <strong>not</strong> independently authenticated host session IDs.</p>
+    </section>
+    <section class="trial-bottom">
+      <div>
+        <h2>What makes a useful result?</h2>
+        <p>Correct first failures, separate independent blockers, version-bound release decisions, no invented evidence, no secret exposure and actionable checks. A polished but factually false answer is a failure. The offline lexical scorer cannot establish semantic accuracy, so use independent evidence-grounded review for serious comparisons.</p>
+      </div>
+      <div>
+        <h2>Share your observations</h2>
+        <p>Use the existing <a href="https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml" rel="noopener noreferrer">external trial feedback form</a>. Share sanitized findings, not unreviewed transcripts or local progress files. <a href="https://github.com/MythologIQ-Labs-LLC/skill-mason/blob/main/trials/ci-release-four-arm/README.md" rel="noopener noreferrer">Read the full comparison guide</a>.</p>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><span>Qortara Skills · Research preview · No automatic uploads</span><a href="./">Back to skill builder</a></footer>
+  <script type="module" src="./trial.js"></script>
+</body>
+</html>
