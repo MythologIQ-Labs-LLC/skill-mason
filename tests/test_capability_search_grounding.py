@@ -87,10 +87,11 @@ class SourceGroundedSearchTests(unittest.TestCase):
         self.assertEqual(_tokens("JOB-MONITORING / job_monitoring"),
                          frozenset({"job", "monitoring"}))
         self.assertEqual(_tokens("Café cafe\u0301"), frozenset({"café"}))
-        self.assertEqual(self.result("JOB-MONITORING"),
-                         self.result("job monitoring"))
-        self.assertEqual(self.result("  job   monitoring  "),
-                         self.result("job monitoring"))
+        variants = ("JOB-MONITORING", "job monitoring", "  job   monitoring  ")
+        matches = [
+            [row["path"] for row in self.result(query)["routes"]]
+            for query in variants]
+        self.assertEqual(matches, [["operations/job-monitoring"]] * 3)
 
     def test_given_a_multiword_query_then_terms_may_come_from_distinct_actual_fields(self):
         self.assertEqual(
@@ -103,8 +104,7 @@ class SourceGroundedSearchTests(unittest.TestCase):
         # Only research has this actual word in this fixture.
         self.assertEqual(all_routes["total_matches"], 1)
         broad = self.result("check", limit=1)
-        self.assertEqual(broad["matched_route_count"] if "matched_route_count" in broad
-                         else broad["total_matches"], 1)
+        self.assertEqual(broad["total_matches"], 1)
         self.assertFalse(broad["truncated"])
         # "source" belongs to one route; the three route IDs all contain
         # distinct tokens. Replicate an actual shared term in source values.
