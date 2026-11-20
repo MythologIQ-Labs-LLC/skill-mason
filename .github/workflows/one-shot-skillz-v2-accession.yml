@@ -1,0 +1,139 @@
+name: One-shot genuine Skillz v1-to-v2 accession preview
+on:
+  push:
+    branches:
+      - feature/skillz-v2-source-accession-20261120
+permissions:
+  contents: write
+jobs:
+  inspect-exact-snapshots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - name: Checkout Skill Mason dedicated review branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - name: Checkout immutable original v1 publication
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          path: skillz-v1-publication
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Checkout immutable new v2 publication
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Knapp-Kevin/skillz
+          ref: 7bc3c6a08612bab8bbb2caa642f0136f7ae44b9d
+          path: skillz-v2-publication
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Materialize and authenticate both exact source trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C skillz-v1-publication rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
+          test "$(git -C skillz-v2-publication rev-parse HEAD)" = 7bc3c6a08612bab8bbb2caa642f0136f7ae44b9d
+          git -C skillz-v1-publication -c core.hooksPath=/dev/null worktree add --detach ../skillz-v1-source 31a8c518dd97b7828adcc728202fa41388a306d7
+          git -C skillz-v2-publication -c core.hooksPath=/dev/null worktree add --detach ../skillz-v2-source 000de43c3a5e245d58aa9aa015c661d3288828a2
+          test "$(git -C skillz-v1-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+          test "$(git -C skillz-v2-source rev-parse 'HEAD^{tree}')" = 74a57111957f4275e91860125d64080b74bf4c78
+          echo "Both complete original source checkouts have exact commit and tree identity"
+      - name: Execute exact independent accession regression tests
+        run: python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
+      - name: Run existing production preflight on actual v1 and v2
+        run: |
+          python3 -m scripts.snapshot_accession \
+            --old-handoff skillz-v1-publication/registry/exports/skill-mason-v1 \
+            --old-source-checkout skillz-v1-source \
+            --candidate-handoff skillz-v2-publication/registry/exports/skill-mason-v2 \
+            --candidate-source-checkout skillz-v2-source \
+            --candidate-manifest-blob b578d67d9c9fa32f13078f5ef05202c45bdc5fba \
+            --candidate-source-commit 000de43c3a5e245d58aa9aa015c661d3288828a2 \
+            --candidate-source-tree 74a57111957f4275e91860125d64080b74bf4c78 \
+            --report docs/evidence/skillz-v2-snapshot-preflight-20261120.json
+      - name: Independently cross-check emitted full population delta and authority holds
+        run: |
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          report_path = Path("docs/evidence/skillz-v2-snapshot-preflight-20261120.json")
+          report = json.loads(report_path.read_text())
+          old = Path("skillz-v1-publication/registry/exports/skill-mason-v1")
+          new = Path("skillz-v2-publication/registry/exports/skill-mason-v2")
+          expected = json.loads((new/"delta-v1-v2.json").read_text())
+          old_rows = {r["record_id"]:r for r in map(json.loads,(old/"governed.ndjson").read_text().splitlines())}
+          new_rows = {r["record_id"]:r for r in map(json.loads,(new/"governed.ndjson").read_text().splitlines())}
+          assert len(old_rows)==1043 and len(new_rows)==1047
+          ids_old, ids_new = set(old_rows), set(new_rows)
+          assert sorted(ids_new-ids_old)==expected["added_record_ids"]
+          assert sorted(ids_old-ids_new)==expected["removed_from_governed_record_ids_retained_in_archival_source"]
+          assert len(expected["changed_records"])==36
+          for item in expected["changed_records"]:
+              name = item["record_id"]
+              assert old_rows[name] != new_rows[name]
+              assert item["old_review_status"]==old_rows[name]["review"]["semantic_status"]
+              assert item["new_review_status"]==new_rows[name]["review"]["semantic_status"]
+              for kind,key in ((old_rows,"old_record_sha256"),(new_rows,"new_record_sha256")):
+                  raw=json.dumps(kind[name],sort_keys=True,ensure_ascii=False,separators=(",",":")).encode()+b"\n"
+                  assert hashlib.sha256(raw).hexdigest()==item[key],name
+          assert len(expected["unchanged_record_ids"])==985
+          assert all(old_rows[r]==new_rows[r] for r in expected["unchanged_record_ids"])
+          assert report["state"]=="PINNED_SNAPSHOT_DIFF_ONLY"
+          assert report["governed"]["before"]==1043 and report["governed"]["after"]==1047
+          for key, value in (("added",26),("removed",22),("changed",36)):
+              assert report["governed"][key]["count"]==value
+          assert report["exact_revisions_differ"] and report["data_delta_nonempty"]
+          assert report["snapshot_accession_authorized"] is False
+          assert report["candidate_snapshot_auto_imported"] is False
+          assert report["candidate_rights_or_host_authority_established"] is False
+          assert report["candidate_publisher_independently_authenticated"] is False
+          assert report["composition_eligible"] is False
+          man=json.loads((new/"manifest.json").read_text())
+          archived={r["record_id"] for r in man["historical_review_companions"]["entries"]}
+          assert archived==ids_old-ids_new
+          for row in new_rows.values():
+              assert row["composition"]["eligibility"]=="not-assessed"
+          print("INDEPENDENT_V2_ACCESSION_PREVIEW",json.dumps({
+              "governed":{"old":1043,"new":1047,"added":26,"removed":22,"changed":36,"unchanged":985},
+              "source_files":{"old":report["tracked_source_files"]["before"],"new":report["tracked_source_files"]["after"]},
+              "observations":{"old":report["observed_source_rows"]["before"],"new":report["observed_source_rows"]["after"]},
+              "source_aware_observations":report["source_aware_observation_multiset"],
+              "review_transitions":report["review_status_transitions"],
+              "owner_acceptance":False,
+              "source_manifest_pin":"b578d67d9c9fa32f13078f5ef05202c45bdc5fba",
+              "evidence_sha256":hashlib.sha256(report_path.read_bytes()).hexdigest(),
+          },sort_keys=True))
+          memo = f"""# Skillz v2 candidate accession: executed source-byte preflight
+
+          **State:** Actual v1-to-v2 preflight completed; candidate **not yet admitted** or activated.
+
+          - Published v1: `Knapp-Kevin/skillz@efba572262fc5fa3ff1934b054aa4f15ce149c1a`, declared source `31a8c518dd97b7828adcc728202fa41388a306d7`.
+          - Published v2: `Knapp-Kevin/skillz@7bc3c6a08612bab8bbb2caa642f0136f7ae44b9d`, declared source `000de43c3a5e245d58aa9aa015c661d3288828a2`, exact manifest Git blob `b578d67d9c9fa32f13078f5ef05202c45bdc5fba`.
+          - Full corpus: 1,043 to 1,047 governed records. **26 added, 22 removed from active index (historical source evidence retained), 36 changed, 985 unchanged.**
+          - Source-byte check: {report["tracked_source_files"]["before"]} to {report["tracked_source_files"]["after"]} declared tracked files independently inspected against exact source checkouts.
+          - Discovery observation records: {report["observed_source_rows"]["before"]} to {report["observed_source_rows"]["after"]}; no observation may be treated as composable merely because a new source pin is available.
+          - [Exact machine-readable preflight receipt](../evidence/skillz-v2-snapshot-preflight-20261120.json) records all source/discovery/review deltas, provenance pointers and authority boundaries.
+
+          **Remaining holds:** An explicit publisher/pin trust decision, review of all changed source and review identities including 22 retirement statuses, native Qortara governance and owner GO. No new rights, host actions, safety clearance, behavioral validation, composable method or active Skill Mason catalog pin is approved by this evidence.
+
+          This review uses the existing `scripts.snapshot_accession` verifier and original Git objects. It is not a second exporter and does not follow moving `main`.
+          """
+          Path("docs/technical/skillz-v2-candidate-accession.md").write_text("\n".join(line[10:] if line.startswith("          ") else line for line in memo.splitlines())+"\n")
+          PY
+      - name: Commit only accession evidence to isolated branch
+        run: |
+          test "$(git branch --show-current)" = "feature/skillz-v2-source-accession-20261120"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/evidence/skillz-v2-snapshot-preflight-20261120.json docs/technical/skillz-v2-candidate-accession.md
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git commit -m "test(corpus): capture exact Skillz v1-to-v2 source-byte accession receipt"
+          git push origin HEAD:refs/heads/feature/skillz-v2-source-accession-20261120
