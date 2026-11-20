@@ -1,0 +1,2 @@
+label	network	expected	exit	result	command
+author-regenerate	none	exit 0	0	PASS	bash -c set -euo pipefail; cd eligibility; lexlean lock; lexlean fmt; lexlean lock; lexlean fmt --check; lexlean lock --check; cd ..; prismpm --project eligibil

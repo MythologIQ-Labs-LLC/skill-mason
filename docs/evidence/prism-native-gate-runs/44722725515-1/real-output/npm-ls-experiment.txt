@@ -1,0 +1,139 @@
+/home/runner/work/_temp/experiment-runtime
+├── @gar/promise-retry@1.0.3 extraneous
+├── @isaacs/nonrecursive-glob-match@1.1.0 extraneous
+├─┬ @npmcli/agent@5.0.2 extraneous
+│ ├── agent-base@9.0.0 deduped
+│ ├── http-proxy-agent@9.1.0 deduped
+│ ├── https-proxy-agent@9.1.0 deduped
+│ ├── lru-cache@11.5.3 deduped
+│ └── socks-proxy-agent@10.1.0 deduped
+├─┬ @npmcli/fs@6.0.0 extraneous
+│ └── semver@7.8.6 deduped
+├── @npmcli/redact@5.0.0 extraneous
+├─┬ @sigstore/bundle@5.0.0 extraneous
+│ └── @sigstore/protobuf-specs@0.5.2 deduped
+├── @sigstore/core@4.0.1 extraneous
+├── @sigstore/protobuf-specs@0.5.2 extraneous
+├─┬ @sigstore/sign@5.0.0 extraneous
+│ ├── @gar/promise-retry@1.0.3 deduped
+│ ├── @sigstore/bundle@5.0.0 deduped
+│ ├── @sigstore/core@4.0.1 deduped
+│ ├── @sigstore/protobuf-specs@0.5.2 deduped
+│ ├── make-fetch-happen@16.0.1 deduped
+│ └── proc-log@7.0.0 deduped
+├─┬ @sigstore/tuf@5.0.0 extraneous
+│ ├── @sigstore/protobuf-specs@0.5.2 deduped
+│ └── tuf-js@6.0.3 deduped
+├─┬ @sigstore/verify@4.1.2 extraneous
+│ ├── @sigstore/bundle@5.0.0 deduped
+│ ├── @sigstore/core@4.0.1 deduped
+│ └── @sigstore/protobuf-specs@0.5.2 deduped
+├── @tufjs/canonical-json@2.0.0 extraneous
+├─┬ @tufjs/models@5.0.3 extraneous
+│ ├── @tufjs/canonical-json@2.0.0 deduped
+│ └── minimatch@11.0.9 deduped
+├── agent-base@9.0.0 extraneous
+├── balanced-match@4.0.4 extraneous
+├─┬ brace-expansion@5.0.13 extraneous
+│ └── balanced-match@4.0.4 deduped
+├─┬ cacache@21.0.2 extraneous
+│ ├── @npmcli/fs@6.0.0 deduped
+│ ├── fs-minipass@3.0.3 deduped
+│ ├── glob@14.0.6 deduped
+│ ├── lru-cache@11.5.3 deduped
+│ ├── minipass-collect@2.0.1 deduped
+│ ├── minipass-flush@1.0.7 deduped
+│ ├── minipass-pipeline@1.2.4 deduped
+│ ├── minipass@7.1.3 deduped
+│ ├── p-map@7.1.1 deduped
+│ └── ssri@14.0.0 deduped
+├── content-type@2.1.0 extraneous
+├─┬ debug@4.4.3 extraneous
+│ └── ms@2.1.3 deduped
+├─┬ fs-minipass@3.0.3 extraneous
+│ └── minipass@7.1.3 deduped
+├─┬ glob@14.0.6 extraneous
+│ ├── minimatch@11.0.9 deduped
+│ ├── minipass@7.1.3 deduped
+│ └── path-scurry@3.0.0 deduped
+├── http-cache-semantics@4.3.0 extraneous
+├─┬ http-proxy-agent@9.1.0 extraneous
+│ ├── agent-base@9.0.0 deduped
+│ ├── debug@4.4.3 deduped
+│ └── proxy-agent-negotiate@1.1.0 deduped
+├─┬ https-proxy-agent@9.1.0 extraneous
+│ ├── agent-base@9.0.0 deduped
+│ ├── debug@4.4.3 deduped
+│ └── proxy-agent-negotiate@1.1.0 deduped
+├─┬ iconv-lite@0.7.3 extraneous
+│ └── safer-buffer@2.1.2 deduped
+├── ip-address@10.7.6 extraneous
+├── lru-cache@11.5.3 extraneous
+├─┬ make-fetch-happen@16.0.1 extraneous
+│ ├── @gar/promise-retry@1.0.3 deduped
+│ ├── @npmcli/agent@5.0.2 deduped
+│ ├── @npmcli/redact@5.0.0 deduped
+│ ├── cacache@21.0.2 deduped
+│ ├── http-cache-semantics@4.3.0 deduped
+│ ├── minipass-fetch@6.0.1 deduped
+│ ├── minipass-flush@1.0.7 deduped
+│ ├── minipass-pipeline@1.2.4 deduped
+│ ├── minipass@7.1.3 deduped
+│ ├── negotiator@1.1.0 deduped
+│ ├── proc-log@7.0.0 deduped
+│ └── ssri@14.0.0 deduped
+├─┬ minimatch@11.0.9 extraneous
+│ ├── @isaacs/nonrecursive-glob-match@1.1.0 deduped
+│ └── brace-expansion@5.0.13 deduped
+├─┬ minipass-collect@2.0.1 extraneous
+│ └── minipass@7.1.3 deduped
+├─┬ minipass-fetch@6.0.1 extraneous
+│ ├── iconv-lite@0.7.3 deduped
+│ ├── minipass-sized@2.0.0 deduped
+│ ├── minipass@7.1.3 deduped
+│ └── minizlib@3.1.0 deduped
+├─┬ minipass-flush@1.0.7 extraneous
+│ └─┬ minipass@3.3.6 extraneous
+│   └── yallist@4.0.0 deduped
+├─┬ minipass-pipeline@1.2.4 extraneous
+│ └─┬ minipass@3.3.6 extraneous
+│   └── yallist@4.0.0 deduped
+├─┬ minipass-sized@2.0.0 extraneous
+│ └── minipass@7.1.3 deduped
+├── minipass@7.1.3 extraneous
+├─┬ minizlib@3.1.0 extraneous
+│ └── minipass@7.1.3 deduped
+├── ms@2.1.3 extraneous
+├─┬ negotiator@1.1.0 extraneous
+│ └── content-type@2.1.0 deduped
+├── p-map@7.1.1 extraneous
+├─┬ path-scurry@3.0.0 extraneous
+│ ├── lru-cache@11.5.3 deduped
+│ └── minipass@7.1.3 deduped
+├─┬ prism-code@0.9.5 extraneous
+│ ├── @sigstore/bundle@5.0.0 deduped
+│ ├── @sigstore/protobuf-specs@0.5.2 deduped
+│ ├── @sigstore/sign@5.0.0 deduped
+│ ├── @sigstore/tuf@5.0.0 deduped
+│ └── @sigstore/verify@4.1.2 deduped
+├── proc-log@7.0.0 extraneous
+├─┬ proxy-agent-negotiate@1.1.0 extraneous
+│ └── UNMET OPTIONAL DEPENDENCY kerberos@^2.0.0
+├── safer-buffer@2.1.2 extraneous
+├── semver@7.8.6 extraneous
+├── smart-buffer@4.2.0 extraneous
+├─┬ socks-proxy-agent@10.1.0 extraneous
+│ ├── agent-base@9.0.0 deduped
+│ ├── debug@4.4.3 deduped
+│ └── socks@2.8.11 deduped
+├─┬ socks@2.8.11 extraneous
+│ ├── ip-address@10.7.6 deduped
+│ └── smart-buffer@4.2.0 deduped
+├─┬ ssri@14.0.0 extraneous
+│ └── minipass@7.1.3 deduped
+├─┬ tuf-js@6.0.3 extraneous
+│ ├── @gar/promise-retry@1.0.3 deduped
+│ ├── @tufjs/models@5.0.3 deduped
+│ └── debug@4.4.3 deduped
+└── yallist@4.0.0 extraneous
+
