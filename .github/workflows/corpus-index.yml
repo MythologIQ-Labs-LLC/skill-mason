@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'scripts/catalog_index.py'
+      - 'bin/qortara-skills.mjs'
+      - 'tests/corpus_reference_cli.test.mjs'
+      - 'docs/technical/local-cli.md'
       - 'scripts/corpus_reference_dossier.py'
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
@@ -45,6 +48,9 @@ on:
     branches: [main]
     paths:
       - 'scripts/catalog_index.py'
+      - 'bin/qortara-skills.mjs'
+      - 'tests/corpus_reference_cli.test.mjs'
+      - 'docs/technical/local-cli.md'
       - 'scripts/corpus_reference_dossier.py'
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
@@ -220,6 +226,44 @@ jobs:
                             'rights_qualified','outcome_coverage_qualified','prism_invoked'):
                   assert report[state] is False
           print('PINNED REFERENCE DOSSIER PASS: original MCP source and bounded line evidence, no rights or host promotion')
+          PY
+      - name: Exercise normal Node CLI against the exact original 48-source corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/corpus_reference_cli.test.mjs
+          node bin/qortara-skills.mjs references --all-first-party \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/node-first-party-inventory.json
+          node bin/qortara-skills.mjs references --route security/supply-chain \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/node-mcp-route.json
+          node bin/qortara-skills.mjs references --route security/supply-chain \
+            --method governed:local-skills/mcp-vetting \
+            --file SKILL.md --lines 17:21 \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/node-mcp-citation.json
+          node bin/qortara-skills.mjs task-fit \
+            --review docs/evidence/source-task-fit-mcp-vetting-v1.json \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/node-mcp-task-fit.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path('corpus-reference-evidence')
+          for original, node in (
+              ('first-party-inventory.json','node-first-party-inventory.json'),
+              ('mcp-route.json','node-mcp-route.json'),
+              ('mcp-pinned-citation.json','node-mcp-citation.json'),
+              ('mcp-narrow-task-fit.json','node-mcp-task-fit.json')):
+              a=json.loads((base/original).read_text())
+              b=json.loads((base/node).read_text())
+              assert a==b,(original,node,'CLI changed original source inspector evidence')
+          print('ORIGINAL CORPUS USER CLI PASS: 48 records, route, exact source quotation and bounded task-fit; 4/4 byte-equivalent records with direct Python')
           PY
       - name: Reconcile complete opportunity space and perform cross-family lexical search
         shell: bash
