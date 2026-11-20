@@ -26,6 +26,14 @@ The packet contains:
 
 Every preview includes the original source SHA-256 and commit, and a SHA-256 of the exact instructions. Keep those values unchanged when recording responses. If you're concerned about response length, **do not shorten or edit** the skill during the first trial; report that it was too long or impractical. That is useful negative quality data.
 
+## Preview version and additional novel cases
+
+The rendered `combined` instructions now include an explicit interface for **CI observation versus release-policy authority**, historical retries, exact-head scope, missing required platforms, signer-root conflicts and concise follow-up checks. Original first-party source procedures remain unchanged.
+
+**The rendered `contentSha256` is the instruction identity.** Compiler changes may produce a *new* digest even when original source methods are unchanged. Do not substitute a current-`main` digest into an earlier captured trial or claim the arms were equivalent. Keep the exact source checkout/commit and packet alongside each operator response set. For older captured responses, run the matching earlier checkout's scorer; this checkout intentionally refuses mismatched preview bytes.
+
+There is also a separate, [eight-case novel input set](../../tests/fixtures/cross-method-novel-direct-probe-v1.json) covering additional target and policy conflicts. It contains **no answer oracles** and is intended for further qualitative review. The [direct GPT-6 source-guided sample responses](../../docs/evidence/ci-release-combined-direct-inference-novel-8.json) and [non-independent case-by-case review](../../docs/evidence/ci-release-combined-direct-probe-review-20261120.md) are published transparently; **do not share those sample responses with a model or reviewer if trying to run a blinded or independent evaluation.** They do not measure actual consuming-host improvement.
+
 ## Run real model/agent tests
 
 For each case and arm, start a new **tool-disabled** conversation with a consistent model and settings. In the baseline arm use no special skill. For other arms, paste the corresponding `instructions` string in the host's permitted user instructions, followed by the exact case prompt and each evidence line, for example `[policy] ...`. This is **pasted-instruction emulation**, not proof of native skill installation. Do not grant tools or ask the model to execute commands merely because an instruction file is present.
