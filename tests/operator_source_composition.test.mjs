@@ -110,6 +110,7 @@ async function scenario(overrides={},actions={}){
    sourceRegistry:registry,recipe,preflight,operatorTrust,
    expectedSourceBindingSha256:preflight.binding_sha256,
    expectedMethodSha256:original.method.sha256,
+   expectedPackageSha256:original.package_sha256,
    expectedSnapshotSha256:registry.sourceSnapshot.sha256,
    readOperatorAcceptance,assertSignedMethod:factSigner,
    holoPath:holo,holoSha256:sha(raw),outputRoot:root,nowEpoch:()=>NOW,
@@ -136,6 +137,7 @@ test('actual original source, two real signature verifiers, mock guest, and seal
   const result=await composeOperatorBoundP0(f.input);
   assert.equal(result.state,'STRICT_SIGNED_SOURCE_P0_DEVELOPMENT_CANDIDATE');
   assert.equal(result.methodId,id);
+  assert.equal(result.sourcePackageSha256,f.registry.components.find(x=>x.method_id===id).package_sha256);
   assert.equal(result.guestInvoked,true);
   assert.deepEqual(f.calls(),{accepted:1,signedFacts:1,guests:1});
   const pkg=await readPackage(result.sealedOutput);
@@ -152,7 +154,7 @@ test('actual original source, two real signature verifiers, mock guest, and seal
  }finally{await rm(f.root,{recursive:true,force:true});}
 });
 test('missing independent source, method or snapshot pin refuses before either signer or guest',async()=>{
- for(const key of ['expectedSourceBindingSha256','expectedMethodSha256','expectedSnapshotSha256']){
+ for(const key of ['expectedSourceBindingSha256','expectedMethodSha256','expectedPackageSha256','expectedSnapshotSha256']){
   const f=await scenario({[key]:undefined});
   try{
    await assert.rejects(composeOperatorBoundP0(f.input),{code:'OPERATOR_PINS'});
@@ -161,7 +163,7 @@ test('missing independent source, method or snapshot pin refuses before either s
  }
 });
 test('operator method SHA and snapshot SHA substitutions cannot be copied from source',async()=>{
- for(const key of ['expectedSourceBindingSha256','expectedMethodSha256','expectedSnapshotSha256']){
+ for(const key of ['expectedSourceBindingSha256','expectedMethodSha256','expectedPackageSha256','expectedSnapshotSha256']){
   const f=await scenario({[key]:'f'.repeat(64)});
   try{
    await assert.rejects(composeOperatorBoundP0(f.input),{code:'SOURCE_METHOD_MISMATCH'});
