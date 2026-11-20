@@ -227,8 +227,11 @@ def _observations(discovery, manifest, source_checkout, counts, records):
     physical_count = (sum(r["identity"]["local_package"] is not None
                           for r in reviewed_first)
                       if all(local_claims) else counts["first_party"])
+    tracked_entrypoints = sorted(p for p in index
+                                 if p.startswith("skills/") and p.endswith("/SKILL.md"))
     require(len(reviewed_first) == counts["first_party"] and
             len(first) == physical_count and
+            sorted(first) == tracked_entrypoints and
             all(p in index for p in first + engine),
             "SNAPSHOT_COUNT", "first party package entrypoint population differs")
 
