@@ -335,6 +335,12 @@
           "text": "LOG_HEAD d40 compile failed E0432; earlier unit skipped"
         },
         {
+          "id": "job-unit-62",
+          "gate": "unit",
+          "revision": "dddddddddddddddddddddddddddddddddddddddd",
+          "text": "unit gate at LOG_HEAD d40 was skipped after compile failed; there is no observed unit result at FIX_HEAD e40"
+        },
+        {
           "id": "fix-note-61",
           "gate": "compile",
           "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
