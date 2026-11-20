@@ -48,7 +48,7 @@ function transcriptJSON(value){
    return x;
   refuse('REVIEW_CANONICAL','unsupported transcript JSON type');
  };
- return JSON.stringify(walk(value))+'\\n';
+ return JSON.stringify(walk(value))+'\n';
 }
 
 function exact(obj,fields,code){
