@@ -64,8 +64,8 @@ test('each directly authored output is a complete source-anchored read-only mode
   assert.ok(release,answer.id+' release');
   assert.match(content,/^ACTIONS_EXECUTED: NONE$/mu);
   assert.match(content,/^FINDINGS: .+/mu);
-  assert.ok(content.split(/\\r?\\n/u).filter(s=>s.startsWith('CI_STATE: ')).length===1);
-  assert.ok(content.split(/\\r?\\n/u).filter(s=>s.startsWith('RELEASE_DECISION: ')).length===1);
+  assert.ok(content.split(/\r?\n/u).filter(s=>s.startsWith('CI_STATE: ')).length===1);
+  assert.ok(content.split(/\r?\n/u).filter(s=>s.startsWith('RELEASE_DECISION: ')).length===1);
   const cited=/^EVIDENCE_IDS: (.+)$/mu.exec(content);
   assert.ok(cited,answer.id);
   const sources=new Set(task.evidence.map(e=>e.id));
@@ -82,7 +82,7 @@ test('generated combined preview includes specific cross-method corrections with
  const p=await buildPublicFourArmTrial();
  const combined=p.arms.combined.instructions;
  const ci=p.arms.ci_only.instructions,release=p.arms.release_only.instructions;
- assert.match(combined,/### CI triage \\+ release review: separate evidence axes/);
+ assert.match(combined,/### CI triage \+ release review: separate evidence axes/);
  assert.ok(combined.includes('CI observation and release readiness are DIFFERENT decisions'));
  assert.ok(combined.includes('A same-commit green retry is not proof of root-cause repair'));
  assert.ok(combined.includes('A queued/skipped/unrun target is NOT_ESTABLISHED'));
