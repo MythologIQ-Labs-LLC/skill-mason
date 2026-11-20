@@ -10,6 +10,7 @@ on:
       - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
       - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
+      - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'scripts/source_outcome_scope_review.py'
       - 'tests/test_source_outcome_scope_review.py'
       - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
@@ -33,6 +34,7 @@ on:
       - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
       - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
+      - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'scripts/source_outcome_scope_review.py'
       - 'tests/test_source_outcome_scope_review.py'
       - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
@@ -109,6 +111,7 @@ jobs:
             ("repo-doctor","software-engineering/maintenance","local-skills/repo-doctor"),
             ("agent-postmortem","agent-mcp-development/evaluation","local-skills/agent-postmortem"),
             ("permissions-review","security/identity-access","local-skills/permissions-review"),
+            ("mcp-vetting","security/supply-chain","local-skills/mcp-vetting"),
           ]
           for title,route,rid in matrix:
             result=evaluate_request(graph,
@@ -119,6 +122,9 @@ jobs:
             ref=result["reviewed_original_task_reference"]
             assert ref is not None,(title,"original source reference not found")
             assert ref["governed_review_id"]=="governed:"+rid
+            assert ref["reviewed_route_not_an_approved_task_match"]==(
+              "security/supply-chain" if title=="mcp-vetting" else None)
+            assert ref["source_only_review_no_route_claim"] is (title!="mcp-vetting")
             assert ref["state"]=="SOURCE_VERIFIED_TASK_REFERENCE_NOT_ADMITTED"
             assert ref["original_entrypoint"]=="skills/"+title+"/SKILL.md"
             assert len(ref["source_citations"])==4
@@ -134,7 +140,7 @@ jobs:
             assert result["production_eligible"] is False
             Path("request-evidence/"+title+"-task-reference.json").write_text(
               json.dumps(result,indent=2,sort_keys=True)+"\n")
-          print("PASS: three actual pinned originals joined to create and safely refused")
+          print("PASS: four actual pinned originals joined to create and safely refused")
           PY
           set +e
           node bin/qortara-skills.mjs create \
@@ -156,6 +162,34 @@ jobs:
           cli=json.loads((root/"repo-doctor-node-task-reference.json").read_text())
           assert direct==cli,"Node create must return exact source-linked task reference"
           print("PASS: normal Node create and C3/Python source review exact parity")
+          PY
+          set +e
+          node bin/qortara-skills.mjs create \
+            --request "Evaluate the named original task with exact pinned source evidence" \
+            --route security/supply-chain \
+            --host ChatGPT \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --method governed:local-skills/mcp-vetting \
+            > request-evidence/mcp-vetting-node-task-reference.json
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("request-evidence")
+          direct=json.loads((root/"mcp-vetting-task-reference.json").read_text())
+          cli=json.loads((root/"mcp-vetting-node-task-reference.json").read_text())
+          assert direct==cli,"Node create must reproduce routed original MCP review"
+          ref=cli["reviewed_original_task_reference"]
+          assert ref["reviewed_route_not_an_approved_task_match"]=="security/supply-chain"
+          assert ref["source_only_review_no_route_claim"] is False
+          assert ref["task_semantically_matched_to_user_request"] is False
+          assert cli["refusal"]["code"]=="RIGHTS_UNRESOLVED"
+          assert "METHOD_SCOPE_UNESTABLISHED" in cli["refusal"]["codes"]
+          assert cli["production_eligible"] is False
+          print("PASS: original MCP method has exact route-bound task reference AND negative scope boundary")
           PY
       - name: Real 247-route discovery from original pinned catalog through ordinary CLI
         shell: bash
