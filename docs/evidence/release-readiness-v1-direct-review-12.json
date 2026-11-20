@@ -119,7 +119,7 @@
           "evidenceIds": [
             "job-linux-30"
           ],
-          "finding": "Required Linux checks passed at b40."
+          "finding": "Exact b40 Linux build and required steps passed in job-linux-30; Windows status must be evaluated independently."
         },
         {
           "gate": "windows-signing",
@@ -191,7 +191,7 @@
           "evidenceIds": [
             "job-build-44"
           ],
-          "finding": "The build job passed at matching c40."
+          "finding": "Matching c40 build run job-build-44 completed successfully, independently of artifact-signature verification."
         },
         {
           "gate": "artifact-signature",
@@ -263,7 +263,7 @@
           "gate": "unit",
           "status": "NOT_ESTABLISHED",
           "evidenceIds": [
-            "log-old-60"
+            "job-unit-62"
           ],
           "finding": "Unit tests on d40 were skipped and no new e40 unit run has been supplied."
         }
@@ -293,7 +293,7 @@
           "evidenceIds": [
             "job-build-71"
           ],
-          "finding": "The build job succeeded for e40."
+          "finding": "The e40 build job-build-71 succeeded, but build success says nothing about dependency inventory completeness."
         },
         {
           "gate": "dependency-inventory",
@@ -357,7 +357,7 @@
           "evidenceIds": [
             "linux-91"
           ],
-          "finding": "Linux attempt 91 succeeded for f40."
+          "finding": "The f40 Linux job linux-91 passed; macOS was a separate required platform with no completed attempt."
         },
         {
           "gate": "macos",
