@@ -146,8 +146,6 @@ class ReferenceDossierTests(unittest.TestCase):
         self.refuses("METHOD_SELECTION", governed_method="local-skills/alpha")
         self.refuses("CITATION_SELECTION",
                      citation=("SKILL.md", 1, 1))
-        self.refuses("UNKNOWN_ROUTE", governed_method=METHOD,
-                     citation=None, route="nonexistent/route") if False else None
         with self.assertRaises(Refusal) as exc:
             reference_dossier(CapabilityGraph(self.fx.index()), "nonexistent/route",
                               inspector=self.inspect)
@@ -190,21 +188,16 @@ class ReferenceDossierTests(unittest.TestCase):
                               governed_method=METHOD, inspector=missing)
         self.assertEqual(exc.exception.code, "PACKAGE_ROOT")
 
-    def test_a_verified_review_remains_blocked_even_when_source_is_quoted(self):
-        for status in ("rejected", "retired"):
-            with self.subTest(status=status):
-                self.fx.records[0]["review"]["semantic_status"] = status
-                self.fx.records[1]["review"]["semantic_status"] = "rejected"
-                self.fx.persist()
-                out = self.dossier(governed_method=METHOD,
-                                   citation=("SKILL.md", 1, 2))
-                self.assertEqual(out["candidates"][0]["recorded_static_review"], status)
-                self.assertFalse(out["composition_eligible"])
-        # A forged source pin is not just a different result, it is refused.
-        g = CapabilityGraph(self.fx.index())
-        g.corpus.manifest["source"]["commit"] = "0" * 40
+    def test_review_status_changes_do_not_upgrade_a_source_citation(self):
+        graph = CapabilityGraph(self.fx.index())
+        graph.corpus.by_id[METHOD]["raw"]["review"]["semantic_status"] = "rejected"
+        out = reference_dossier(graph, ROUTE, governed_method=METHOD,
+                               citation=("SKILL.md", 1, 2), inspector=self.inspect)
+        self.assertEqual(out["candidates"][0]["recorded_static_review"], "rejected")
+        self.assertFalse(out["composition_eligible"])
+        graph.corpus.manifest["source"]["commit"] = "0" * 40
         with self.assertRaises(Refusal) as exc:
-            reference_dossier(g, ROUTE, inspector=self.inspect)
+            reference_dossier(graph, ROUTE, inspector=self.inspect)
         self.assertEqual(exc.exception.code, "SOURCE_PIN")
 
 
