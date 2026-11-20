@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','ci-failure-triage-v5','governance-drift-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','ci-failure-triage-v5','governance-drift-review','release-readiness-review']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -245,8 +245,28 @@ async function main(argv){
   const v5Pilot=await readPackage(join(pilotRoot,'ci-failure-triage-v5'));
   assert.equal(fromV5.files['SKILL.md'],v5Pilot.files['SKILL.md']);
   assert.equal(fromV5.files['SOURCES.json'],v5Pilot.files['SOURCES.json']);
+  const requestRelease='Review the supplied release candidate evidence against the accepted release policy and record missing signing, CI and provenance gates without publishing.';
+  const requestedRelease=await generateFirstPartyRequest({
+    request:requestRelease,capability:'review release readiness evidence',
+    methodId:'release-readiness-review',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedRelease.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedRelease.selectedMethod,'release-readiness-review');
+  assert.equal(requestedRelease.requestSemanticMatchVerified,false);
+  assert.equal(requestedRelease.sourceRightsVerified,false);
+  assert.equal(requestedRelease.productionEligible,false);
+  const fromRelease=await readPackage(join(requestRoot,'release-readiness-review'));
+  const releaseRendered=fromRelease.files['SKILL.md'].replaceAll(String.fromCharCode(92)+'_', '_');
+  assert.match(releaseRendered,/POLICY_NOT_ESTABLISHED/);
+  assert.match(releaseRendered,/READY_FOR_OWNER_DECISION/);
+  assert.match(releaseRendered,/FIX_HEAD/);
+  assert.equal(JSON.parse(fromRelease.files['RECEIPT.json']).hostValidated,false);
+  const originalRelease=await readPackage(join(pilotRoot,'release-readiness-review'));
+  assert.equal(fromRelease.files['SKILL.md'],originalRelease.files['SKILL.md']);
+  assert.equal(fromRelease.files['SOURCES.json'],originalRelease.files['SOURCES.json']);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+5,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+6,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -268,6 +288,11 @@ async function main(argv){
      packageManifestSha256:requestedV3.packageManifestSha256,
      state:requestedV3.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false},
+    firstPartyUserRequestRelease:{requestSha256:requestedRelease.requestSha256,
+      selectedMethod:requestedRelease.selectedMethod,requestedOutcome:requestedRelease.requestedOutcome,
+      packageManifestSha256:requestedRelease.packageManifestSha256,
+      state:requestedRelease.state,sourceRightsVerified:false,hostBehaviorValidated:false,
+      productionEligible:false},
     firstPartyUserRequestV4:{requestSha256:requestedV4.requestSha256,
      selectedMethod:requestedV4.selectedMethod,requestedOutcome:requestedV4.requestedOutcome,
      packageManifestSha256:requestedV4.packageManifestSha256,
