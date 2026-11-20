@@ -3,6 +3,15 @@ on:
   pull_request:
     paths:
       - 'web/**'
+      - 'src/backend/compose.mjs'
+      - 'src/backend/first-party-pilots.mjs'
+      - 'src/backend/recipe-adapter.mjs'
+      - 'src/backend/text-procedure.mjs'
+      - 'src/evaluation/public-four-arm-trial.mjs'
+      - 'pilots/first-party/ci-failure-triage-v5/procedure.json'
+      - 'pilots/first-party/release-readiness-review-v2/procedure.json'
+      - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
+      - 'tests/public_four_arm_trial.test.mjs'
       - '.github/workflows/pages.yml'
       - 'assets/brand/**'
       - 'trials/ci-failure-triage-v5/**'
@@ -12,6 +21,15 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'src/backend/compose.mjs'
+      - 'src/backend/first-party-pilots.mjs'
+      - 'src/backend/recipe-adapter.mjs'
+      - 'src/backend/text-procedure.mjs'
+      - 'src/evaluation/public-four-arm-trial.mjs'
+      - 'pilots/first-party/ci-failure-triage-v5/procedure.json'
+      - 'pilots/first-party/release-readiness-review-v2/procedure.json'
+      - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
+      - 'tests/public_four_arm_trial.test.mjs'
       - '.github/workflows/pages.yml'
       - 'assets/brand/**'
       - 'trials/ci-failure-triage-v5/**'
@@ -48,11 +66,29 @@ jobs:
           set -euo pipefail
           test -s web-dist/index.html
           test -s web-dist/app.js
+          test -s web-dist/trial.html
+          test -s web-dist/trial.js
+          test -s web-dist/trial.css
+          test -s web-dist/four-arm-trial.json
           test -s web-dist/style.css
           test -s web-dist/assets/qortara-skills-icon.webp
           test -s web-dist/assets/qortara-skills-banner.webp
           test -f web-dist/.nojekyll
           grep -qF './app.js' web-dist/index.html
+          grep -qF './trial.html' web-dist/index.html
+          grep -qF './trial.js' web-dist/trial.html
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const p=JSON.parse(readFileSync("web-dist/four-arm-trial.json","utf8"));
+            if(p.schema!=="qortara/public-four-arm-source-trial/1"||
+               p.taskCount!==8||p.armTaskCount!==32||
+               p.answerOraclesIncluded!==false||
+               p.sourceRightsApproved!==false||
+               p.productionEligible!==false||p.modelCalls!==0||
+               p.tasks.some(t=>"oracle" in t||"privateSyntheticCanaries" in t))
+              throw Error("Unsafe Pages trial output");
+            console.log("32 slot browser trial, no oracles, no signed authority");
+          '
           echo "Pages artifact has the built application entrypoint, runtime bundle, stylesheet and brand assets"
       - name: Upload static Pages build
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
