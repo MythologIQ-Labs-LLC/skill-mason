@@ -15,6 +15,10 @@ on:
       - 'bin/public-four-arm-review.mjs'
       - 'src/evaluation/public-four-arm-trial.mjs'
       - 'tests/public_four_arm_trial.test.mjs'
+      - 'tests/combined_novel_direct_quality.test.mjs'
+      - 'tests/fixtures/cross-method-novel-direct-probe-v1.json'
+      - 'docs/evidence/ci-release-combined-direct-inference-novel-8.json'
+      - 'docs/evidence/ci-release-combined-direct-probe-review-20261120.md'
       - 'trials/ci-release-four-arm/README.md'
       - 'docs/technical/four-arm-host-comparison-v1.md'
       - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
@@ -46,6 +50,10 @@ on:
       - 'bin/public-four-arm-review.mjs'
       - 'src/evaluation/public-four-arm-trial.mjs'
       - 'tests/public_four_arm_trial.test.mjs'
+      - 'tests/combined_novel_direct_quality.test.mjs'
+      - 'tests/fixtures/cross-method-novel-direct-probe-v1.json'
+      - 'docs/evidence/ci-release-combined-direct-inference-novel-8.json'
+      - 'docs/evidence/ci-release-combined-direct-probe-review-20261120.md'
       - 'trials/ci-release-four-arm/README.md'
       - 'docs/technical/four-arm-host-comparison-v1.md'
       - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
@@ -86,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
-          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/public_four_arm_trial.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
+          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/public_four_arm_trial.test.mjs tests/combined_novel_direct_quality.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
           git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs src/backend/operator-source-composition.mjs src/backend/operator-multi-source-composition.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
       - name: Produce public original-source four-arm task packet without signing, Prism or model calls
         shell: bash
