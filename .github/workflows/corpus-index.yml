@@ -10,6 +10,10 @@ on:
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
       - 'tests/test_source_only_fit_review.py'
+      - 'tests/corpus_three_originals_qualitative.test.mjs'
+      - 'tests/fixtures/corpus-three-originals-evaluation-6.json'
+      - 'docs/evidence/corpus-three-originals-direct-6.json'
+      - 'scripts/grade_corpus_three_originals.mjs'
       - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
       - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
@@ -60,6 +64,10 @@ on:
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
       - 'tests/test_source_only_fit_review.py'
+      - 'tests/corpus_three_originals_qualitative.test.mjs'
+      - 'tests/fixtures/corpus-three-originals-evaluation-6.json'
+      - 'docs/evidence/corpus-three-originals-direct-6.json'
+      - 'scripts/grade_corpus_three_originals.mjs'
       - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
       - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
@@ -306,6 +314,22 @@ jobs:
               assert direct==cli,(name,"CLI changed original source review")
           print("ALL 3 ORIGINAL SOURCE TASK CONTRACTS PASS: exact upstream packages, 15 planned scenarios, no false rights or host approval")
           PY
+      - name: Replay six original Skillz method tasks and adversarial qualitative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/corpus_three_originals_qualitative.test.mjs
+          node scripts/grade_corpus_three_originals.mjs > corpus-reference-evidence/three-source-direct-trial.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const q=JSON.parse(readFileSync("corpus-reference-evidence/three-source-direct-trial.json","utf8"));
+            if(q.total!==6||q.passed!==6||q.failed!==0||
+               q.distinctOriginalMethods!==3||
+               q.independentConsumingHostRuns!==0||
+               q.approvedForComposition!==0||q.productionEligible!==false)
+              process.exit(1);
+            console.log("3 ORIGINAL METHODS, 6 DIRECT AUTHOR-APPLIED CASES: PASS (not blind, no host use, no rights)");
+          '
       - name: Exercise normal Node CLI against the exact original 48-source corpus
         shell: bash
         run: |
