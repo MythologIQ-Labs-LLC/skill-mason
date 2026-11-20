@@ -71,7 +71,6 @@ class TaskFitSourceReviewTests(unittest.TestCase):
                          "/skills/mcp-vetting/SKILL.md#L1-L1")
         self.assertEqual(r["acceptance_scenarios_planned_not_executed"],5)
         self.assertEqual(r["actual_consumer_host_task_runs"],0)
-        self.assertIsNone(r["operator_source_acceptance_signed"] if False else None)
         for key in ("rights_qualified","host_validated","outcome_coverage_qualified",
                     "operator_source_acceptance_signed","prism_invoked",
                     "composition_eligible","production_eligible"):
