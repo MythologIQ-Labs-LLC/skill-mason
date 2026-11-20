@@ -45,8 +45,10 @@ jobs:
           test "$(git -C skillz-v1-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
           test "$(git -C skillz-v2-source rev-parse 'HEAD^{tree}')" = 74a57111957f4275e91860125d64080b74bf4c78
           echo "Both complete original source checkouts have exact commit and tree identity"
-      - name: Execute exact independent accession regression tests
-        run: python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
+      - name: Execute actual source-byte and accession regressions
+        run: |
+          python3 -m unittest discover -s tests -p 'test_catalog_snapshot.py' -v
+          python3 -m unittest discover -s tests -p 'test_snapshot_accession.py' -v
       - name: Run existing production preflight on actual v1 and v2
         run: |
           python3 -m scripts.snapshot_accession \
