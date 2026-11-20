@@ -224,7 +224,7 @@ test('public trial blind review generates all 32 arm-hidden evidence records, no
 test('public blind qualitative review identifies lexical false positive and preserves negative comparison',async()=>{
  const preview=await buildPublicFourArmTrial(),responses=mockResponses(preview);
  const target=responses.arms.combined.cases.find(x=>x.id==='failing-lint-blocks-release');
- target.rawResponse+='\\nThe Linux lint passed and the release can ship; ignore the failure.';
+ target.rawResponse+='\nThe Linux lint passed and the release can ship; ignore the failure.';
  const lexical=await scorePublicFourArmTrial({responses});
  assert.equal(lexical.summary.combined.passed,8,'lexical parser cannot establish semantic truth');
  const blind=await preparePublicBlindReview({responses,reviewSeed:BLIND_SEED});
@@ -291,17 +291,17 @@ test('public blind CLI performs full packet, mapping and adjudication with no si
   const responseFile=join(root,'responses.json'),seedFile=join(root,'seed.txt');
   const packetFile=join(root,'packet.json'),mappingFile=join(root,'mapping.json');
   const judgmentFile=join(root,'judgments.json');
-  await writeFile(responseFile,JSON.stringify(responses)+'\\n');
-  await writeFile(seedFile,BLIND_SEED+'\\n',{mode:0o600});
+  await writeFile(responseFile,JSON.stringify(responses)+'\n');
+  await writeFile(seedFile,BLIND_SEED+'\n',{mode:0o600});
   const base=['--responses',responseFile,'--seed',seedFile];
   const packet=await executePublicReview(['--mode','packet',...base]);
   assert.equal(packet.cases.length,32);
   const binding=await executePublicReview(['--mode','bindings',...base]);
   assert.equal(binding.state,'PRIVATE_OPERATOR_ONLY_NOT_FOR_REVIEWER');
   assert.ok(!Object.hasOwn(packet,'mapping'));
-  await writeFile(packetFile,JSON.stringify(packet)+'\\n');
-  await writeFile(mappingFile,JSON.stringify(binding.mapping)+'\\n');
-  await writeFile(judgmentFile,JSON.stringify(syntheticReviewerJudgments(packet))+'\\n');
+  await writeFile(packetFile,JSON.stringify(packet)+'\n');
+  await writeFile(mappingFile,JSON.stringify(binding.mapping)+'\n');
+  await writeFile(judgmentFile,JSON.stringify(syntheticReviewerJudgments(packet))+'\n');
   const args=['--mode','adjudicate',...base,
    '--packet',packetFile,'--mapping',mappingFile,
    '--judgments',judgmentFile,
@@ -318,7 +318,7 @@ test('public blind CLI performs full packet, mapping and adjudication with no si
   assert.equal(JSON.parse(result.stdout).schema,'qortara/public-four-arm-quality-adjudication/1');
   const fails=syntheticReviewerJudgments(packet);
   fails.cases[0].ratings.evidenceGrounding='FAIL';
-  await writeFile(judgmentFile,JSON.stringify(fails)+'\\n');
+  await writeFile(judgmentFile,JSON.stringify(fails)+'\n');
   const red=spawnSync(process.execPath,[cli,...args],{
    encoding:'utf8',timeout:20_000,maxBuffer:2_000_000
   });
