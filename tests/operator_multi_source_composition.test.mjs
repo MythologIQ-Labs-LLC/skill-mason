@@ -322,7 +322,7 @@ test('actual read-only CLI checks a sealed two-source candidate and exits nonzer
   '--expected-package-sha256',result.packageManifestSha256,
   '--cases',casesPath,'--responses',answerPath
  ];
- await writeFile(answerPath,JSON.stringify(syntheticResponses())+'\\n');
+ await writeFile(answerPath,JSON.stringify(syntheticResponses())+'\n');
  const pass=spawnSync(process.execPath,args,{encoding:'utf8',timeout:20_000});
  assert.equal(pass.status,0,pass.stderr);
  const positive=JSON.parse(pass.stdout);
@@ -331,7 +331,7 @@ test('actual read-only CLI checks a sealed two-source candidate and exits nonzer
  const denied=syntheticResponses();
  denied.cases[0].rawResponse=denied.cases[0].rawResponse.replace(
   'RELEASE_DECISION: HOLD','RELEASE_DECISION: READY_FOR_OWNER_DECISION');
- await writeFile(answerPath,JSON.stringify(denied)+'\\n');
+ await writeFile(answerPath,JSON.stringify(denied)+'\n');
  const fail=spawnSync(process.execPath,args,{encoding:'utf8',timeout:20_000});
  assert.equal(fail.status,2,fail.stderr);
  assert.equal(JSON.parse(fail.stdout).failed,1);
