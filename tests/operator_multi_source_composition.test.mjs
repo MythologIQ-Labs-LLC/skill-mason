@@ -6,6 +6,8 @@ import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {mkdtemp,rm,writeFile,readFile,access} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 import {composeOperatorBoundMultiP0} from '../src/backend/operator-multi-source-composition.mjs';
 import {scoreCombinedTrial} from '../src/evaluation/ci-release-combined-score.mjs';
 import {canonicalJSON,readPackage,verifyPackage} from '../src/backend/compose.mjs';
@@ -308,6 +310,31 @@ test('eight combined-task oracles are enforceable against the actual sealed gene
    'independentHostOriginAttested','independentReviewerAttested',
    'sourceMethodCompatibilitySemanticallyProven','productionEligible'])
   assert.equal(verdict[f],false);
+}));
+test('actual read-only CLI checks a sealed two-source candidate and exits nonzero on failed task',()=>withFixture(async f=>{
+ const result=await composeOperatorBoundMultiP0(f.input);
+ const answerPath=join(f.root,'operator-recorded-responses.json');
+ const casesPath=fileURLToPath(new URL(
+  './fixtures/combined-ci-release-boundaries-v1.json',import.meta.url));
+ const args=[
+  fileURLToPath(new URL('../bin/combined-ci-release-offline-score.mjs',import.meta.url)),
+  '--candidate-dir',result.sealedOutput,
+  '--expected-package-sha256',result.packageManifestSha256,
+  '--cases',casesPath,'--responses',answerPath
+ ];
+ await writeFile(answerPath,JSON.stringify(syntheticResponses())+'\\n');
+ const pass=spawnSync(process.execPath,args,{encoding:'utf8',timeout:20_000});
+ assert.equal(pass.status,0,pass.stderr);
+ const positive=JSON.parse(pass.stdout);
+ assert.equal(positive.passed,8);
+ assert.equal(positive.independentHostOriginAttested,false);
+ const denied=syntheticResponses();
+ denied.cases[0].rawResponse=denied.cases[0].rawResponse.replace(
+  'RELEASE_DECISION: HOLD','RELEASE_DECISION: READY_FOR_OWNER_DECISION');
+ await writeFile(answerPath,JSON.stringify(denied)+'\\n');
+ const fail=spawnSync(process.execPath,args,{encoding:'utf8',timeout:20_000});
+ assert.equal(fail.status,2,fail.stderr);
+ assert.equal(JSON.parse(fail.stdout).failed,1);
 }));
 test('combined-task oracle detects missing citation, fake source, secret leak, wrong decision and fabricated execution',()=>withFixture(async f=>{
  const result=await composeOperatorBoundMultiP0(f.input);
