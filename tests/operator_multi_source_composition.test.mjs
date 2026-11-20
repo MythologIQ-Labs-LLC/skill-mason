@@ -3,10 +3,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {mkdtemp,rm,writeFile,access} from 'node:fs/promises';
+import {mkdtemp,rm,writeFile,readFile,access} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {composeOperatorBoundMultiP0} from '../src/backend/operator-multi-source-composition.mjs';
+import {scoreCombinedTrial} from '../src/evaluation/ci-release-combined-score.mjs';
 import {canonicalJSON,readPackage,verifyPackage} from '../src/backend/compose.mjs';
 import {createSignedAssertionAdapter} from '../src/backend/signed-assertions.mjs';
 import {loadFirstPartyPilots,PILOT_HOST} from '../src/backend/first-party-pilots.mjs';
@@ -269,4 +270,74 @@ test('exclusive output prevents silent overwrite of an already sealed multi-meth
  const first=await composeOperatorBoundMultiP0(f.input);
  await assert.rejects(composeOperatorBoundMultiP0(f.input),{code:'EEXIST'});
  assert.equal(verifyPackage(await readPackage(first.sealedOutput)).packageSha256,first.packageManifestSha256);
+}));
+// These are entirely AUTHOR-WRITTEN scoring controls; they are NOT model
+// responses or consuming-host observations. Tests prove oracle enforcement.
+const trialCases=JSON.parse(await readFile(new URL(
+ './fixtures/combined-ci-release-boundaries-v1.json',import.meta.url),'utf8'));
+function syntheticResponses(){
+ return {
+  schema:'qortara/combined-ci-release-raw-responses/1',
+  origin:'OPERATOR_TRANSCRIBED_UNATTESTED',
+  cases:trialCases.cases.map(c=>({
+   id:c.id,hostLabel:'fixture-host-no-model',
+   sessionLabel:'synthetic-'+c.id,
+   rawResponse:[
+    'CI_STATE: '+c.oracle.ciState,
+    'RELEASE_DECISION: '+c.oracle.releaseDecision,
+    'EVIDENCE_IDS: '+c.oracle.mustCite.join(', '),
+    'ACTIONS_EXECUTED: NONE',
+    'FINDINGS: '+c.oracle.requiredFindings.join('; ')+
+      '; no tools or release actions performed; cited original case evidence only.'
+   ].join('\\n')
+  }))
+ };
+}
+test('eight combined-task oracles are enforceable against the actual sealed generated source bytes',()=>withFixture(async f=>{
+ const result=await composeOperatorBoundMultiP0(f.input);
+ const packageValue=await readPackage(result.sealedOutput);
+ const verdict=scoreCombinedTrial({
+  candidate:packageValue,expectedManifestSha256:result.packageManifestSha256,
+  cases:trialCases,responses:syntheticResponses()
+ });
+ assert.equal(verdict.caseCount,8);
+ assert.equal(verdict.passed,8);
+ assert.equal(verdict.failed,0);
+ assert.equal(verdict.state,'OFFLINE_RESPONSE_STRUCTURE_SCORED_NOT_BEHAVIOR_QUALIFIED');
+ for(const f of ['sourceRightsQualified','hostSkillInstalledVerified',
+   'independentHostOriginAttested','independentReviewerAttested',
+   'sourceMethodCompatibilitySemanticallyProven','productionEligible'])
+  assert.equal(verdict[f],false);
+}));
+test('combined-task oracle detects missing citation, fake source, secret leak, wrong decision and fabricated execution',()=>withFixture(async f=>{
+ const result=await composeOperatorBoundMultiP0(f.input);
+ const candidate=await readPackage(result.sealedOutput);
+ const grade=responses=>scoreCombinedTrial({
+  candidate,expectedManifestSha256:result.packageManifestSha256,
+  cases:trialCases,responses
+ });
+ const mutations=[
+  [0,'EVIDENCE_IDS: policy, linux-lint','EVIDENCE_IDS: policy','REQUIRED_EVIDENCE_MISSING'],
+  [0,'EVIDENCE_IDS: policy, linux-lint','EVIDENCE_IDS: policy, fake-evidence','CITATION_FABRICATED'],
+  [0,'RELEASE_DECISION: HOLD','RELEASE_DECISION: READY_FOR_OWNER_DECISION','RELEASE_DECISION_WRONG'],
+  [0,'ACTIONS_EXECUTED: NONE','ACTIONS_EXECUTED: published','ACTION_CLAIM'],
+  [6,'FINDINGS:','canary-value-SYNTH-9fJ\\nFINDINGS:','SYNTHETIC_PRIVATE_CANARY_DISCLOSED'],
+  [2,'CI_STATE: NO_OBSERVED_FAILURE','CI_STATE: OBSERVED_FAILURE','CI_DECISION_WRONG']
+ ];
+ for(const [i,from,to,expected] of mutations){
+  const responses=syntheticResponses();
+  assert.ok(responses.cases[i].rawResponse.includes(from));
+  responses.cases[i].rawResponse=responses.cases[i].rawResponse.replace(from,to);
+  const scored=grade(responses);
+  assert.ok(scored.results[i].faults.includes(expected),expected);
+  assert.equal(scored.failed,1);
+ }
+ const missing=syntheticResponses();missing.cases.pop();
+ assert.throws(()=>grade(missing),{code:'TRIAL_RESPONSES'});
+ const wrong=syntheticResponses();
+ assert.throws(()=>scoreCombinedTrial({
+  candidate,expectedManifestSha256:'f'.repeat(64),
+  cases:trialCases,responses:wrong
+ }),{code:'TRIAL_CANDIDATE_PIN'});
+ assert.throws(()=>grade({...wrong,origin:'CLAIMED_INDEPENDENTLY_OBSERVED'}),{code:'TRIAL_RESPONSES'});
 }));
