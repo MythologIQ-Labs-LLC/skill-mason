@@ -69,19 +69,28 @@ function candidate(packageValue,trustedManifestSha256){
  }catch{REFUSAL('CANDIDATE_SHAPE','candidate JSON is invalid');}
  if(!plain(sources)||!Array.isArray(sources.methods)||sources.methods.length!==1||
   !plain(receipt)||!Array.isArray(receipt.assertions)||receipt.assertions.length!==1||
-  receipt.sourceApprovalRequired!==true||receipt.productionEligible!==false||
-  receipt.hostValidated!==false||manifest.productionEligible!==false)
-  REFUSAL('CANDIDATE_SCOPE','strict unqualified single-method first-party candidate required');
+  receipt.productionEligible!==false||receipt.hostValidated!==false||
+  manifest.productionEligible!==false)
+  REFUSAL('CANDIDATE_SCOPE','unqualified, single-method first-party candidate required');
+ const strict=receipt.sourceApprovalRequired===true;
+ if(!strict&&receipt.sourceApprovalRequired!==undefined)
+  REFUSAL('CANDIDATE_SCOPE','malformed source approval mode cannot enter a trial');
  const src=sources.methods[0],pilot=PILOT_DEFINITIONS.find(x=>x.id===src?.id);
+ const proof=receipt.assertions[0];
  if(!pilot||src.sha256!==pilot.sha256||src.sourcePath!==pilot.path||
     src.commit!==(pilot.sourceCommit??PILOT_SOURCE_COMMIT)||manifest.name!==pilot.id||
-    receipt.assertions[0].methodId!==pilot.id||
-    !validHash(receipt.assertions[0].proofDigest)||
-    !validHash(receipt.assertions[0].sourceAcceptanceProofSha256))
-  REFUSAL('CANDIDATE_SCOPE','original source pins and strict proof references must be preserved');
+    proof.methodId!==pilot.id||!validHash(proof.proofDigest)||
+    (strict?(!validHash(proof.sourceBindingSha256)||
+              !validHash(proof.sourceAcceptanceProofSha256)):
+      proof.sourceBindingSha256!==undefined||
+      proof.sourceAcceptanceProofSha256!==undefined))
+  REFUSAL('CANDIDATE_SCOPE','original source pins and proof mode must be preserved');
+ // A fixture-only P0 candidate can be *observed*, never promoted. The
+ // strict source-proof references likewise do not authenticate the issuer.
  return {skillId:pilot.id,originalMethodSha256:pilot.sha256,
   originalSourceCommit:pilot.sourceCommit??PILOT_SOURCE_COMMIT,
-  manifestSha256:verified.packageSha256};
+  manifestSha256:verified.packageSha256,
+  ...(!strict?{sourceProofMode:'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL'}:{})};
 }
 
 /**
