@@ -97,7 +97,7 @@ jobs:
   stage-native-p0:
     # One-shot proof for the named first positive development PR only.
     # Preserves the manual-only historical workflow and avoids a universal SDK gate.
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator' || github.head_ref == 'feat/ci-triage-v3-redacted-evidence' || github.head_ref == 'feat/ci-triage-v4-real-holo-20261119' || github.head_ref == 'feature/ci-triage-v5-qualitative-remediation-20261119')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator' || github.head_ref == 'feat/ci-triage-v3-redacted-evidence' || github.head_ref == 'feat/ci-triage-v4-real-holo-20261119' || github.head_ref == 'feature/ci-triage-v5-qualitative-remediation-20261119' || github.head_ref == 'feature/release-readiness-qualitative-trial-20261120')
     needs: [user-request-to-first-party-contract]
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -133,7 +133,7 @@ jobs:
           retention-days: 7
 
   execute-real-request-p0:
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator' || github.head_ref == 'feat/ci-triage-v3-redacted-evidence' || github.head_ref == 'feat/ci-triage-v4-real-holo-20261119' || github.head_ref == 'feature/ci-triage-v5-qualitative-remediation-20261119')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/request-first-party-positive-pipeline' || github.head_ref == 'feat/ci-triage-v2-real-generator' || github.head_ref == 'feat/ci-triage-v3-redacted-evidence' || github.head_ref == 'feat/ci-triage-v4-real-holo-20261119' || github.head_ref == 'feature/ci-triage-v5-qualitative-remediation-20261119' || github.head_ref == 'feature/release-readiness-qualitative-trial-20261120')
     needs: [stage-native-p0]
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -182,7 +182,14 @@ jobs:
             import {readFileSync} from "node:fs";
             const p=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/first-positive-real-guest.json","utf8"));
             const q=p.firstPartyUserRequest;
-            if(p.guestCalls!==14||q?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
+            if(p.guestCalls!==16||p.firstPartyPilots?.length!==7||
+               p.firstPartyUserRequestRelease?.selectedMethod!=="release-readiness-review"||
+               p.firstPartyUserRequestRelease?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
+               p.firstPartyUserRequestRelease?.sourceRightsVerified!==false||
+               p.firstPartyUserRequestRelease?.hostBehaviorValidated!==false||
+               p.firstPartyUserRequestRelease?.productionEligible!==false||
+               !/^[a-f0-9]{64}$/.test(p.firstPartyUserRequestRelease?.packageManifestSha256??"")||
+               q?.state!=="GENERATED_UNQUALIFIED_SEALED_SKILL"||
                q?.selectedMethod!=="ci-failure-triage"||
                q?.productionEligible!==false||
                q?.hostBehaviorValidated!==false||
@@ -206,7 +213,7 @@ jobs:
                !/^[a-f0-9]{64}$/.test(p.firstPartyUserRequestV5?.packageManifestSha256??"")||
                !/^[a-f0-9]{64}$/.test(q?.packageManifestSha256??""))
               process.exit(1);
-            console.log("REAL P0 USER REQUEST POSITIVE PASS, sealed skill, rights and host still unqualified");
+            console.log("REAL P0 USER REQUEST POSITIVE PASS: 7 original sources and 6 user requests including release readiness; rights and host unqualified");
           '
       - name: Retain real generated candidates and hidden completion seals
         if: always()
