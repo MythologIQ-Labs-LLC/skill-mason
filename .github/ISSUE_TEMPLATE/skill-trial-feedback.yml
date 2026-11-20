@@ -1,5 +1,5 @@
 name: External skill trial feedback
-description: Report what actually happened when testing the public starter preview or CI triage v5 candidate
+description: Report actual results from public starter, CI triage v5 or four-arm CI and release trial
 title: "[External trial] "
 body:
   - type: markdown
@@ -16,6 +16,7 @@ body:
         - GitHub Pages browser starter draft
         - CI Failure Triage v5 generated SKILL.md (native host installation)
         - CI Failure Triage v5 generated SKILL.md (pasted instructions / emulation)
+        - Four-arm CI and release preview (baseline / CI-only / release-only / combined)
         - Other development candidate
     validations:
       required: true

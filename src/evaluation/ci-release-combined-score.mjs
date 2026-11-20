@@ -190,18 +190,11 @@ const ARM_SOURCES=Object.freeze({
  * All three non-baseline SKILL.md assets must be complete sealed packages
  * pinned by an expected SHA retained outside those packages.
  */
-export function scoreFourArmTrial({cases,arms,artifacts}={}){
+/** Shared structural comparison for pinned sealed candidates AND visibly unqualified previews.
+ * Caller must independently verify the exact source identity for its own lane.
+ */
+export function compareFourRawResponseArms({cases,arms}={}){
  exact(arms,ARM_IDS,'TRIAL_ARMS');
- exact(artifacts,ARM_IDS,'TRIAL_ARTIFACTS');
- if(artifacts.baseline!==null)
-  reject('TRIAL_ARTIFACTS','baseline must have no skill package');
- const inputDigests={baseline:null};
- for(const arm of ARM_IDS.slice(1)){
-  const rec=artifacts[arm];
-  exact(rec,['candidate','expectedManifestSha256'],'TRIAL_ARTIFACTS');
-  inputDigests[arm]=checkArmCandidate(
-   rec.candidate,rec.expectedManifestSha256,ARM_SOURCES[arm]);
- }
  const results={};
  for(const arm of ARM_IDS)results[arm]=scoreRawResponses(cases,arms[arm]);
  const sessions=new Set();
@@ -243,6 +236,23 @@ export function scoreFourArmTrial({cases,arms,artifacts}={}){
   else if(single&&!combined)best.bestSingleWins++;
   else best.ties++;
  }
+ return {results,summary,paired,combinedVsPerCaseBestSingle:best};
+}
+
+export function scoreFourArmTrial({cases,arms,artifacts}={}){
+ exact(arms,ARM_IDS,'TRIAL_ARMS');
+ exact(artifacts,ARM_IDS,'TRIAL_ARTIFACTS');
+ if(artifacts.baseline!==null)
+  reject('TRIAL_ARTIFACTS','baseline must have no skill package');
+ const inputDigests={baseline:null};
+ for(const arm of ARM_IDS.slice(1)){
+  const rec=artifacts[arm];
+  exact(rec,['candidate','expectedManifestSha256'],'TRIAL_ARTIFACTS');
+  inputDigests[arm]=checkArmCandidate(
+   rec.candidate,rec.expectedManifestSha256,ARM_SOURCES[arm]);
+ }
+ const {results,summary,paired,combinedVsPerCaseBestSingle:best}=
+  compareFourRawResponseArms({cases,arms});
  return {
   schema:'qortara/four-arm-ci-release-structural-comparison/1',
   state:'RECORDED_FOUR_ARM_RESPONSES_SCORED_NOT_HOST_ATTESTED',
