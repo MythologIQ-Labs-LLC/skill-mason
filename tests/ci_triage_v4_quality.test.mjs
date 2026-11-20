@@ -55,7 +55,7 @@ test('v4 is an exactly pinned fifth source; all earlier method versions keep the
  assert.ok(v4.length<=v3.length*1.15,'bounded instruction growth before any host token measurement');
  const registry=await loadFirstPartyPilots();
  const byId=Object.fromEntries(registry.components.map(c=>[c.method_id,c]));
- assert.equal(PILOT_DEFINITIONS.length,7);
+ assert.equal(PILOT_DEFINITIONS.length,8);
  assert.equal(byId['ci-failure-triage-v4'].method.commit,PILOT_V4_SOURCE_COMMIT);
  assert.equal(byId['ci-failure-triage-v4'].method.sha256,PIN);
  assert.equal(registry.sourceSnapshot.commit,PILOT_CURRENT_SNAPSHOT_COMMIT);

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,
-  PILOT_RELEASE_SOURCE_COMMIT} from '../src/backend/first-party-pilots.mjs';
+  PILOT_RELEASE_SOURCE_COMMIT,PILOT_RELEASE_V2_SOURCE_COMMIT} from '../src/backend/first-party-pilots.mjs';
 import {parseTextProcedure} from '../src/backend/text-procedure.mjs';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 import {createComposer,verifyPackage} from '../src/backend/compose.mjs';
@@ -38,8 +38,9 @@ test('original release readiness method is pinned by both independent digests an
  assert.equal(git(bytes),BLOB);
  assert.equal(PILOT_DEFINITIONS.find(x=>x.id===NAME).gitBlob,BLOB);
  assert.equal(source.method.commit,PILOT_RELEASE_SOURCE_COMMIT);
- assert.equal(registry.sourceSnapshot.commit,PILOT_RELEASE_SOURCE_COMMIT);
- assert.equal(registry.components.length,7);
+ assert.equal(registry.sourceSnapshot.commit,PILOT_RELEASE_V2_SOURCE_COMMIT);
+ assert.equal(source.method.commit,PILOT_RELEASE_SOURCE_COMMIT);
+ assert.equal(registry.components.length,8);
  assert.equal(source.method.covers[0],'review release readiness evidence');
  assert.equal(source.method.methodText,bytes.toString('utf8'));
 });
@@ -77,6 +78,51 @@ test('new original method composes substantive byte-reproducible Agent Skills-fo
  assert.equal(receipt.modelCallsMeasured,false);
  assert.equal(receipt.assertions[0].issuer,'FIXTURE_ONLY');
  assert.notEqual(candidate.files['SKILL.md'],'the user asked for a release assessment');
+});
+
+test('v2 original source independently pins nonempty policy and artifact proof without replacing v1',async()=>{
+ const registry=await loadFirstPartyPilots();
+ const old=registry.components.find(x=>x.method_id===NAME);
+ const entry=registry.components.find(x=>x.method_id==='release-readiness-review-v2');
+ assert.ok(old&&entry);
+ assert.equal(old.method.commit,PILOT_RELEASE_SOURCE_COMMIT);
+ assert.equal(old.package_sha256,PIN);
+ assert.equal(entry.method.commit,PILOT_RELEASE_V2_SOURCE_COMMIT);
+ assert.equal(entry.package_sha256,'608bb8a70626faae7083bcd9fc97a4b284d5f53cb6a083285da273145f06792f');
+ const bytes=await readFile(new URL('../pilots/first-party/release-readiness-review-v2/procedure.json',import.meta.url));
+ assert.equal(git(bytes),'ab824065f32d3f215d60ce776e078ce4d603457c');
+ assert.equal(sha(bytes),entry.package_sha256);
+ assert.notEqual(entry.package_sha256,old.package_sha256);
+ const source=parseTextProcedure(entry.method.methodText);
+ assert.equal(source.steps.length,12);
+ assert.equal(source.stopConditions.length,8);
+ const all=[source.useWhen,source.doNotUseWhen,...source.inputs,
+   ...source.steps.flatMap(x=>[x.action,x.evidenceRequired]),
+   ...source.outputFields,...source.stopConditions].join(' ');
+ for(const phrase of ['POLICY_GATES_INCOMPLETE','nonempty','contradictory','target','signer',
+                       'READY_FOR_OWNER_DECISION','EVIDENCE_INCOMPLETE'])
+   assert.ok(all.toLowerCase().includes(phrase.toLowerCase()),'missing v2 guard: '+phrase);
+ assert.ok(!source.steps.some(s=>Object.hasOwn(s,'run')));
+});
+test('v2 composes a distinct substantive candidate with explicit policy completeness gate',async()=>{
+ const registry=await loadFirstPartyPilots();
+ const {plan,methods}=createRecipeAdapter(registry)(
+   recipeForPilot('release-readiness-review-v2',registry));
+ const build=createComposer({assertMethod:fixtureClaim,runPrism:eligible,holoSha256:HOLO});
+ const output=await build(plan,methods);
+ assert.equal(output.status,'DEVELOPMENT_CANDIDATE');
+ assert.equal(verifyPackage(output).state,'INTEGRITY_VERIFIED');
+ assert.deepEqual(output,await build(plan,methods));
+ const text=output.files['SKILL.md'].replaceAll('\\_','_');
+ assert.match(text,/POLICY_GATES_INCOMPLETE/);
+ assert.match(text,/READY_FOR_OWNER_DECISION/);
+ assert.match(text,/nonempty complete gate set/);
+ assert.match(text,/mismatched artifact digest/);
+ assert.match(text,/no.*gate list as success|zero gates/i);
+ const receipt=JSON.parse(output.files['RECEIPT.json']);
+ assert.equal(receipt.productionEligible,false);
+ assert.equal(receipt.hostValidated,false);
+ assert.equal(receipt.assertions[0].issuer,'FIXTURE_ONLY');
 });
 test('full source and fixture claims never become host acceptance or permission to publish',async()=>{
  const {plan,methods}=await setup();
