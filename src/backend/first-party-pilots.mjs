@@ -13,7 +13,8 @@ export const PILOT_V2_SOURCE_COMMIT='ef8bd8046df65ca2a7419a7191f8f2e959d53156';
 export const PILOT_SNAPSHOT_COMMIT='31e2c4b2c74632fea690a02910c69f06087ffc13';
 export const PILOT_V4_SOURCE_COMMIT='de2be11765ede34be59d9a64c2a1b434b0ca4bcc';
 export const PILOT_V5_SOURCE_COMMIT='0661fca47499ed78b999b71b88becdd38157fa29';
-export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_V5_SOURCE_COMMIT;
+export const PILOT_RELEASE_SOURCE_COMMIT='62a5ac89d7da39446802404440714cb0a5519c4c';
+export const PILOT_CURRENT_SNAPSHOT_COMMIT=PILOT_RELEASE_SOURCE_COMMIT;
 export const PILOT_SOURCE_REPOSITORY='https://github.com/MythologIQ-Labs-LLC/skill-mason';
 export const PILOT_HOST='agent-skills-text-only-fixture';
 
@@ -52,6 +53,13 @@ export const PILOT_DEFINITIONS=Object.freeze([
     sourceCommit:PILOT_V5_SOURCE_COMMIT,
     gitBlob:'02fb50e813242b6017116076e38cd44846ab6332',
     sha256:'58a3e5c1479e8b4e0f944ada48f686337e1f116d335061f202ffeb1e59ca1b6f'}),
+  Object.freeze({id:'release-readiness-review',title:'Release readiness review',
+    description:'Assess release gates, artifact provenance and policy compliance using supplied version-bound evidence without deploying.',
+    outcome:'review release readiness evidence',
+    path:'pilots/first-party/release-readiness-review/procedure.json',
+    sourceCommit:PILOT_RELEASE_SOURCE_COMMIT,
+    gitBlob:'4bbf593c79e6cd5771a82138606f3c5ab4f9f8ad',
+    sha256:'3e9b423c4269a61ac4b4fc4b610ccac6deae25bc1129a2570848e82e38b494ab'}),
   Object.freeze({id:'governance-drift-review',title:'Governance drift review',
     description:'Compare supplied canonical requirements against observed implementation evidence without changing policy.',
     outcome:'review governance drift',
