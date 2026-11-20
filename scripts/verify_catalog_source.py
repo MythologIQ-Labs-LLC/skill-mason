@@ -16,6 +16,9 @@ from scripts.catalog_handoff import (
 )
 
 MAX_TREE_BYTES = 2_000_000
+# The passive Skillz exporter excludes every generated handoff (v1, v2, ...)
+# from source inputs, preventing recursive catalog snapshots.
+GENERATED_EXPORT_PREFIX = 'registry/exports/'
 
 
 def git(root, *args):
@@ -111,10 +114,21 @@ def verify_source_tree(root, manifest, *, expected_commit=COMMIT, expected_tree=
         safe_relative(path)
         require(path not in by_link, 'SOURCE_DECLARATION', 'duplicate submodule declaration')
         by_link[path] = entry
-    require(set(by_file) == {name for name, item in tree.items() if item['kind'] == 'blob'},
-            'SOURCE_INVENTORY', 'tracked blob inventory differs from manifest')
-    require(set(by_link) == {name for name, item in tree.items() if item['kind'] == 'commit'},
-            'SOURCE_INVENTORY', 'tracked gitlink inventory differs from manifest')
+    # All generated release artifacts are tracked Git objects but are NOT
+    # inputs to later snapshot exports. Refuse a manifest that reintroduces
+    # those bytes while still requiring every other tracked source file.
+    require(not any(p.startswith(GENERATED_EXPORT_PREFIX) for p in by_file),
+            'SOURCE_DECLARATION', 'generated export cannot be declared as source input')
+    require(not any(p.startswith(GENERATED_EXPORT_PREFIX) for p in by_link),
+            'SOURCE_DECLARATION', 'generated export cannot be declared as a source gitlink')
+    expected_files = {name for name, item in tree.items()
+                      if item['kind'] == 'blob' and not name.startswith(GENERATED_EXPORT_PREFIX)}
+    expected_links = {name for name, item in tree.items()
+                      if item['kind'] == 'commit' and not name.startswith(GENERATED_EXPORT_PREFIX)}
+    require(set(by_file) == expected_files,
+            'SOURCE_INVENTORY', 'tracked blob source inputs differ from manifest')
+    require(set(by_link) == expected_links,
+            'SOURCE_INVENTORY', 'tracked gitlink source inputs differ from manifest')
     total = 0
     for path, entry in sorted(by_file.items()):
         item = tree[path]
