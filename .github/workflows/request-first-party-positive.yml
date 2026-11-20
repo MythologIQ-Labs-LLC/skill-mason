@@ -23,6 +23,9 @@ on:
       - 'tests/real_holo_candidate_acceptance.mjs'
       - 'pilots/first-party/release-readiness-review-v2/procedure.json'
       - 'tests/release_readiness_pilot.test.mjs'
+      - 'tests/release_readiness_v2_qualitative.test.mjs'
+      - 'tests/fixtures/release-readiness-v2-focused-6.json'
+      - 'docs/evidence/release-readiness-v2-direct-6.json'
       - '.github/workflows/real-holo-candidate.yml'
   workflow_dispatch:
 
@@ -55,7 +58,8 @@ jobs:
             tests/ci_triage_v4_quality.test.mjs \
             tests/ci_triage_v5_qualitative.test.mjs \
             tests/release_readiness_pilot.test.mjs \
-            tests/release_readiness_qualitative.test.mjs
+            tests/release_readiness_qualitative.test.mjs \
+            tests/release_readiness_v2_qualitative.test.mjs
       - name: Replay 12 actual authored release-readiness task reviews against source-bound negative controls
         shell: bash
         run: |
