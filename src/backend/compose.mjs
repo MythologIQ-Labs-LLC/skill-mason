@@ -137,6 +137,21 @@ function render(recipe,methods){
       '4. When methods disagree, evidence is stale or identities mismatch, record the contradiction and withhold affected claims. Do not choose the more favorable conclusion by default.',
       '5. Reconcile the final answer per requested outcome: method(s) used, exact relevant evidence, observed status or NOT_ESTABLISHED, unresolved conditions, and next authorized verification. Do not report overall approval when any mandatory outcome remains blocked or unverified.',
       '6. Follow the stricter applicable source-method stop condition and the host\'s existing authority restrictions. Never execute tools, disclose secrets, grant rights or infer publication approval from the combination.','');
+    // This method interface is deliberately specific to these two exact
+    // original procedures. Do not impose CI/release semantics on arbitrary
+    // independently sourced multi-method combinations.
+    if(methods.length===2&&
+       methods.some(m=>m.id==='ci-failure-triage-v5')&&
+       methods.some(m=>m.id==='release-readiness-review-v2')){
+      text.push('### CI triage + release review: separate evidence axes','',
+        '> Compiler-supplied task coordination, not owner-accepted release policy.',
+        '> Do not treat these response labels as independent evidence.','',
+        '1. CI observation and release readiness are DIFFERENT decisions. Record actual failing job, attempt, revision, error and dependent skips separately from the policy gate that might require the job. A verified CI failure still exists if owner policy is unknown. Without verified nonempty owner policy, release status is EVIDENCE_INCOMPLETE, not an authorized release and not a verified owner-mandatory HOLD. Operationally advise no release while CI fails.',
+        '2. When retries exist, report the historical failing attempt AND the latest observed attempt for the same exact revision. A same-commit green retry is not proof of root-cause repair. An old-commit red run is not proof the newly requested FIX_HEAD failed; withhold requested-head CI claims until that head is observed.',
+        '3. Enumerate every owner-required target platform and gate as PASS, BLOCKED or NOT_ESTABLISHED with exact source evidence. A queued/skipped/unrun target is NOT_ESTABLISHED, even when other platforms are green. Missing platform artifacts, unverified signer roots, and version-bound policy waiver gaps cannot be inherited from passing CI.',
+        '4. Distinguish observed policy noncompliance (including disallowed signer roots or expired waivers) from lack of an actual verification attempt. HOLD on a verified mandatory policy blocker; use EVIDENCE_INCOMPLETE where policy authority or required proof is missing. Never claim a signature would fail against a trust root that was not actually tested.',
+        '5. Keep the final joint answer concise: CI evidence status and revision scope; release recommendation and policy scope; evidence IDs for each; any independent blocker or unknown; smallest separately authorized verification per blocker; and explicit actions NOT_RUN. Do not duplicate both source procedures verbatim in the answer.','');
+    }
   }
   text.push('## Source-backed methods','');
   for(const m of methods){
