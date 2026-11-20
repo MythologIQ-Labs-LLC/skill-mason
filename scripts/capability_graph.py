@@ -18,7 +18,7 @@ SCHEMA = "qortara/capability-opportunity-graph/1"
 # Exact lexical matches are only evidence that a route *mentions* the tokens.
 # No stemming, synonym expansion, method eligibility or semantic confidence.
 # Splitting at punctuation also makes slash/hyphen route identifiers searchable.
-_SEARCH_TOKEN = re.compile(r"[^\\W_]+", re.UNICODE)
+_SEARCH_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 
 
 def _tokens(text):
