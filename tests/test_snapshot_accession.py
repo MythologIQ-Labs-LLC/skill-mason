@@ -56,6 +56,12 @@ class SnapshotAccessionTests(unittest.TestCase):
         self.fx.first_party = []
         self.fx.discovery["repository_entrypoints"]["first_party"] = []
         self.fx.persist()
+        # The minimal shared fixture uses a fixed status histogram; update it
+        # when this test changes one review from verified to retired.
+        self.fx.manifest["counts"]["semantic_states"] = {"retired": 1, "rejected": 1}
+        manifest_raw = canonical(self.fx.manifest)
+        (self.fx.handoff / "manifest.json").write_bytes(manifest_raw)
+        self.fx.pin = git_blob(manifest_raw)
         result = self.candidate()
         self.assertEqual(len(result["first_party"]), 0)
         self.assertEqual(len(result["records"]), 2)
