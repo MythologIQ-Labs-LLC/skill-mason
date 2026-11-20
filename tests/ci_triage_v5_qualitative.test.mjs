@@ -53,8 +53,8 @@ test('v5 is pinned byte-for-byte, v4 is unchanged and method selection remains d
  assert.equal(blob(source),sourceBlob);
  assert.ok(source.length<=old.length*1.15,'no disproportionate v5 source growth');
  const registry=await loadFirstPartyPilots();
- assert.equal(PILOT_DEFINITIONS.length,7);
- assert.equal(registry.components.length,7);
+ assert.equal(PILOT_DEFINITIONS.length,8);
+ assert.equal(registry.components.length,8);
  const candidate=registry.components.find(x=>x.method_id==='ci-failure-triage-v5');
  assert.equal(candidate.method.commit,PILOT_V5_SOURCE_COMMIT);
  assert.equal(registry.sourceSnapshot.commit,PILOT_CURRENT_SNAPSHOT_COMMIT);
