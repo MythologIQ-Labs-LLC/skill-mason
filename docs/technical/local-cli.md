@@ -17,6 +17,41 @@ npm run test:cli         # stand-in guardrails; not a holo execution
 
 `status` exits nonzero until prerequisites exist and reports `preflightReady`, NOT proof or application qualification. Node v22 or later is necessary for the pinned runtime. This package is private and has no declared automatic SDK dependency.
 
+## Inspect and evaluate actual reference material (source-bound)
+
+The ordinary CLI now exposes the source-qualified **reference workbench**, not just a route list or an all-purpose refusal. Both commands use Python 3.11+, an immutable published Skillz handoff and its separately pinned exact original source checkout. Their output is deterministic JSON with verified source hashes and clear unqualified claims.
+
+```sh
+# List all 48 first-party governed reference sources from the historical snapshot.
+qortara-skills references --all-first-party \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+
+# Inspect all reviewed candidates for a recognized route, with original source links.
+qortara-skills references --route security/supply-chain \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+
+# Explicit source review: retrieve only selected original source lines.
+qortara-skills references --route security/supply-chain \
+  --method governed:local-skills/mcp-vetting \
+  --file SKILL.md --lines 17:21 \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+
+# Validate a task-specific candidate against exact original source passages.
+qortara-skills task-fit \
+  --review docs/evidence/source-task-fit-mcp-vetting-v1.json \
+  --handoff /path/to/skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout /path/to/skillz-source
+```
+
+The `references` output retains source-verified original first-party package links, every package digest, recorded review status, unresolved static reference leads and exact crosswalk, without claiming that a verified review is an admissible method. The `--all-first-party` view is exhaustive **for the pinned historical snapshot only**; the evolving Skillz `main` may have additional/replaced methods. Quoted lines are limited to 12 and only from the explicitly selected, independently verified complete package. If an original source cannot be verified, that gap is reported or refused, never replaced with an untrusted source.
+
+The `task-fit` command returns reviewer-authored narrow task inputs/outputs/exclusions and planned observable acceptance scenarios, bound to the original source commit/tree, package and exact quoted passages. **Source authenticity does not prove the reviewer's interpretation, behavior, license, rights or host authority.** Neither command downloads third-party packages, executes source instructions, writes back to Skillz, calls Prism, generates a skill, or treats a proposed scenario as a passing host test.
+
+Both commands preserve invoking-workspace relative paths through discrete, shell-free Python arguments. `--report NEW.json` creates a UTF-8 JSON report with exclusive permissions and refuses overwrites. A successfully inspected reference has exit 0; a typed inspector refusal has exit 2; attempted rights/host/Prism promotion is refused. No credential or host access is implied by reading repository source.
+
 ## Discover an exact capability before creating a skill
 
 The ordinary CLI now exposes the **existing, exact pinned Skillz capability graph**. You no longer need to know the route name in advance or run a separate Python developer command.
