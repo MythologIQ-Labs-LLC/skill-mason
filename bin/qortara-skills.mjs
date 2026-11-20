@@ -4,6 +4,7 @@
  * No skill generation, installation, inference, or alternate eligibility engine.
  */
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFile } from 'node:fs/promises';
@@ -17,8 +18,8 @@ const shaPattern=/^[0-9a-f]{64}$/;
 const FLAG_VALUES=new Set(['--holo','--sha256','--hex','--case','--report',
   '--request','--route','--host','--handoff','--source-checkout','--method',
   '--external-checkout','--external-repository-tree',
-  '--search','--path','--limit']);
-const FLAG_BOOLEAN=new Set(['--allow-p0','--json','--summary']);
+  '--search','--path','--limit','--file','--lines','--review']);
+const FLAG_BOOLEAN=new Set(['--allow-p0','--json','--summary','--all-first-party']);
 const USAGE=[
  'Qortara Skills '+VERSION+' | local development-only Prism client',
  '',
@@ -28,13 +29,16 @@ const USAGE=[
  '  qortara-skills probe --holo FILE --sha256 SHA256 --allow-p0 [--case ID] [--report NEW.json]',
  '  qortara-skills create --request TEXT --route DOMAIN/SUBDOMAIN --host HOST --handoff DIR --source-checkout DIR [--method governed:ID] [--external-checkout DIR --external-repository-tree GIT_TREE] [--report NEW.json]',
  '  qortara-skills routes (--search TEXT [--limit 1..25] | --path DOMAIN/SUBDOMAIN | --summary) --handoff DIR --source-checkout DIR [--report NEW.json]',
+ '  qortara-skills references (--all-first-party | --route DOMAIN/SUBDOMAIN [--method governed:ID [--file PACKAGE_PATH --lines FIRST:LAST]]) --handoff DIR --source-checkout DIR [--report NEW.json]',
+ '  qortara-skills task-fit --review FILE --handoff DIR --source-checkout DIR [--report NEW.json]',
  '  qortara-skills version',
  '  qortara-skills help',
  '',
  'Requires Node.js 22+ and exact prism-code@0.9.5 to run a real holo.',
  '--allow-p0 is fixture-only consent, not trusted production assurance.',
  'Create verifies the exact pinned corpus and issues an actionable refusal until genuine approval exists.',
- 'Create/routes require Python 3.11+ and the separately pinned local skillz source checkout.',
+ 'Create/routes/references/task-fit require Python 3.11+ and the separately pinned local skillz source checkout.',
+ 'References and task-fit inspect original sources, not admitted or host-qualified methods.',
  'Routes are lexical/explicit source navigation only, not semantic admission or reuse authorization.',
  'No approved SKILL.md generation, skill installation, or source-rights self-authorization.'
 ].join('\n');
@@ -44,7 +48,7 @@ export function parseCommand(argv) {
     return {command:'help',flags:{}};
   if (argv[0]==='version' && argv.length===1) return {command:'version',flags:{}};
   const [command,...args]=argv;
-  if (!['status','evaluate','probe','create','routes'].includes(command))
+  if (!['status','evaluate','probe','create','routes','references','task-fit'].includes(command))
     throw new ProbeError('USAGE','Unknown command: '+command);
   const flags={};
   for (let i=0;i<args.length;i++) {
@@ -66,6 +70,10 @@ export function parseCommand(argv) {
          '--method','--external-checkout','--external-repository-tree','--report']
     : command==='routes'
       ? ['--search','--path','--summary','--limit','--handoff','--source-checkout','--report']
+    : command==='references'
+      ? ['--all-first-party','--route','--method','--file','--lines','--handoff','--source-checkout','--report']
+    : command==='task-fit'
+      ? ['--review','--handoff','--source-checkout','--report']
     : command==='probe'
       ? ['--holo','--sha256','--case','--report','--allow-p0']
       : ['--holo','--sha256','--hex','--report','--allow-p0'];
@@ -93,7 +101,30 @@ export function parseCommand(argv) {
         (!flags['--search'] || !/^(?:[1-9]|1\d|2[0-5])$/.test(flags['--limit'])))
       throw new ProbeError('USAGE','--limit must be 1..25 and valid only with --search');
   }
-  if (command!=='status' && command!=='create' && command!=='routes') {
+  if (command==='references' || command==='task-fit') {
+    if (!flags['--handoff'] || !flags['--source-checkout'])
+      throw new ProbeError('USAGE',command+' requires --handoff and --source-checkout');
+  }
+  if (command==='references') {
+    if (Boolean(flags['--all-first-party'])===Boolean(flags['--route']))
+      throw new ProbeError('USAGE','references requires one of --all-first-party or --route');
+    if (flags['--all-first-party'] &&
+        (flags['--method'] || flags['--file'] || flags['--lines']))
+      throw new ProbeError('USAGE','all-first-party cannot select or quote a method');
+    if (Boolean(flags['--file'])!==Boolean(flags['--lines']) ||
+        (flags['--file'] && !flags['--method']))
+      throw new ProbeError('USAGE','source line citations require --method, --file and --lines');
+    if (flags['--method'] && !/^governed:[a-zA-Z0-9][a-zA-Z0-9_.\/-]{1,198}$/.test(flags['--method']))
+      throw new ProbeError('USAGE','exact governed source record required');
+    if (flags['--lines']) {
+      const m=/^([1-9][0-9]{0,5}):([1-9][0-9]{0,5})$/.exec(flags['--lines']);
+      if (!m || Number(m[2])<Number(m[1]) || Number(m[2])-Number(m[1])>=12)
+        throw new ProbeError('USAGE','source quote requires 1-12 inclusive lines');
+    }
+  }
+  if (command==='task-fit' && !flags['--review'])
+    throw new ProbeError('USAGE','task-fit requires an exact source-review file');
+  if (!['status','create','routes','references','task-fit'].includes(command)) {
     if (!flags['--holo'] || !shaPattern.test(flags['--sha256']??''))
       throw new ProbeError('USAGE','--holo and lowercase 64-character --sha256 required');
     if (!flags['--allow-p0'])
@@ -254,6 +285,142 @@ export async function discoverRoutes(flags,deps={}) {
     throw new ProbeError('ROUTE_PROMOTION','Route graph attempted to bypass read-only source boundary');
   return output;
 }
+
+const SOURCE_COMMIT='31a8c518dd97b7828adcc728202fa41388a306d7';
+const SOURCE_TREE='e6d5dfeb42bcd7777ddff52605922fead62135ff';
+const SOURCE_URL='https://github.com/Knapp-Kevin/skillz/blob/'+SOURCE_COMMIT+'/';
+const sourceDigest=bytes=>createHash('sha256').update(bytes).digest('hex');
+const refusalCode=x=>typeof x==='string' && /^[A-Z][A-Z0-9_]*$/.test(x);
+const neverEligible=x=>x?.composition_eligible===false &&
+  x?.production_eligible===false && x?.rights_qualified===false &&
+  x?.host_validated===false && x?.prism_invoked===false;
+const sourceCiteValid=x=>x && typeof x==='object' &&
+  x.source_url?.startsWith(SOURCE_URL) &&
+  x.exact_excerpt_sha256===sourceDigest(x.original_lines_for_review??'');
+/** Resolve caller-relative source and review paths; Python is a fixed module, no shell. */
+export function referencePythonArgs(flags,callerDirectory=process.cwd()) {
+  const args=['-m','scripts.corpus_reference_dossier',
+    '--handoff',resolve(callerDirectory,flags['--handoff']),
+    '--source-checkout',resolve(callerDirectory,flags['--source-checkout'])];
+  if (flags['--all-first-party'])args.push('--all-first-party');
+  else {
+    args.push('--route',flags['--route']);
+    if (flags['--method'])args.push('--method',flags['--method']);
+    if (flags['--file'])args.push('--file',flags['--file'],'--lines',flags['--lines']);
+  }
+  return args;
+}
+export function taskFitPythonArgs(flags,callerDirectory=process.cwd()) {
+  return ['-m','scripts.source_task_fit_review',
+    '--handoff',resolve(callerDirectory,flags['--handoff']),
+    '--source-checkout',resolve(callerDirectory,flags['--source-checkout']),
+    '--review',resolve(callerDirectory,flags['--review'])];
+}
+async function callSourcePython(args,code) {
+  let stdout;
+  try {
+    ({stdout}=await execFileAsync(process.platform==='win32'?'python':'python3',args,
+      {cwd:SOURCE_ROOT,shell:false,windowsHide:true,timeout:120_000,
+       maxBuffer:8*1024*1024,
+       env:{...process.env,PYTHONPATH:'',PYTHONNOUSERSITE:'1'}}));
+  }catch(err){
+    if (err?.code!==2 || typeof err.stdout!=='string' || !err.stdout.trim())
+      throw new ProbeError(code,'Exact pinned original-source inspector failed');
+    stdout=err.stdout;
+  }
+  try{return JSON.parse(stdout);}
+  catch{throw new ProbeError(code,'Original-source inspector returned invalid JSON');}
+}
+function checkSourceRefusal(output,code) {
+  if (output?.state!=='REFUSED')return false;
+  if (!refusalCode(output.code) || output.composition_eligible!==false ||
+      !['qortara/original-source-reference-dossier/1',
+         'qortara/source-task-fit-reference-review/1'].includes(output.schema))
+    throw new ProbeError(code,'Malformed source-inspection refusal');
+  return true;
+}
+/** Source material only: never return a generated/accepted-method verdict. */
+export async function inspectReferences(flags,deps={}) {
+  const output=deps.referenceRunner?await deps.referenceRunner(flags):
+    await callSourcePython(referencePythonArgs(flags),'REFERENCE_RUNTIME');
+  if (checkSourceRefusal(output,'REFERENCE_RUNTIME'))return output;
+  const core=output?.exact_source_commit===SOURCE_COMMIT &&
+    output.exact_source_tree===SOURCE_TREE &&
+    neverEligible(output);
+  if (!core)throw new ProbeError('REFERENCE_PROMOTION','Source result is not a pinned read-only review');
+  if (flags['--all-first-party']) {
+    if (output.schema!=='qortara/first-party-source-reference-inventory/1' ||
+        output.state!=='FULL_PINNED_FIRST_PARTY_SOURCE_REVIEW_QUEUE' ||
+        output.total_original_first_party_review_records!==48 ||
+        output.all_pinned_first_party_review_records_retained!==true ||
+        !Array.isArray(output.original_source_reference_records) ||
+        output.original_source_reference_records.length!==48 ||
+        output.original_source_reference_records.some(x=>
+          x.rights_assessed!==false || x.method_scope_qualified!==false ||
+          x.host_validated!==false || x.composition_eligible!==false ||
+          !x.governed_review_id?.startsWith('governed:')))
+      throw new ProbeError('REFERENCE_PROMOTION','Unverified first-party inventory response');
+    const ids=output.original_source_reference_records.map(x=>x.governed_review_id);
+    if (new Set(ids).size!==48 ||
+        output.route_linked_record_count+output.unmapped_review_record_count!==48)
+      throw new ProbeError('REFERENCE_PROMOTION','First-party records missing or duplicated');
+    return output;
+  }
+  if (output.schema!=='qortara/original-source-reference-dossier/1' ||
+      output.state!=='SOURCE_REFERENCE_MATERIAL_FOR_HUMAN_QUALIFICATION' ||
+      output.route!==flags['--route'] ||
+      output.selected_method_for_source_inspection_only!==(flags['--method']??null) ||
+      output.method_selected_for_composition!==null ||
+      output.outcome_coverage_qualified!==false ||
+      !Array.isArray(output.candidates) ||
+      output.linked_governed_review_count!==output.candidates.length ||
+      output.candidates.some(x=>
+        x.rights_qualified!==false || x.host_validated!==false ||
+        x.method_scope_qualified!==false || x.composition_eligible!==false ||
+        x.original_package && (x.original_package.redistribution_rights_proven!==false ||
+          x.original_package.full_dependency_closure_proven!==false ||
+          x.original_package.complete_source_bytes_verified!==true)))
+    throw new ProbeError('REFERENCE_PROMOTION','Source dossier attempted to promote unqualified methods');
+  const quote=output.original_source_citation;
+  if (flags['--lines']) {
+    if (!quote || quote.governed_review_id!==flags['--method'] ||
+        quote.first_line+':'+quote.last_line!==flags['--lines'] ||
+        !quote.path.endsWith('/'+flags['--file']) ||
+        quote.source_url!==SOURCE_URL+quote.path+'#L'+quote.first_line+'-L'+quote.last_line ||
+        quote.exact_original_lines_for_human_review==null ||
+        quote.exact_source_excerpt_sha256!==sourceDigest(quote.exact_original_lines_for_human_review))
+      throw new ProbeError('REFERENCE_PROMOTION','Original source citation mismatch');
+  } else if (quote!==null) {
+    throw new ProbeError('REFERENCE_PROMOTION','Unrequested source text in dossier');
+  }
+  return output;
+}
+/** Reviewer-authored proposed task-fit; quotes are checked, not semantically certified. */
+export async function inspectTaskFit(flags,deps={}) {
+  const output=deps.taskFitRunner?await deps.taskFitRunner(flags):
+    await callSourcePython(taskFitPythonArgs(flags),'TASK_FIT_RUNTIME');
+  if (checkSourceRefusal(output,'TASK_FIT_RUNTIME'))return output;
+  if (output?.schema!=='qortara/source-task-fit-reference-review/1' ||
+      output.state!=='BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED' ||
+      output.source_snapshot_commit!==SOURCE_COMMIT ||
+      output.source_snapshot_tree!==SOURCE_TREE ||
+      !neverEligible(output) || output.outcome_coverage_qualified!==false ||
+      output.operator_source_acceptance_signed!==false ||
+      output.actual_consumer_host_task_runs!==0 ||
+      output.source_quotes_prove_bytes_not_reviewers_semantic_conclusion!==true ||
+      !Array.isArray(output.source_evidence) ||
+      output.source_evidence.length<4 ||
+      !output.source_evidence.every(sourceCiteValid) ||
+      new Set(output.source_evidence.map(x=>x.role)).size!==4 ||
+      !['TRIGGER_AND_LIMIT','METHOD_STEPS','EVIDENCE_AND_REPORT','SAFETY_BOUNDARY']
+        .every(role=>output.source_evidence.some(x=>x.role===role)) ||
+      !Array.isArray(output.reviewer_proposed_task_spec_not_an_admitted_method?.acceptance_scenarios) ||
+      output.acceptance_scenarios_planned_not_executed!==
+        output.reviewer_proposed_task_spec_not_an_admitted_method.acceptance_scenarios.length)
+    throw new ProbeError('TASK_FIT_PROMOTION','Untrusted task-fit response cannot establish source, rights or host approval');
+  return output;
+}
+
 export async function createRequest(flags,deps={}) {
   let outcome;
   if (deps.requestRunner) outcome=await deps.requestRunner(flags);
@@ -296,6 +463,13 @@ export async function run(argv,deps={}) {
   }
   if (command==='routes') {
     const value=await discoverRoutes(flags,deps);
+    if (flags['--report'])
+      await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
+    return {kind:'json',value,exitCode:value.state==='REFUSED'?2:0};
+  }
+  if (command==='references' || command==='task-fit') {
+    const value=command==='references'?
+      await inspectReferences(flags,deps):await inspectTaskFit(flags,deps);
     if (flags['--report'])
       await writeFile(flags['--report'],JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
     return {kind:'json',value,exitCode:value.state==='REFUSED'?2:0};
