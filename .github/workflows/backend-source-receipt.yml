@@ -11,6 +11,10 @@ on:
       - 'docs/technical/four-arm-blind-review-v1.md'
       - 'bin/combined-ci-release-offline-score.mjs'
       - 'bin/four-arm-quality-trial.mjs'
+      - 'bin/public-four-arm-trial.mjs'
+      - 'src/evaluation/public-four-arm-trial.mjs'
+      - 'tests/public_four_arm_trial.test.mjs'
+      - 'trials/ci-release-four-arm/README.md'
       - 'docs/technical/four-arm-host-comparison-v1.md'
       - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
       - 'docs/technical/combined-ci-release-quality-trial-v1.md'
@@ -37,6 +41,10 @@ on:
       - 'docs/technical/four-arm-blind-review-v1.md'
       - 'bin/combined-ci-release-offline-score.mjs'
       - 'bin/four-arm-quality-trial.mjs'
+      - 'bin/public-four-arm-trial.mjs'
+      - 'src/evaluation/public-four-arm-trial.mjs'
+      - 'tests/public_four_arm_trial.test.mjs'
+      - 'trials/ci-release-four-arm/README.md'
       - 'docs/technical/four-arm-host-comparison-v1.md'
       - 'tests/fixtures/combined-ci-release-boundaries-v1.json'
       - 'docs/technical/combined-ci-release-quality-trial-v1.md'
@@ -76,8 +84,44 @@ jobs:
         run: |
           set -euo pipefail
           test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
-          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
+          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/public_four_arm_trial.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
           git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs src/backend/operator-source-composition.mjs src/backend/operator-multi-source-composition.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
+      - name: Produce public original-source four-arm task packet without signing, Prism or model calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node bin/public-four-arm-trial.mjs --prepare > public-four-arm-trial.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const p=JSON.parse(readFileSync("public-four-arm-trial.json","utf8"));
+            if(p.schema!=="qortara/public-four-arm-source-trial/1"||
+               p.taskCount!==8||p.armTaskCount!==32||
+               p.answerOraclesIncluded!==false||p.modelCalls!==0||
+               p.prismInvoked!==false||p.sourceRightsApproved!==false||
+               p.hostSkillInstalled!==false||p.productionEligible!==false||
+               p.arms.baseline!==null)throw Error("public packet scope violation");
+            for(const a of ["ci_only","release_only","combined"]){
+              if(!p.arms[a]||p.arms[a].state!==
+                 "UNQUALIFIED_READ_ONLY_INSTRUCTIONS_NOT_A_COMPOSED_SKILL"||
+                 p.arms[a].sourceReuseRightsApproved!==false||
+                 p.arms[a].prismInvoked!==false||
+                 p.arms[a].productionEligible!==false||
+                 p.arms[a].instructions.includes("RIGHTS_APPROVED")||
+                 p.arms[a].files!==undefined)
+                throw Error("preview fabricated authority: "+a);
+            }
+            if(p.tasks.some(t=>"oracle" in t||"requiredFindings" in t||
+              "forbiddenFindings" in t))throw Error("answer key leaked");
+            console.log("PUBLIC FOUR-ARM TRIAL PACKET: 32 prompts, 3 pinned original source previews, no approved skill");
+          '
+      - name: Publish preview-only trial artifact for public testers
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: public-four-arm-original-source-trial
+          path: public-four-arm-trial.json
+          retention-days: 14
+          if-no-files-found: error
+
       - name: Cross-branch two-signature P0 fixture through exclusive disk seal (offline)
         shell: bash
         run: |
