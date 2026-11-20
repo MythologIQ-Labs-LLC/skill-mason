@@ -8,7 +8,6 @@
  * only when a reviewer actually records a reasoned qualitative judgment.
  */
 import {createHash,createHmac} from 'node:crypto';
-import {canonicalJSON} from '../backend/compose.mjs';
 import {scoreFourArmTrial} from './ci-release-combined-score.mjs';
 
 export const REVIEW_PACKET_SCHEMA='qortara/four-arm-blind-review-packet/1';
@@ -23,6 +22,35 @@ const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x)&&
   Object.getPrototypeOf(x)===Object.prototype;
 const refuse=(code,description)=>{throw Object.assign(new Error(description),{code});};
 const SHA=value=>createHash('sha256').update(value).digest('hex');
+/** Canonical transcript JSON permits LF/TAB within model output.
+ * The deterministic source compiler's canonicalJSON deliberately forbids
+ * those controls, so it must never be used to hash raw host responses.
+ */
+function transcriptJSON(value){
+ const walk=x=>{
+  if(Array.isArray(x))return x.map(walk);
+  if(plain(x)){
+   const names=Object.keys(x).sort();
+   const entries=names.map(k=>{
+    if(['__proto__','constructor','prototype'].includes(k))
+     refuse('REVIEW_CANONICAL','unsafe JSON property name');
+    return [k,walk(x[k])];
+   });
+   return Object.fromEntries(entries);
+  }
+  if(typeof x==='string'){
+   if(Buffer.byteLength(x,'utf8')>128_000||x!==x.normalize('NFC')||
+      /[\u0000-\u0008\u000b-\u001f\u007f]/u.test(x))
+    refuse('REVIEW_CANONICAL','invalid bounded transcript string');
+   return x;
+  }
+  if(x===null||typeof x==='boolean'||(typeof x==='number'&&Number.isSafeInteger(x)))
+   return x;
+  refuse('REVIEW_CANONICAL','unsupported transcript JSON type');
+ };
+ return JSON.stringify(walk(value))+'\\n';
+}
+
 function exact(obj,fields,code){
  if(!plain(obj)||Object.keys(obj).sort().join('|')!==[...fields].sort().join('|'))
   refuse(code,'missing or extra fields');
@@ -61,7 +89,7 @@ export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
    bindings.push({
     reviewId,taskId:c.id,arm,
     responseSha256:SHA(Buffer.from(response)),
-    caseInputSha256:SHA(Buffer.from(canonicalJSON({
+    caseInputSha256:SHA(Buffer.from(transcriptJSON({
       question:c.prompt,evidence:c.evidence
     }))),
     candidateManifestSha256:scored.candidateManifestSha256ByArm[arm]
@@ -85,8 +113,8 @@ export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
  };
  return {
   packet,mapping,
-  packetSha256:SHA(Buffer.from(canonicalJSON(packet))),
-  mappingSha256:SHA(Buffer.from(canonicalJSON(mapping)))
+  packetSha256:SHA(Buffer.from(transcriptJSON(packet))),
+  mappingSha256:SHA(Buffer.from(transcriptJSON(mapping)))
  };
 }
 /**
@@ -103,8 +131,8 @@ export function adjudicateBlindReview({
  const expected=prepareBlindReview({cases,arms,artifacts,reviewSeed});
  if(expected.packetSha256!==expectedPacketSha256||
     expected.mappingSha256!==expectedMappingSha256||
-    canonicalJSON(packet)!==canonicalJSON(expected.packet)||
-    canonicalJSON(mapping)!==canonicalJSON(expected.mapping))
+    transcriptJSON(packet)!==transcriptJSON(expected.packet)||
+    transcriptJSON(mapping)!==transcriptJSON(expected.mapping))
   refuse('REVIEW_TAMPERED','review packet, original responses or unblinding mapping changed');
  exact(judgments,['schema','reviewerLabel','cases'],'REVIEW_JUDGMENTS');
  if(judgments.schema!==REVIEW_JUDGMENTS_SCHEMA||
