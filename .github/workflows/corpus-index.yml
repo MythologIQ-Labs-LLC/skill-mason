@@ -21,6 +21,13 @@ on:
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'docs/evidence/source-task-fit-automation-receipts-v1.json'
       - 'docs/evidence/source-task-fit-fact-check-v1.json'
+      - 'docs/evidence/source-task-fit-compare-v1.json'
+      - 'docs/evidence/source-task-fit-session-continuity-v1.json'
+      - 'docs/evidence/source-task-fit-decision-log-v1.json'
+      - 'docs/technical/source-task-fit-three-other-originals-v1.md'
+      - 'tests/fixtures/three-new-originals-behavioral-6.json'
+      - 'docs/evidence/three-new-originals-direct-6.json'
+      - 'tests/three_new_originals_behavioral.test.mjs'
       - 'docs/technical/source-task-fit-two-more-originals-v1.md'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
@@ -78,6 +85,13 @@ on:
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'docs/evidence/source-task-fit-automation-receipts-v1.json'
       - 'docs/evidence/source-task-fit-fact-check-v1.json'
+      - 'docs/evidence/source-task-fit-compare-v1.json'
+      - 'docs/evidence/source-task-fit-session-continuity-v1.json'
+      - 'docs/evidence/source-task-fit-decision-log-v1.json'
+      - 'docs/technical/source-task-fit-three-other-originals-v1.md'
+      - 'tests/fixtures/three-new-originals-behavioral-6.json'
+      - 'docs/evidence/three-new-originals-direct-6.json'
+      - 'tests/three_new_originals_behavioral.test.mjs'
       - 'docs/technical/source-task-fit-two-more-originals-v1.md'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
@@ -252,7 +266,7 @@ jobs:
                   assert report[state] is False
           print('PINNED REFERENCE DOSSIER PASS: original MCP source and bounded line evidence, no rights or host promotion')
           PY
-      - name: Verify five original source-only method task contracts against the pinned Skillz tree
+      - name: Verify eight original source-only method task contracts against the pinned Skillz tree
         shell: bash
         run: |
           set -euo pipefail
@@ -271,6 +285,9 @@ jobs:
               "permissions-review": "18f46840032829963715ec23894f7826dbbfcb77",
               "automation-receipts": "94fb288d7d6a3ea6982f22bd8bb9ef77b9de7add",
               "fact-check": "d83c43282d525682f3e13b8296111d7fe7de46f0",
+              "compare": "37b5d493dfa87ff1ce20e7b44d7d095e2eeed700",
+              "session-continuity": "93b8f0be84bdb39153386c27b46294233c39bb8b",
+              "decision-log": "53b82e2a4838cdba57ee2e4c9158d6d2b4150c6b",
           }
           roles = {"TRIGGER_AND_LIMIT", "METHOD_STEPS",
                    "EVIDENCE_AND_REPORT", "SAFETY_BOUNDARY"}
@@ -282,7 +299,9 @@ jobs:
               assert report["governed_review_id"] == "governed:local-skills/" + name
               assert report["route"] is None
               assert report["source_only_review_no_route_claim"] is True
-              assert report["original_evidence_linked_routes_not_task_qualified"]
+              # A verified original may be genuinely unmapped: preserve the
+              # original complete crosswalk rather than inventing a route.
+              assert isinstance(report["original_evidence_linked_routes_not_task_qualified"], list)
               assert report["entrypoint_git_blob_sha1"] == blob
               assert report["source_snapshot_commit"] == "31a8c518dd97b7828adcc728202fa41388a306d7"
               assert report["source_snapshot_tree"] == "e6d5dfeb42bcd7777ddff52605922fead62135ff"
@@ -305,7 +324,7 @@ jobs:
                     report["original_evidence_linked_routes_not_task_qualified"],
                     "5 future scenarios, 0 host runs, no approval")
           PY
-          for method in repo-doctor agent-postmortem permissions-review automation-receipts fact-check; do
+          for method in repo-doctor agent-postmortem permissions-review automation-receipts fact-check compare session-continuity decision-log; do
             node bin/qortara-skills.mjs task-fit \
               --review "docs/evidence/source-task-fit-${method}-v1.json" \
               --handoff skillz-export/registry/exports/skill-mason-v1 \
@@ -317,17 +336,18 @@ jobs:
           from pathlib import Path
           root=Path("corpus-reference-evidence")
           for name in ("repo-doctor","agent-postmortem","permissions-review",
-                       "automation-receipts","fact-check"):
+                       "automation-receipts","fact-check","compare","session-continuity","decision-log"):
               direct=json.loads((root/(name+"-task-fit.json")).read_text())
               cli=json.loads((root/("node-"+name+"-task-fit.json")).read_text())
               assert direct==cli,(name,"CLI changed original source review")
-          print("ALL 5 ORIGINAL SOURCE-ONLY CONTRACTS PASS: exact upstream packages, 25 planned scenarios, no rights or host approval")
+          print("ALL 8 ORIGINAL SOURCE-ONLY CONTRACTS PASS: exact upstream packages, 40 planned scenarios, no rights or host approval")
           PY
       - name: Replay six original Skillz method tasks and adversarial qualitative controls
         shell: bash
         run: |
           set -euo pipefail
           node --test tests/corpus_three_originals_qualitative.test.mjs
+          node --test tests/three_new_originals_behavioral.test.mjs
           node scripts/grade_corpus_three_originals.mjs > corpus-reference-evidence/three-source-direct-trial.json
           node --input-type=module -e '
             import {readFileSync} from "node:fs";

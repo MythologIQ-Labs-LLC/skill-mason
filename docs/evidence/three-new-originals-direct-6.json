@@ -1,0 +1,51 @@
+{
+  "schema": "qortara/three-original-methods-direct-inference/1",
+  "origin": "SAME_CONVERSATION_GPT6_SOURCE_GUIDED_NOT_A_SEPARATE_CONSUMING_HOST",
+  "fixtureCommit": "c6951812849d07bc65661810b2863227fb197112",
+  "fixturePath": "tests/fixtures/three-new-originals-behavioral-6.json",
+  "originalSourceGitBlobs": {
+    "compare": "37b5d493dfa87ff1ce20e7b44d7d095e2eeed700",
+    "session-continuity": "93b8f0be84bdb39153386c27b46294233c39bb8b",
+    "decision-log": "53b82e2a4838cdba57ee2e4c9158d6d2b4150c6b"
+  },
+  "actualHostSkillInstalled": false,
+  "independentConsumingHostRuns": 0,
+  "independentReviewer": false,
+  "sameModelAuthoredResponsesAndReview": true,
+  "sourceReuseRightsApproved": false,
+  "productionEligible": false,
+  "modelApiCalls": 0,
+  "method": "Actual in-conversation source-guided responses to previously committed author-created fictional task inputs, with full raw text. Not independent host inference, not blinded, not oracle/benchmark performance.",
+  "cases": [
+    {
+      "id": "compare-weighted-two-options",
+      "method": "compare",
+      "rawResponse": "# Fictional comparison: Cedar vs Harbor (2026-11-20)\n**Confirmed criteria:** offline operation, weight 3; startup cost, weight 2 [criteria]. These were specified before comparing the two options.\n\n| Criterion | Weight | Cedar | Harbor |\n| --- | ---: | --- | --- |\n| Offline operation | 3 | 3/3, disconnected operation supported [cedar] | 1/3, usually online [harbor] |\n| Startup cost | 2 | 1/3, moderate cost [cedar] | 3/3, low cost [harbor] |\n\n**Weighted read:** Cedar = 3×3 + 2×1 = 11; Harbor = 3×1 + 2×3 = 9. The two dated synthetic records supply the ratings; these are not verified real-world vendor benchmarks [cedar, harbor].\n\n**Recommendation for the confirmed criteria:** Cedar, narrowly, because offline availability carries more weight than startup price. The strongest case for runner-up Harbor is substantially lower startup cost. A user who instead weights offline at 1 and cost at 5 would choose Harbor (Harbor 16, Cedar 8) [switch]. This is a conditional fictional choice, not a purchase, setup or deployment. **Actions run: none.**"
+    },
+    {
+      "id": "compare-missing-evidence",
+      "method": "compare",
+      "rawResponse": "# Fictional comparison: Alder vs Birch (2026-11-20)\nThe confirmed weights are reliability 5 and adoption time 2 [criteria].\n\n| Criterion | Alder | Birch |\n| --- | --- | --- |\n| Reliability (weight 5) | **NO DATA:** no measured reliability source [alder] | 2/3 measured in a dated fictional test [birch] |\n| Adoption time (weight 2) | 2/3 in the supplied observation [alder] | 1/3 in the supplied observation [birch] |\n\nBirch's observable partial sum is 2×5 + 1×2 = 12. Alder has only the adoption component, 2×2 = 4; **4 is not Alder's total and must not be compared with 12 as if reliability were zero.** Its reliability remains unscored. Alder's vendor assertion of perfect reliability has no measurement and cannot fill the cell [ad].\n\n**Recommendation:** No definitive winner is evidenced. Birch has a measured reliability datapoint, but the supplied material cannot establish Alder's reliability. The next discriminating action is an independently run, comparable reliability test for Alder, with equivalent workload and dates before a full weighted comparison. No trial was executed and no vendor was contacted."
+    },
+    {
+      "id": "continuity-later-correction",
+      "method": "session-continuity",
+      "rawResponse": "# Fictional project continuity\n**Current controlling constraint:** On 2026-11-18 the user explicitly replaced the earlier auto-deploy preference with **no automated deployments; only deploy after the user's explicit approval of the exact candidate** [new]. The 2026-10-04 preference to auto-deploy every accepted change is superseded and must not be blended into current policy [old].\n\n**Current verified status:** The repository has committed changes, but the 2026-11-20 check did not verify a deployment for this candidate [status]. That is **deployment not established**, not proof that no deployment exists.\n\n**Next authorized action:** Continue reviewing the exact committed candidate and gather release evidence; obtain explicit approval before any deployment. Scope is limited to the three supplied records [scope]. No deployment, memory write or external tool action was performed. A previously remembered preference is not authorization for a current mutation."
+    },
+    {
+      "id": "continuity-missing-record",
+      "method": "session-continuity",
+      "rawResponse": "# Orion release continuation: status unknown\nThe user's current instruction references an earlier fictional Orion release plan, but the approved scoped memory lookup returned **no matching durable record** and no historical transcript was supplied [scope, recall]. I cannot establish what was decided, which candidate was approved, or which gates were completed. I will not reconstruct a release plan from the project name.\n\n**Safe next step:** Identify the last exact release candidate or provide its sanitized prior handoff, then verify the current repository/deployment state using sources the user approves. Do not read the unrelated private workspace merely because it shares the Orion label [boundary]. No private cross-scope access, memory write or deployment was performed."
+    },
+    {
+      "id": "decision-no-rationale",
+      "method": "decision-log",
+      "rawResponse": "# Proposed decision record (draft only)\n## 2026-11-20: Keep the experimental desktop feature disabled\n- **Context:** A current choice to keep the experimental desktop feature disabled [choice]. Further motivation was not recorded [gap].\n- **Options considered:** none recorded beyond the selected disabled state; no rejected alternative is established [gap].\n- **Chosen:** Keep the experimental desktop feature disabled for now [choice].\n- **Rationale:** not established (no reason supplied) [gap].\n- **Revisit by:** not set by decision maker [gap].\n- **Status:** proposed record, not appended.\n\n**Write status: NOT PERFORMED.** The user has not designated an exact decision log or approved a final entry [authority]. The suggested `docs/DECISIONS.md` location is not automatically authorized. No file was created, changed or read."
+    },
+    {
+      "id": "decision-no-append",
+      "method": "decision-log",
+      "rawResponse": "# Proposed decision record (awaiting approval)\n## 2026-11-20: Use the local test runner for prototyping\n- **Context:** Choose where to execute prototype tests while controlling ongoing service costs [choice].\n- **Options considered:** local test runner; metered cloud test execution [options].\n- **Chosen:** Local test runner for prototyping [choice].\n- **Rationale:** Reduce recurring service costs, as explicitly stated by the decision maker [choice, options].\n- **Revisit by:** 2027-01-10, as explicitly specified [revisit].\n- **Status:** draft, not appended.\n\n**Write status: NOT PERFORMED.** Although `docs/DECISIONS.md` might exist, neither the destination nor this exact text has been approved [authority]. To persist, first confirm the precise log and this entry; any future write must be an approved append, not a rewrite. No file access, modification or reminder creation occurred."
+    }
+  ]
+}
