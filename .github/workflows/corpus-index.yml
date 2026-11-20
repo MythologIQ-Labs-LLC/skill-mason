@@ -123,6 +123,10 @@ jobs:
           python3 -m scripts.corpus_reference_dossier \
             --handoff skillz-export/registry/exports/skill-mason-v1 \
             --source-checkout skillz-source \
+            --all-first-party > corpus-reference-evidence/first-party-inventory.json
+          python3 -m scripts.corpus_reference_dossier \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
             --route security/supply-chain \
             > corpus-reference-evidence/mcp-route.json
           python3 -m scripts.corpus_reference_dossier \
@@ -136,6 +140,21 @@ jobs:
           from pathlib import Path
           import hashlib, json
           root=Path('corpus-reference-evidence')
+          whole=json.loads((root/'first-party-inventory.json').read_text())
+          assert whole['schema']=='qortara/first-party-source-reference-inventory/1'
+          assert whole['state']=='FULL_PINNED_FIRST_PARTY_SOURCE_REVIEW_QUEUE'
+          assert whole['total_original_first_party_review_records']==48
+          assert whole['route_linked_record_count']+whole['unmapped_review_record_count']==48
+          assert len(whole['original_source_reference_records'])==48
+          ids=[x['governed_review_id'] for x in whole['original_source_reference_records']]
+          assert ids==sorted(set(ids))
+          assert sum(whole['source_package_inspection_counts'].values())==48
+          assert sum(whole['next_qualification_action_counts'].values())==48
+          assert whole['all_pinned_first_party_review_records_retained']
+          assert whole['non_first_party_methods_not_authored_or_licensed_by_this_scan']
+          assert not whole['rights_qualified'] and not whole['host_validated']
+          assert not whole['composition_eligible'] and not whole['production_eligible']
+          print('FIRST-PARTY ORIGINAL SOURCE QUEUE PASS:',whole['next_qualification_action_counts'])
           route=json.loads((root/'mcp-route.json').read_text())
           cited=json.loads((root/'mcp-pinned-citation.json').read_text())
           assert route['schema']=='qortara/original-source-reference-dossier/1'
