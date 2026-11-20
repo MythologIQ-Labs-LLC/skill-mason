@@ -191,6 +191,8 @@ export async function runTrial({packageDir,expectedPackageSha256,cases,model,tok
     rows.push({id:c.id,polarity:c.polarity,arms});
     if(failure)break;
   }
+  const providerResponsesObserved=rows.reduce((sum,row)=>sum+['baseline','generated_skill'].filter(arm=>
+    typeof row.arms[arm]?.providerResponseId==='string' && row.arms[arm].providerResponseId.length>5).length,0);
   const scores=Object.fromEntries(['baseline','generated_skill'].map(arm=>
     [arm,rows.filter(r=>r.arms[arm]?.passed===true).length]));
   return {
@@ -202,13 +204,14 @@ export async function runTrial({packageDir,expectedPackageSha256,cases,model,tok
     originalSourceCommit:candidate.sourceCommit,
     scenarioCount:cases.length,completedCases:rows.filter(r=>r.arms.baseline&&r.arms.generated_skill).length,
     expectedCalls:cases.length*2,attemptedCalls,
-    downstreamCallsActuallyAuthenticated:observedLive&&!failure?attemptedCalls:0,
+    actualTextApiCallsAttempted:observedLive?attemptedCalls:0,
+    actualTextApiResponsesObserved:observedLive?providerResponsesObserved:0,
     assemblyInference:'NOT_MEASURED_BY_TRIAL',
     scores,scoreDelta:scores.generated_skill-scores.baseline,
     skillPassedAllCases:observedLive&&!failure&&scores.generated_skill===cases.length,
     skillImprovedOverBaseline:observedLive&&!failure&&scores.generated_skill>scores.baseline,
     failure,rows,actualHostOriginVerified:false,
-    hostInstalledSkill:false,hostBehaviorObservedAsTextOnlyApi:observedLive,
+    hostInstalledSkill:false,hostBehaviorObservedAsTextOnlyApi:observedLive&&providerResponsesObserved>0,
     semanticQualityIndependentlyReviewed:false,sourceRightsEstablished:false,
     productionEligible:false,hostValidated:false
   };
