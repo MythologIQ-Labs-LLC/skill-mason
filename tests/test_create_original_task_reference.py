@@ -59,11 +59,12 @@ class OrdinaryCreateSourceTaskTests(unittest.TestCase):
     def evaluate(self, task_fit_evaluator=None):
         return self.f.evaluate(task_fit_evaluator=task_fit_evaluator)
 
-    def test_only_three_pinned_originals_are_integrated(self):
+    def test_four_pinned_originals_are_integrated(self):
         self.assertEqual(set(_SOURCE_TASK_REVIEWS), {
             "local-skills/repo-doctor",
             "local-skills/agent-postmortem",
             "local-skills/permissions-review",
+            "local-skills/mcp-vetting",
         })
         self.assertIsNone(self.evaluate()["reviewed_original_task_reference"])
 
@@ -82,6 +83,52 @@ class OrdinaryCreateSourceTaskTests(unittest.TestCase):
         for k in ("production_eligible", "prism_invoked", "composer_invoked",
                   "output_package_created"):
             self.assertFalse(report[k])
+
+    def test_exact_routed_mcp_source_reference_is_visible_but_not_qualified(self):
+        doc = reference()
+        doc["route"] = ROUTE
+        doc["source_only_review_no_route_claim"] = False
+        report = self.evaluate(task_fit_evaluator=lambda *a: doc)
+        ref = report["reviewed_original_task_reference"]
+        self.assertEqual(ref["reviewed_route_not_an_approved_task_match"], ROUTE)
+        self.assertFalse(ref["source_only_review_no_route_claim"])
+        self.assertEqual(ref["original_evidence_linked_routes_not_task_qualified"],
+                         [ROUTE])
+        self.assertFalse(ref["task_semantically_matched_to_user_request"])
+        self.assertIn("ORIGINAL_TASK_FIT_UNQUALIFIED", report["refusal"]["codes"])
+        self.assertEqual(report["refusal"]["code"], "RIGHTS_UNRESOLVED")
+        self.assertFalse(report["prism_invoked"])
+        self.assertFalse(report["composer_invoked"])
+
+    def test_routed_source_cannot_claim_another_route_or_source_only_mode(self):
+        variants = [
+            {"route": "other/route", "source_only_review_no_route_claim": False},
+            {"route": ROUTE, "source_only_review_no_route_claim": True},
+            {"route": ROUTE, "source_only_review_no_route_claim": False,
+             "original_evidence_linked_routes_not_task_qualified": ["other/route"]},
+            {"route": ROUTE, "source_only_review_no_route_claim": False,
+             "original_evidence_linked_routes_not_task_qualified": [ROUTE, "other/route"]},
+        ]
+        for changes in variants:
+            with self.subTest(changes=changes):
+                doc = reference()
+                doc.update(changes)
+                with self.assertRaises(Refusal) as exc:
+                    self.evaluate(task_fit_evaluator=lambda *a: doc)
+                self.assertEqual(exc.exception.code, "TASK_REFERENCE_INTEGRITY")
+
+    def test_routed_reference_cannot_forge_positive_host_or_rights(self):
+        for field in ("rights_qualified", "host_validated",
+                      "outcome_coverage_qualified", "composition_eligible",
+                      "operator_source_acceptance_signed", "production_eligible"):
+            with self.subTest(field=field):
+                doc = reference()
+                doc["route"] = ROUTE
+                doc["source_only_review_no_route_claim"] = False
+                doc[field] = True
+                with self.assertRaises(Refusal) as exc:
+                    self.evaluate(task_fit_evaluator=lambda *a: doc)
+                self.assertEqual(exc.exception.code, "TASK_REFERENCE_INTEGRITY")
 
     def test_inconsistent_identity_snapshot_review_or_route_refuses(self):
         variants = [
