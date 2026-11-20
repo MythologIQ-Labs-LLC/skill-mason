@@ -451,30 +451,6 @@ export async function createRequest(flags,deps={}) {
       outcome.output_package_created!==false || outcome.production_eligible!==false)
     throw new ProbeError('UNTRUSTED_PROMOTION',
       'The request result tried to bypass source, rights, Prism or host qualification');
-  // A source-cited task reference is descriptive evidence, never permission
-  // to install, invoke Prism, select an eligible method or infer user intent.
-  const task=outcome.reviewed_original_task_reference;
-  if(task!==undefined && task!==null){
-    const source=outcome.candidates?.find(c=>c.governed_id===
-      task.governed_review_id?.replace(/^governed:/,''));
-    if(!source || !outcome.refusal?.codes?.includes('ORIGINAL_TASK_FIT_UNQUALIFIED') ||
-       task.state!=='SOURCE_VERIFIED_TASK_REFERENCE_NOT_ADMITTED' ||
-       task.governed_review_id!==outcome.inspected_governed_record_not_selected_for_composition ||
-       source.source_class!=='first-party' ||
-       source.package_bytes?.status!=='PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED' ||
-       task.complete_package_file_list_sha256!==source.package_bytes.file_list_sha256 ||
-       task.task_semantically_matched_to_user_request!==false ||
-       task.source_rights_qualified!==false ||
-       task.outcome_coverage_qualified!==false ||
-       task.host_validated!==false ||
-       task.composition_eligible!==false ||
-       !Array.isArray(task.source_citations) ||
-       task.source_citations.length!==4 ||
-       !Array.isArray(task.narrow_task_spec_not_an_admitted_method?.acceptance_scenarios) ||
-       task.narrow_task_spec_not_an_admitted_method.acceptance_scenarios.length!==5)
-      throw new ProbeError('TASK_REFERENCE_PROMOTION',
-        'Original task reference is not a verified non-admitting source receipt');
-  }
   return outcome;
 }
 export async function run(argv,deps={}) {
