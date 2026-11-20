@@ -31,14 +31,15 @@ const refuse=(code,message)=>{throw Object.assign(new Error(message),{code});};
  */
 export async function composeOperatorBoundP0({
   sourceRegistry,recipe,preflight,operatorTrust,
-  expectedSourceBindingSha256,expectedMethodSha256,expectedSnapshotSha256,
+  expectedSourceBindingSha256,expectedMethodSha256,expectedPackageSha256,expectedSnapshotSha256,
   readOperatorAcceptance,assertSignedMethod,holoPath,holoSha256,outputRoot,
   nowEpoch,loadRuntime
 }={}){
   if(!HEX.test(expectedSourceBindingSha256??'')||
      !HEX.test(expectedMethodSha256??'')||
+     !HEX.test(expectedPackageSha256??'')||
      !HEX.test(expectedSnapshotSha256??''))
-    refuse('OPERATOR_PINS','three independent operator-custodied exact SHA-256 pins required');
+    refuse('OPERATOR_PINS','four independent operator-custodied exact SHA-256 pins required');
   if(!plain(operatorTrust)||!plain(preflight)||
      typeof readOperatorAcceptance!=='function'||
      typeof assertSignedMethod!=='function')
@@ -60,7 +61,7 @@ export async function composeOperatorBoundP0({
      plan.sourceSnapshot.sha256!==expectedSnapshotSha256||
      method.sha256!==expectedMethodSha256||
      method.id!==source.governedId||
-     pin.methodId!==method.id||pin.sha256!==expectedMethodSha256||
+     pin.methodId!==method.id||pin.sha256!==expectedPackageSha256||
      plan.sourceSnapshot.commit!==source.snapshotCommit||
      plan.targetHost!==source.host)
     refuse('SOURCE_METHOD_MISMATCH',
@@ -107,6 +108,7 @@ export async function composeOperatorBoundP0({
     state:'STRICT_SIGNED_SOURCE_P0_DEVELOPMENT_CANDIDATE',
     methodId:method.id,sourceSnapshotCommit:source.snapshotCommit,
     sourceMethodSha256:method.sha256,
+    sourcePackageSha256:pin.sha256,
     sourceBindingSha256:source.sourceBindingSha256,
     sourceApprovalProofSha256:claim.sourceAcceptanceProofSha256,
     independentFourFactProofSha256:claim.proofDigest,
