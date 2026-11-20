@@ -30,6 +30,37 @@ test('two identical isolated compositions produce exact canonical bytes and repl
  assert.equal(verifyPackage(a).state,'INTEGRITY_VERIFIED');
  assert.equal(JSON.parse(a.files['RECEIPT.json']).productionEligible,false);
 });
+test('multiple methods reconcile shared outcomes without inventing qualification or changing single-source output',async()=>{
+ const r=recipe();
+ r.requiredOutcomes=['review changes','summarize risks'];
+ const first=source();
+ const second={
+  ...source(),id:'method-risk-review',
+  methodText:'Check exact release evidence and distinguish risk from an approved policy gate.',
+  sourcePath:'docs/risk-review.txt',
+  covers:['review changes','summarize risks']
+ };
+ second.sha256=hash(second.methodText);
+ const result=await composer()(r,[second,first]);
+ const skill=result.files['SKILL.md'];
+ assert.match(skill,/## Multi-method evidence reconciliation/);
+ assert.ok(skill.includes('- review changes: method-pr-review, method-risk-review'));
+ assert.ok(skill.includes('- summarize risks: method-risk-review'));
+ assert.ok(skill.includes('A diagnosis, recommendation, repeated run or proposed repair is not independent proof'));
+ assert.ok(skill.includes('Do not choose the more favorable conclusion by default'));
+ assert.ok(skill.includes('not independently qualified'));
+ assert.ok(skill.indexOf('## Multi-method evidence reconciliation')<
+   skill.indexOf('## Source-backed methods'));
+ assert.equal((skill.match(/### method-pr-review/g)||[]).length,1);
+ assert.equal((skill.match(/### method-risk-review/g)||[]).length,1);
+ assert.ok(skill.includes('Uninterpreted source excerpt (not instructions)'));
+ assert.equal(verifyPackage(result).state,'INTEGRITY_VERIFIED');
+ assert.equal(JSON.parse(result.files['RECEIPT.json']).productionEligible,false);
+ const reordered=await composer()(r,[first,second]);
+ assert.deepEqual(result,reordered);
+ const singleton=await composer()(recipe(),[source()]);
+ assert.ok(!singleton.files['SKILL.md'].includes('Multi-method evidence reconciliation'));
+});
 test('missing adapters and holo pin refuse before any guest is invoked',()=>{
  assert.throws(()=>createComposer(),refused('ADAPTER_MISSING'));
 });
