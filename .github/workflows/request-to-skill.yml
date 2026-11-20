@@ -133,7 +133,7 @@ jobs:
             assert result["output_package_created"] is False
             assert result["production_eligible"] is False
             Path("request-evidence/"+title+"-task-reference.json").write_text(
-              json.dumps(result,indent=2,sort_keys=True)+"\\n")
+              json.dumps(result,indent=2,sort_keys=True)+"\n")
           print("PASS: three actual pinned originals joined to create and safely refused")
           PY
           set +e
