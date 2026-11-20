@@ -499,11 +499,11 @@ test('manual four-arm CLI emits oracle-free prompt packet and scores case eviden
  const arms=preparedFourResponses();
  for(const [arm,doc] of Object.entries(arms)){
   const target=join(root,arm+'.json');
-  await writeFile(target,JSON.stringify(doc)+'\\n');
+  await writeFile(target,JSON.stringify(doc)+'\n');
   config.responses[arm]=target;
  }
  const input=join(root,'input.json');
- await writeFile(input,JSON.stringify(config)+'\\n');
+ await writeFile(input,JSON.stringify(config)+'\n');
  const executable=fileURLToPath(new URL('../bin/four-arm-quality-trial.mjs',import.meta.url));
  const prepare=spawnSync(process.execPath,[executable,'--mode','prepare','--input',input],
   {encoding:'utf8',timeout:30_000,maxBuffer:2_000_000});
@@ -518,7 +518,7 @@ test('manual four-arm CLI emits oracle-free prompt packet and scores case eviden
  const baseline=arms.baseline;
  baseline.cases[0].rawResponse=baseline.cases[0].rawResponse.replace(
   'CI_STATE: OBSERVED_FAILURE','CI_STATE: WITHHELD');
- await writeFile(config.responses.baseline,JSON.stringify(baseline)+'\\n');
+ await writeFile(config.responses.baseline,JSON.stringify(baseline)+'\n');
  const failed=spawnSync(process.execPath,[executable,'--mode','score','--input',input],
   {encoding:'utf8',timeout:30_000,maxBuffer:2_000_000});
  assert.equal(failed.status,2,failed.stderr);
