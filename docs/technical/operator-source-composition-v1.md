@@ -4,12 +4,12 @@ The new [operator source composition adapter](../../src/backend/operator-source-
 
 ### Execution (trusted coordinator only)
 
-A separately authenticated backend must supply a verified source-method registry and explicit recipe, a **full C4/C5 preflight** for exactly one governed source, its independently accepted Ed25519 source trust root with current revocations, three **independently custodied** hashes (the C4 source binding, original method SHA-256, original source snapshot SHA-256), a source-acceptance envelope resolver, an independent signed-four-fact adapter and an exact pinned local P0 holo/runtime.
+A separately authenticated backend must supply a verified source-method registry and explicit recipe, a **full C4/C5 preflight** for exactly one governed source, its independently accepted Ed25519 source trust root with current revocations, four **independently custodied** hashes (the C4 source binding, original method-text SHA-256, complete original source-package SHA-256, original source snapshot SHA-256), a source-acceptance envelope resolver, an independent signed-four-fact adapter and an exact pinned local P0 holo/runtime.
 
-`composeOperatorBoundP0({ sourceRegistry, recipe, preflight, operatorTrust, expectedSourceBindingSha256, expectedMethodSha256, expectedSnapshotSha256, readOperatorAcceptance, assertSignedMethod, holoPath, holoSha256, outputRoot })` runs these stages, in order:
+`composeOperatorBoundP0({ sourceRegistry, recipe, preflight, operatorTrust, expectedSourceBindingSha256, expectedMethodSha256, expectedPackageSha256, expectedSnapshotSha256, readOperatorAcceptance, assertSignedMethod, holoPath, holoSha256, outputRoot })` runs these stages, in order:
 
 1. Re-hash complete source method/package bytes and bind requested outcome, target host and immutable snapshot via the existing recipe adapter. Refuse multiple methods until **each** can be independently cross-checked.
-2. Validate the source preflight and ensure its governed record, route, target host and snapshot bind to the selected method. Match all three separately configured exact SHA-256 pins **before** any signer or guest call.
+2. Validate the source preflight and ensure its governed record, route, target host and snapshot bind to the selected method. Match all four separately configured exact SHA-256 pins **before** any signer or guest call.
 3. Verify a current, nonrevoked operator Ed25519 selection acceptance for the composer's **actual** calculated method/recipe subject. Only afterward consult the **separate** signed-four-fact/evidence adapter. Never mint a source approval or substitute rights from a package's own metadata.
 4. Send the verified four facts to the exact pinned P0 Prism guest. A signed `rights:false`, stale evidence or denied Prism response **cannot** create a candidate.
 5. Persist **both distinct proof digests** into the strict receipt, content-address the final `SKILL.md`, seal all files on disk exclusively, re-read and compare against the original generated package. Return the original package manifest SHA-256 for custody outside the artifact. Never overwrite a previous candidate.
