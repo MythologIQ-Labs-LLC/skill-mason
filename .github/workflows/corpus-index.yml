@@ -9,6 +9,11 @@ on:
       - 'scripts/corpus_reference_dossier.py'
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
+      - 'tests/test_source_only_fit_review.py'
+      - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
+      - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
+      - 'docs/evidence/source-task-fit-permissions-review-v1.json'
+      - 'docs/technical/source-task-fit-three-originals-v1.md'
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
@@ -54,6 +59,11 @@ on:
       - 'scripts/corpus_reference_dossier.py'
       - 'scripts/source_task_fit_review.py'
       - 'tests/test_source_task_fit_review.py'
+      - 'tests/test_source_only_fit_review.py'
+      - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
+      - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
+      - 'docs/evidence/source-task-fit-permissions-review-v1.json'
+      - 'docs/technical/source-task-fit-three-originals-v1.md'
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
@@ -109,6 +119,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_package_resolver.py' -v
           python3 -m unittest discover -s tests -p 'test_corpus_reference_dossier.py' -v
           python3 -m unittest discover -s tests -p 'test_source_task_fit_review.py' -v
+          python3 -m unittest discover -s tests -p 'test_source_only_fit_review.py' -v
           python3 -m unittest discover -s tests -p 'test_candidate_comparison.py' -v
           python3 -m unittest discover -s tests -p 'test_capability_gap_backlog.py' -v
           python3 -m unittest discover -s tests -p 'test_live_capability_probe.py' -v
@@ -226,6 +237,74 @@ jobs:
                             'rights_qualified','outcome_coverage_qualified','prism_invoked'):
                   assert report[state] is False
           print('PINNED REFERENCE DOSSIER PASS: original MCP source and bounded line evidence, no rights or host promotion')
+          PY
+      - name: Qualify three different source-specific method workbenches against exact original Skillz bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.catalog_index import CorpusIndex
+          from scripts.capability_graph import CapabilityGraph
+          from scripts.source_task_fit_review import assess_task_fit
+          root = Path("corpus-reference-evidence")
+          graph = CapabilityGraph(CorpusIndex(
+              "skillz-export/registry/exports/skill-mason-v1", "skillz-source"))
+          methods = {
+              "repo-doctor": "fed90fa0a664611e560bbc3ded630eb9e72253e1",
+              "agent-postmortem": "dde789e87da090b92021b3e55304299244f62ac2",
+              "permissions-review": "18f46840032829963715ec23894f7826dbbfcb77",
+          }
+          roles = {"TRIGGER_AND_LIMIT", "METHOD_STEPS",
+                   "EVIDENCE_AND_REPORT", "SAFETY_BOUNDARY"}
+          for name, blob in methods.items():
+              source = Path("docs/evidence/source-task-fit-" + name + "-v1.json")
+              review = json.loads(source.read_text())
+              report = assess_task_fit(graph, review)
+              assert report["state"] == "BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED"
+              assert report["governed_review_id"] == "governed:local-skills/" + name
+              assert report["route"] is None
+              assert report["source_only_review_no_route_claim"] is True
+              assert report["original_evidence_linked_routes_not_task_qualified"]
+              assert report["entrypoint_git_blob_sha1"] == blob
+              assert report["source_snapshot_commit"] == "31a8c518dd97b7828adcc728202fa41388a306d7"
+              assert report["source_snapshot_tree"] == "e6d5dfeb42bcd7777ddff52605922fead62135ff"
+              assert report["source_quotes_prove_bytes_not_reviewers_semantic_conclusion"]
+              assert {x["role"] for x in report["source_evidence"]} == roles
+              assert report["acceptance_scenarios_planned_not_executed"] == 5
+              assert report["actual_consumer_host_task_runs"] == 0
+              assert report["registered_route_outcomes_not_qualified"] is None
+              for evidence in report["source_evidence"]:
+                  assert evidence["original_path"].startswith("skills/" + name + "/")
+                  assert evidence["source_url"].startswith(
+                      "https://github.com/Knapp-Kevin/skillz/blob/31a8c518dd97b7828adcc728202fa41388a306d7/")
+                  assert evidence["original_lines_for_review"]
+              for gate in ("rights_qualified", "host_validated", "outcome_coverage_qualified",
+                           "operator_source_acceptance_signed", "prism_invoked",
+                           "composition_eligible", "production_eligible"):
+                  assert report[gate] is False
+              (root / (name + "-task-fit.json")).write_text(json.dumps(report,sort_keys=True))
+              print("PINNED ORIGINAL TASK SCOPE PASS",name,
+                    report["original_evidence_linked_routes_not_task_qualified"],
+                    "5 future scenarios, 0 host runs, no approval")
+          PY
+          for method in repo-doctor agent-postmortem permissions-review; do
+            node bin/qortara-skills.mjs task-fit \
+              --review "docs/evidence/source-task-fit-${method}-v1.json" \
+              --handoff skillz-export/registry/exports/skill-mason-v1 \
+              --source-checkout skillz-source \
+              > "corpus-reference-evidence/node-${method}-task-fit.json"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("corpus-reference-evidence")
+          for name in ("repo-doctor","agent-postmortem","permissions-review"):
+              direct=json.loads((root/(name+"-task-fit.json")).read_text())
+              cli=json.loads((root/("node-"+name+"-task-fit.json")).read_text())
+              assert direct==cli,(name,"CLI changed original source review")
+          print("ALL 3 ORIGINAL SOURCE TASK CONTRACTS PASS: exact upstream packages, 15 planned scenarios, no false rights or host approval")
           PY
       - name: Exercise normal Node CLI against the exact original 48-source corpus
         shell: bash

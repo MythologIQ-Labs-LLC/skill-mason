@@ -61,11 +61,26 @@ def assess_task_fit(graph, review, *, inspector=inspect_package):
             review["source_commit"] == COMMIT and review["source_tree"] == TREE,
             "TASK_SOURCE_PIN", "snapshot or reviewer pin is not the exact original tree")
     route, rid = review["route"], review["governed_review_id"]
-    require(isinstance(route, str) and route in graph.paths and
-            isinstance(rid, str) and 0 < len(rid) <= 200 and
-            rid in graph.paths[route]["matched"],
-            "TASK_CROSSWALK", "method not evidence-linked to exactly requested route")
+    require(isinstance(rid, str) and 0 < len(rid) <= 200,
+            "TASK_CROSSWALK", "exact governed source identity required")
     item = corpus.by_id.get("governed:" + rid)
+    # A source may be evaluated for its *actual narrow method* without
+    # pretending one of its broad taxonomy routes proves the task.
+    # Null route is never a request to select or compose a route.
+    source_only = route is None
+    if not source_only:
+        require(isinstance(route, str) and route in graph.paths and
+                rid in graph.paths[route]["matched"],
+                "TASK_CROSSWALK", "method not evidence-linked to exactly requested route")
+    else:
+        require(isinstance(item, dict),
+                "TASK_CROSSWALK", "source-only review requires an exact governed identity")
+        recorded = item.get("raw", {}).get("capability_mapping", {}).get(
+            "evidence_linked_paths")
+        require(isinstance(recorded, list) and len(recorded) == len(set(recorded)) and
+                all(isinstance(p, str) and p in graph.paths and
+                    rid in graph.paths[p]["matched"] for p in recorded),
+                "TASK_CROSSWALK", "source-only review must preserve the full pinned crosswalk")
     require(isinstance(item, dict) and item.get("family") == "governed" and
             item.get("source_class") == "first-party" and
             item.get("raw", {}).get("record_id") == rid and
@@ -172,11 +187,16 @@ def assess_task_fit(graph, review, *, inspector=inspect_package):
         })
     require(roles == ROLES, "TASK_EVIDENCE",
             "all scope, method, output and safety boundary roles need exact source evidence")
-    original_outcome = graph.outcome_by_path[route]
-    require(isinstance(original_outcome, dict) and
-            original_outcome.get("path") == route and
-            isinstance(original_outcome.get("essential_outcomes"), list),
-            "TASK_OUTCOME", "source capability outcome row is invalid")
+    if source_only:
+        original_outcome = None
+        source_routes = sorted(item["raw"]["capability_mapping"]["evidence_linked_paths"])
+    else:
+        original_outcome = graph.outcome_by_path[route]
+        require(isinstance(original_outcome, dict) and
+                original_outcome.get("path") == route and
+                isinstance(original_outcome.get("essential_outcomes"), list),
+                "TASK_OUTCOME", "source capability outcome row is invalid")
+        source_routes = [route]
     return {
         "schema": SCHEMA,
         "state": "BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED",
@@ -184,6 +204,8 @@ def assess_task_fit(graph, review, *, inspector=inspect_package):
         "source_snapshot_tree": TREE,
         "governed_review_id": "governed:" + rid,
         "route": route,
+        "source_only_review_no_route_claim": source_only,
+        "original_evidence_linked_routes_not_task_qualified": source_routes,
         "original_static_review_status": item["review_status"],
         "source_entrypoint": review["source_entrypoint"],
         "entrypoint_git_blob_sha1": review["source_git_blob_sha1"],
@@ -191,7 +213,8 @@ def assess_task_fit(graph, review, *, inspector=inspect_package):
         "review_input_sha256": sha256(canonical(review)),
         "source_evidence": checked,
         "reviewer_proposed_task_spec_not_an_admitted_method": task,
-        "registered_route_outcomes_not_qualified": original_outcome["essential_outcomes"],
+        "registered_route_outcomes_not_qualified": (
+            None if source_only else original_outcome["essential_outcomes"]),
         "broader_claims_not_supported": review["broader_claims_not_supported"],
         "source_quotes_prove_bytes_not_reviewers_semantic_conclusion": True,
         "acceptance_scenarios_planned_not_executed": len(scenarios),
