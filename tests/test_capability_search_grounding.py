@@ -46,7 +46,8 @@ class SourceGroundedSearchTests(unittest.TestCase):
                 "existing_capability_statements": ["Check original dated studies"],
             },
         }
-        self.graph.corpus = SimpleNamespace(by_id={})
+        self.graph.corpus = SimpleNamespace(
+            by_id={},taxonomy_paths={"outcomes": "pinned-outcomes.json"})
 
     def result(self, query, limit=25):
         value = self.graph.search(query, limit=limit)
