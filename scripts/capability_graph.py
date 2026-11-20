@@ -6,12 +6,38 @@ Evidence-linked discovery is not target-specific method eligibility or behaviora
 import argparse
 from collections import Counter
 import json
+import re
 import sys
+import unicodedata
 
 from scripts.catalog_handoff import COMMIT, Refusal, parse_json, require
 from scripts.catalog_index import CorpusIndex
 
 SCHEMA = "qortara/capability-opportunity-graph/1"
+
+# Exact lexical matches are only evidence that a route *mentions* the tokens.
+# No stemming, synonym expansion, method eligibility or semantic confidence.
+# Splitting at punctuation also makes slash/hyphen route identifiers searchable.
+_SEARCH_TOKEN = re.compile(r"[^\\W_]+", re.UNICODE)
+
+
+def _tokens(text):
+    return frozenset(_SEARCH_TOKEN.findall(
+        unicodedata.normalize("NFC", text).casefold()))
+
+
+def _source_values(node):
+    """Declared taxonomy prose only, never JSON labels, keys or review status."""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, list):
+        for item in node:
+            yield from _source_values(item)
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _source_values(value)
+
+
 
 
 class CapabilityGraph:
@@ -147,17 +173,25 @@ class CapabilityGraph:
         require(isinstance(query, str) and bool(query.strip()), "QUERY_REQUIRED", "query required")
         require(type(limit) is int and 0 < limit <= 200,
                 "QUERY_LIMIT", "limit must be between 1 and 200")
-        words = query.casefold().split()
+        # Query only the *values* of recognized, pinned taxonomy fields.
+        # Searching serialized JSON leaked field names such as "path" and
+        # "essential_outcomes" into EVERY route, creating spurious matches.
+        # An exact token match never constitutes source/rights/host admission.
+        words = _tokens(query)
+        require(bool(words), "QUERY_REQUIRED",
+                "query must include a searchable lexical token")
         matched = []
         for path in sorted(self.paths):
             node = self.paths[path]
             outcome = self.outcome_by_path[path]
-            content = json.dumps({
-                "path": path, "domain_name": node["domain"].get("name"),
-                "subdomain_name": node["subdomain"].get("name"),
-                "statements": outcome.get("existing_capability_statements", []),
-                "essential_outcomes": outcome["essential_outcomes"]}, ensure_ascii=False).casefold()
-            if all(word in content for word in words):
+            values = (path, node["domain"].get("name"),
+                      node["subdomain"].get("name"),
+                      outcome.get("existing_capability_statements", []),
+                      outcome["essential_outcomes"])
+            indexed = frozenset().union(*(
+                _tokens(value) for field in values
+                for value in _source_values(field)))
+            if words.issubset(indexed):
                 matched.append(path)
         return {"schema": SCHEMA, "query": query,
                 "search_type": "recognized_capability_lexical_routing_not_method_admission",
