@@ -41,4 +41,10 @@ for method in repo-doctor agent-postmortem permissions-review; do
 done
 ```
 
+## Direct task application after source validation
+
+The later [six synthetic case inputs](../../tests/fixtures/corpus-three-originals-evaluation-6.json) have been directly evaluated through these original-method instructions by the same assistant. Their [six complete authored reports](../evidence/corpus-three-originals-direct-6.json) preserve the observed, source-linked decisions and redacted/withheld information. A [runnable checker](../../scripts/grade_corpus_three_originals.mjs) and [12 adversarial regressions](../../tests/corpus_three_originals_qualitative.test.mjs) catch missing critical findings, unsupported evidence IDs, unapproved Git-helper operations, invented agent root causes, credential leakage, dangerous MCP permission under-ranking, unauthorized scheduling, and assertions of production/host evidence.
+
+Results are reviewed **within the exact fictional task inputs only**; the six answers are not independently blind-judged, do not measure transfer to lower-capability models and were not produced by a separately installed consuming agent. Even a passing regression does not change `host_validated:false` or `rights_qualified:false`. This is a *method-specific qualitative exploration*, not a production acceptance test.
+
 **Next real capability:** Run original-method instructions against separately supplied, permissioned, unseen host tasks; preserve complete output/negative-control evidence; independently evaluate the results and rights before any governed operator source acceptance or Prism composition. Source-hash verification is necessary but does not imply good decisions or lawful redistribution.
