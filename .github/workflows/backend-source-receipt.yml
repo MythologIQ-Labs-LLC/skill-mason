@@ -4,6 +4,8 @@ on:
     paths:
       - 'src/backend/compose.mjs'
       - 'src/backend/operator-source-composition.mjs'
+      - 'src/backend/operator-multi-source-composition.mjs'
+      - 'tests/operator_multi_source_composition.test.mjs'
       - 'tests/operator_source_composition.test.mjs'
       - 'src/backend/source-proof-replay.mjs'
       - 'tests/backend_compose.test.mjs'
@@ -20,6 +22,8 @@ on:
     paths:
       - 'src/backend/compose.mjs'
       - 'src/backend/operator-source-composition.mjs'
+      - 'src/backend/operator-multi-source-composition.mjs'
+      - 'tests/operator_multi_source_composition.test.mjs'
       - 'tests/operator_source_composition.test.mjs'
       - 'src/backend/source-proof-replay.mjs'
       - 'tests/backend_source_approval_receipt.test.mjs'
@@ -56,8 +60,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
-          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
-          git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs src/backend/operator-source-composition.mjs tests/operator_source_composition.test.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
+          node --test tests/backend_compose.test.mjs tests/backend_source_approval_receipt.test.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/backend_signed_assertions.test.mjs tests/backend_host_task_evidence.test.mjs
+          git diff --exit-code -- src/backend/compose.mjs src/backend/source-proof-replay.mjs src/backend/operator-source-composition.mjs src/backend/operator-multi-source-composition.mjs tests/operator_source_composition.test.mjs tests/operator_multi_source_composition.test.mjs tests/backend_source_approval_receipt.test.mjs src/backend/host-task-evidence.mjs bin/host-task-evidence.mjs tests/backend_host_task_evidence.test.mjs
       - name: Cross-branch two-signature P0 fixture through exclusive disk seal (offline)
         shell: bash
         run: |
