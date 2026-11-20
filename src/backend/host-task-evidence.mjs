@@ -1,6 +1,6 @@
 /**
- * Offline capture and integrity verification for two first-party candidate
- * host-task evaluations. A transcript hash authenticates local bytes only.
+ * Offline capture and integrity verification for source-pinned first-party
+ * development candidate host-task evaluations. A transcript hash authenticates local bytes only.
  *
  * This module DOES NOT prove the bytes came from ChatGPT/Claude, determine
  * task quality, grant content rights, or install/activate a skill.
@@ -11,7 +11,8 @@ import {PILOT_DEFINITIONS,PILOT_SOURCE_COMMIT} from './first-party-pilots.mjs';
 
 export const HOST_EVIDENCE_SCHEMA='qortara/host-task-evidence/1';
 export const HOST_MATRIX_SCHEMA='qortara/host-task-review-matrix/1';
-export const HOST_TASK_PROVIDERS=Object.freeze(['chatgpt','claude']);
+export const HOST_PAIR_SCHEMA='qortara/host-task-pair/1';
+export const HOST_TASK_PROVIDERS=Object.freeze(['chatgpt','claude','codex']);
 const HASH=/^[0-9a-f]{64}$/;
 const LABEL=/^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,159}$/;
 const UTC=/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/;
@@ -68,18 +69,28 @@ function candidate(packageValue,trustedManifestSha256){
  }catch{REFUSAL('CANDIDATE_SHAPE','candidate JSON is invalid');}
  if(!plain(sources)||!Array.isArray(sources.methods)||sources.methods.length!==1||
   !plain(receipt)||!Array.isArray(receipt.assertions)||receipt.assertions.length!==1||
-  receipt.sourceApprovalRequired!==true||receipt.productionEligible!==false||
-  receipt.hostValidated!==false||manifest.productionEligible!==false)
-  REFUSAL('CANDIDATE_SCOPE','strict unqualified single-method first-party candidate required');
+  receipt.productionEligible!==false||receipt.hostValidated!==false||
+  manifest.productionEligible!==false)
+  REFUSAL('CANDIDATE_SCOPE','unqualified, single-method first-party candidate required');
+ const strict=receipt.sourceApprovalRequired===true;
+ if(!strict&&receipt.sourceApprovalRequired!==undefined)
+  REFUSAL('CANDIDATE_SCOPE','malformed source approval mode cannot enter a trial');
  const src=sources.methods[0],pilot=PILOT_DEFINITIONS.find(x=>x.id===src?.id);
+ const proof=receipt.assertions[0];
  if(!pilot||src.sha256!==pilot.sha256||src.sourcePath!==pilot.path||
-    src.commit!==PILOT_SOURCE_COMMIT||manifest.name!==pilot.id||
-    receipt.assertions[0].methodId!==pilot.id||
-    !validHash(receipt.assertions[0].proofDigest)||
-    !validHash(receipt.assertions[0].sourceAcceptanceProofSha256))
-  REFUSAL('CANDIDATE_SCOPE','original source pins and strict proof references must be preserved');
+    src.commit!==(pilot.sourceCommit??PILOT_SOURCE_COMMIT)||manifest.name!==pilot.id||
+    proof.methodId!==pilot.id||!validHash(proof.proofDigest)||
+    (strict?(!validHash(proof.sourceBindingSha256)||
+              !validHash(proof.sourceAcceptanceProofSha256)):
+      proof.sourceBindingSha256!==undefined||
+      proof.sourceAcceptanceProofSha256!==undefined))
+  REFUSAL('CANDIDATE_SCOPE','original source pins and proof mode must be preserved');
+ // A fixture-only P0 candidate can be *observed*, never promoted. The
+ // strict source-proof references likewise do not authenticate the issuer.
  return {skillId:pilot.id,originalMethodSha256:pilot.sha256,
-  originalSourceCommit:PILOT_SOURCE_COMMIT,manifestSha256:verified.packageSha256};
+  originalSourceCommit:pilot.sourceCommit??PILOT_SOURCE_COMMIT,
+  manifestSha256:verified.packageSha256,
+  ...(!strict?{sourceProofMode:'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL'}:{})};
 }
 
 /**
@@ -127,7 +138,45 @@ export function verifyHostTaskEvidence({
   state:'CAPTURE_HASHES_MATCH_UNATTESTED',
   scenario:{...expected.scenario},host:{...expected.host},
   manifestSha256:expected.candidate.manifestSha256,
+  ...(expected.candidate.sourceProofMode?{sourceProofMode:expected.candidate.sourceProofMode}:{}),
   evidenceRecordSha256:SHA(Buffer.from(canonicalJSON(expected))),
+  rawTranscriptBytesMatched:true,
+  independentObserverAttested:false,hostOriginCryptographicallyVerified:false,
+  behavioralOutcome:'NOT_ADJUDICATED',sourceRightsEstablished:false,
+  productionEligible:false,hostValidated:false
+ };
+}
+
+/**
+ * One complete positive + negative trial of an exact source-pinned candidate.
+ * This admits newer original methods without weakening the legacy four-case
+ * matrix. Re-verifies *each* raw transcript and independently supplied package
+ * hash; cannot certify host origin or behavioral success.
+ */
+export function inspectHostTaskPair(cases){
+ if(!Array.isArray(cases)||cases.length!==2)
+  REFUSAL('PAIR_INCOMPLETE','one positive and one negative capture are required');
+ const results=cases.map(c=>verifyHostTaskEvidence(c));
+ const [a,b]=results;
+ if(a.scenario.skillId!==b.scenario.skillId ||
+    [a.scenario.polarity,b.scenario.polarity].sort().join('|')!=='negative|positive')
+  REFUSAL('PAIR_INCOMPLETE','both control polarities must use one exact method');
+ if(a.manifestSha256!==b.manifestSha256)
+  REFUSAL('PAIR_SCOPE','positive and negative task must use the same sealed candidate');
+ if(a.host.provider!==b.host.provider||a.host.model!==b.host.model)
+  REFUSAL('PAIR_SCOPE','both controls must use the same reported host and model');
+ if(a.host.sessionId===b.host.sessionId)
+  REFUSAL('PAIR_DUPLICATE','two distinct host session labels are required');
+ return {
+  schema:HOST_PAIR_SCHEMA,state:'CAPTURE_PAIR_COMPLETE_AWAITING_INDEPENDENT_REVIEW',
+  skillId:a.scenario.skillId,
+  manifestSha256:a.manifestSha256,
+  sourceProofMode:a.sourceProofMode??'SOURCE_PROOF_DIGEST_POINTERS_NOT_AUTHENTICATED',
+  reportedHostProvider:a.host.provider,reportedHostModel:a.host.model,
+  captures:results.map(r=>({
+   polarity:r.scenario.polarity,evidenceRecordSha256:r.evidenceRecordSha256,
+   transcriptBytesMatched:r.rawTranscriptBytesMatched
+  })).sort((x,y)=>x.polarity.localeCompare(y.polarity)),
   rawTranscriptBytesMatched:true,
   independentObserverAttested:false,hostOriginCryptographicallyVerified:false,
   behavioralOutcome:'NOT_ADJUDICATED',sourceRightsEstablished:false,

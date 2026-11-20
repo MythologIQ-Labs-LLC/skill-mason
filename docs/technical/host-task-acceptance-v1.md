@@ -116,3 +116,57 @@ Even genuine host-task success is not a license grant. Source rights, allowed di
 ## Regression suite
 
 [`tests/backend_host_task_evidence.test.mjs`](../../tests/backend_host_task_evidence.test.mjs) exercises both source-pinned originals, both trial host labels, complete positive/negative matrix, raw response substitutions, changed manifest pin, forged approval/status, absent context, bad UTF-8, disallowed host, missing/duplicate matrix entries, different build hash, overwrite refusal and symlinked transcript refusal. All test host responses are synthetic; tests must **never** increment a real host-acceptance count.
+
+## Two-control evaluation for any source-pinned original first-party candidate
+
+**Implemented extension, November 20, 2026:** The original `matrix` command and its historical four observations remain supported without modification. The same sealed-candidate verifier now recognizes **all eight individually immutable first-party method versions**, including `release-readiness-review-v2` (original commit `1166781731db2c2b1456125ac4876a5853a557e2`, SHA-256 `608bb8a70626faae7083bcd9fc97a4b284d5f53cb6a083285da273145f06792f`). It checks the individual source commit rather than incorrectly expecting every source to originate from the first 2026-11-18 authoring commit.
+
+Two explicitly distinct development receipt modes can be **observed**, but never treated as production source approval:
+
+- **Strict source-receipt pointer:** the original source binding and a separate source-acceptance proof digest are recorded, but this intake does not cryptographically authenticate their signer.
+- **P0 development without operator source acceptance:** the real Prism-backed first-party pilot output contains a sealed skill, immutable original source identity and fixture-derived facts, but no source-binding signature pointer. In captured evidence it is labeled `sourceProofMode: P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL`. It is suitable for a **controlled read-only test** only, never production adoption, source rights or tool authority.
+
+The operator must first obtain the **exact original `skill-mason.json` SHA-256 independently from trusted composition custody**. A new candidate generated from the same procedure can have a different final package hash. Never take the expected pin from the candidate being validated. The intake checks a completed disk-sealed original package, source method ID, pinned method digest, method-specific immutable authoring commit and transcript hashes; no arbitrary other repository source can masquerade as a registered first-party method.
+
+### Capture a real positive and negative task from one host
+
+Use `capture` as above twice with `--polarity positive` and `--polarity negative`, with the **same exact candidate**, host/provider, model, and **distinct actual host sessions**. The positive case should include sufficient task evidence; the negative case should deliberately withhold a mandatory policy, failing log or required authorization and verify that the host **does not invent an answer or take an action**. Do not use fabricated session labels for an actual trial. The labels are still self-reported and not authenticated by this command. ChatGPT, Claude and Codex are supported as **labels**, not endorsements or provider attestations.
+
+Create an operator-only local JSON file with schema `qortara/operator-host-pair-input/1` and two entries:
+
+```json
+{
+  "schema": "qortara/operator-host-pair-input/1",
+  "cases": [
+    {
+      "candidateDir": "/absolute/path/release-readiness-review-v2",
+      "expectedPackageSha256": "64-hex-character-independently-custodied-original-package-hash",
+      "record": "/absolute/path/positive-record.json",
+      "prompt": "/absolute/path/positive-prompt.txt",
+      "reference": "/absolute/path/positive-reference.txt",
+      "response": "/absolute/path/positive-response.txt"
+    },
+    {
+      "candidateDir": "/absolute/path/release-readiness-review-v2",
+      "expectedPackageSha256": "64-hex-character-independently-custodied-original-package-hash",
+      "record": "/absolute/path/negative-record.json",
+      "prompt": "/absolute/path/negative-prompt.txt",
+      "reference": "/absolute/path/negative-reference.txt",
+      "response": "/absolute/path/negative-response.txt"
+    }
+  ]
+}
+```
+
+The digest above is a **placeholder**, not a real hash; replace both entries with an externally pinned, identical 64-character lowercase SHA-256 value, not a value copied from inside the package. Run:
+
+```sh
+node bin/host-task-evidence.mjs pair \
+  --manifest /absolute/path/two-cases.json \
+  --out /absolute/path/host-task-pair-receipt.json
+```
+
+A successful pair reports `CAPTURE_PAIR_COMPLETE_AWAITING_INDEPENDENT_REVIEW`, original skill ID, exact package digest, two verified raw-transcript receipts, and the matched reported host/model labels. Mismatched source versions, packages, provider/model labels, reused host session labels, missing positive/negative control, altered transcript, or forged rights/host claims refuse.
+
+**It does not score the host answers.** Independent behavioral review of the raw, source-scoped positive and negative responses is still required, and the result deliberately remains `behavioralOutcome:NOT_ADJUDICATED`, `hostValidated:false`, `productionEligible:false`, `sourceRightsEstablished:false`. No credentials, private prompts, or raw transcripts are uploaded by this CLI. The new [focused test suite](../../tests/host_task_pair_v2.test.mjs) exercises real sealed-package filesystem reads, source-version changes, both receipt modes, missing controls and tampering, using fixture responses only; no actual consuming host was contacted.
+
