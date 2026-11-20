@@ -81,8 +81,8 @@ class SourceGroundedSearchTests(unittest.TestCase):
             with self.subTest(query=query):
                 self.assertEqual(self.result(query)["routes"], [])
         # Word boundaries in punctuation-separated canonical route IDs work.
-        self.assertEqual(self.result("fact check")["matched_route_count"], 1)
-        self.assertEqual(self.result("path analysis")["matched_route_count"], 1)
+        self.assertEqual(self.result("fact check")["total_matches"], 1)
+        self.assertEqual(self.result("path analysis")["total_matches"], 1)
 
     def test_given_unicode_case_and_punctuation_then_tokenizer_is_deterministic(self):
         self.assertEqual(_tokens("JOB-MONITORING / job_monitoring"),
