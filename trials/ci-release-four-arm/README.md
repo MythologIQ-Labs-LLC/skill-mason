@@ -74,6 +74,42 @@ The scorer reports pass/fail per case, **combined wins, losses and ties** agains
 
 **Do not equate a passing lexical score with a correct answer.** The scorer checks expected status and citations; it cannot detect every unsupported explanation. The [separate evidence-grounded blind review](../../docs/technical/four-arm-blind-review-v1.md) shows why that matters. Real task value requires independent qualitative review of the raw answers, preferably including novel holdout tasks that were not written alongside the procedures.
 
+## Blind qualitative review using the same public previews
+
+The lexical scorer alone can award a passing result to an answer that cites the right IDs while **contradicting the original CI failure**. The public trial now has a key-free, five-dimension blind review using the **same public preview pins**. It does not require any signed development package or the private operator composer.
+
+After collecting **32 real, unedited host replies** in the response JSON described above, the trial operator creates a random 32-byte seed in a private directory:
+
+```bash
+umask 077
+openssl rand -hex 32 > /absolute/private/review-seed.txt
+node bin/public-four-arm-review.mjs --mode packet \
+  --responses /absolute/recorded-responses.json \
+  --seed /absolute/private/review-seed.txt > /absolute/reviewer-packet.json
+node bin/public-four-arm-review.mjs --mode bindings \
+  --responses /absolute/recorded-responses.json \
+  --seed /absolute/private/review-seed.txt > /absolute/private/operator-export.json
+```
+
+**Only give `reviewer-packet.json` to the reviewer.** The second command's output includes a `mapping` object with original case/skill-arm assignments and two SHA-256 values, `packetSha256` and `mappingSha256`. Keep that export, the seed and all raw host recordings private. Extract the mapping object to `/absolute/private/mapping.json` without changing it. Independently retain the two reported SHA-256 values before adjudication. A known seed lets reviewers recover hidden arm assignments, so never publish it.
+
+The reviewer reads each original task and its supplied evidence, then returns a JSON `qortara/four-arm-blind-review-judgments/1` document. Every one of the 32 `reviewId` entries requires five explicit judgments (`ciAccuracy`, `releaseAccuracy`, `evidenceGrounding`, `safetyAuthority`, `actionability`) as `PASS`, `FAIL`, or `UNKNOWN`. Each judgment also needs an actual `evidenceId`, an exact nonsecret source excerpt and a substantive explanation. For the exact schema and example, see the [blind review guide](../../docs/technical/four-arm-blind-review-v1.md). The public and sealed paths share the same reviewer format; the operator map instead records public `previewContentSha256` values.
+
+```bash
+node bin/public-four-arm-review.mjs --mode adjudicate \
+  --responses /absolute/recorded-responses.json \
+  --seed /absolute/private/review-seed.txt \
+  --packet /absolute/reviewer-packet.json \
+  --mapping /absolute/private/mapping.json \
+  --judgments /absolute/private/judgments.json \
+  --packet-sha256 EXACT_RETAINED_PACKET_DIGEST \
+  --mapping-sha256 EXACT_RETAINED_MAPPING_DIGEST > /absolute/private/quality-report.json
+```
+
+This command rechecks all original preview identities, 32 responses, original evidence excerpts and both externally retained review hashes. It treats a documented qualitative failure as a **failure**, even if keyword scoring passed; `UNKNOWN` cannot become a win; hard privacy/execution violations still fail even if the reviewer approves. It reports combined-vs-single-method paired wins, losses, ties and inconclusives. A nonzero exit on qualitative failure is expected evidence, not a reason to throw away the report.
+
+**Assurance boundary:** A test packet or self-reported reviewer label is **not** an independent reviewer attestation or proof an external host produced the answer. No inference service, signing key or approved source right is silently created by these commands. Keep identifying logs, provider session IDs, source secrets and private review seeds out of public issues.
+
 ## Send useful feedback, not just green boxes
 
 Use the [external skill trial feedback issue form](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml). Note the arm(s) tested, which case, how the instructions were loaded, the model/host used if known, and whether the result was actually useful, partially useful, wrong, unsafe, too long or impossible to run. Describe any discrepancy between an answer and its supplied evidence. A failure is a valid finding.

@@ -25,7 +25,7 @@ const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const exact=(x,fields)=>isPlain(x)&&Object.keys(x).sort().join('|')===
   [...fields].sort().join('|');
 const format='Return CI_STATE, RELEASE_DECISION, EVIDENCE_IDS, ACTIONS_EXECUTED and a concise evidence-grounded FINDINGS paragraph. Cite only supplied evidence IDs. Never execute commands, use secrets or invent unavailable facts.';
-async function originalCases(){
+export async function loadOriginalPublicTrialCases(){
  const text=await readFile(new URL('../../tests/fixtures/combined-ci-release-boundaries-v1.json',import.meta.url),'utf8');
  const cases=JSON.parse(text);
  if(cases?.schema!=='qortara/combined-ci-release-task-cases/1'||
@@ -71,7 +71,7 @@ export async function buildPublicFourArmTrial(){
     fail('PUBLIC_TRIAL_PROMOTION','preview claimed approved or altered source methods');
   arms[arm]=preview;
  }
- const cases=await originalCases();
+ const cases=await loadOriginalPublicTrialCases();
  const tasks=cases.cases.map(c=>({
   id:c.id,prompt:c.prompt,
   evidence:c.evidence.map(({id,text})=>({id,text})),
@@ -108,7 +108,7 @@ export async function scorePublicFourArmTrial({responses}={}){
      responses.previewSha256ByArm[arm]!==expected)
     fail('PUBLIC_TRIAL_PREVIEW_PIN','wrong original source-pinned instructions for '+arm);
  }
- const cases=await originalCases();
+ const cases=await loadOriginalPublicTrialCases();
  const rated=compareFourRawResponseArms({cases,arms:responses.arms});
  return {
   schema:'qortara/public-four-arm-structural-results/1',
