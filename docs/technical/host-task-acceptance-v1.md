@@ -201,3 +201,30 @@ node scripts/grade_release_readiness_v2_host.mjs \
 The scorer runs offline, invokes **zero models**, requires all six cases, refuses output overwrite and symlinked input, and writes a private mode-0600 report with individual failure codes and input hash. A six-of-six match means **frozen case constraints matched**, not that a host installed the generated skill or an independent reviewer verified the model. Even at six-of-six, the report says `hostValidated:false`, `actualHostOriginVerified:false`, `semanticQualityIndependentlyReviewed:false`, `sourceRightsEstablished:false`, and `productionEligible:false`.
 
 For a full host claim, separately capture the original prompt, input, skill package hash, actual response, source-pinned candidate, and verified positive/negative pair using `host-task-evidence.mjs`. A human reviewer still needs to examine the *actual* response quality beyond these deterministic oracle constraints. Do not commit private operator transcripts or session details.
+
+
+## Release-readiness-v2 live text-model A/B holdout
+
+A new **manual-only** workflow, [Release-readiness v2 real model A/B evaluation](../../.github/workflows/release-readiness-v2-live-host.yml), tests the real `release-readiness-review-v2` generated development candidate against six new fictional holdout tasks: complete multi-target review, green CI without authenticated policy, a signature on the wrong artifact, an omitted ARM64 target, forged waiver instructions in a failing Windows job, and a fresh exact-head repair/retest. Two cases expect readiness for **owner decision only**, and four require a hold/refusal outcome. None authorize a release or actual operations.
+
+The runner is [`bin/release-readiness-live-host-test.mjs`](../../bin/release-readiness-live-host-test.mjs). It performs **12 explicitly bounded calls** to the chosen OpenAI text-only model, one baseline and one with the *same exact sealed generated skill instructions* per case. Both arms receive the same answer schema and identical task evidence; **the model never receives the embedded acceptance oracle**. It checks substantive gates, exact quoted evidence, mandatory policy coverage, release decision, unauthorized actions and next checks. Each actual provider response, case score, input-message SHA-256, response SHA-256, request ID and API token usage are preserved in a private 7-day workflow artifact, even if a later case fails.
+
+### Owner-controlled dispatch requirements
+
+This is opt-in, not a recurring job and never triggered automatically by a PR. From **Actions → Release-readiness v2 real model A/B evaluation (manual only) → Run workflow**, supply the explicit model, existing P0 candidate `artifact_id`, its independently custodied **original GitHub ZIP archive SHA-256**, and its separately recorded **original `skill-mason.json` SHA-256**. Both digests are mandatory and checked before model use. Neither should be copied from an unverified downloaded candidate. The workflow does not select the latest artifact, infer a SHA from an untrusted file, or allow a new package to silently replace the pinned one.
+
+The manually configured repository secret `SKILL_MASON_HOST_OPENAI_API_KEY` is required. The workflow refuses without it. **Do not enter a key into a chat, PR, workflow input or log.** The model ID and dispatch explicitly authorize only the limited evaluation calls; no command execution, package installation, repository writes or release signatures are passed to the model. Inference may incur provider charges. The workflow's original source-pinned P0 development package is still not production-eligible.
+
+Equivalent operator-controlled CLI run against an already extracted, verified candidate:
+
+```sh
+node bin/release-readiness-live-host-test.mjs \
+  --candidate-dir /absolute/path/release-readiness-review-v2 \
+  --expected-package-sha256 ORIGINAL_INDEPENDENTLY_RECORDED_64_HEX_SHA256 \
+  --model EXPLICIT_AUTHORIZED_OPENAI_TEXT_MODEL \
+  --report /absolute/path/new-release-v2-ab-report.json
+```
+
+The CLI writes a new mode-0600 report with `wx` and returns nonzero if the generated skill fails any case. It records available responses and failure markers on a partial provider error instead of silently claiming completion. All six cases are **new fictional test inputs**, not actual production release records. The existing six authored v2 reviews remain historical, non-independent evidence and are not reused here.
+
+**Evidence interpretation:** `LIVE_TEXT_API_RESPONSES_OBSERVED` demonstrates OpenAI text API behavior when the *skill text is supplied as system context*, not verified installation, activation or execution within ChatGPT, Claude or Codex. It is not an independently witnessed host outcome; `actualHostOriginVerified:false`, `hostInstalledSkill:false`, `semanticQualityIndependentlyReviewed:false`, `sourceRightsEstablished:false`, `hostValidated:false`, and `productionEligible:false` remain explicit. Even six of six strong responses on this frozen holdout are insufficient for broad claims of host improvement. Review the actual response content and source citations and repeat with new cases before considering admission.
