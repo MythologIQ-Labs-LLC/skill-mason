@@ -19,6 +19,9 @@ on:
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
       - 'docs/technical/source-task-fit-three-originals-v1.md'
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
+      - 'docs/evidence/source-task-fit-automation-receipts-v1.json'
+      - 'docs/evidence/source-task-fit-fact-check-v1.json'
+      - 'docs/technical/source-task-fit-two-more-originals-v1.md'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
       - 'docs/technical/corpus-reference-dossier-v1.md'
@@ -73,6 +76,9 @@ on:
       - 'docs/evidence/source-task-fit-permissions-review-v1.json'
       - 'docs/technical/source-task-fit-three-originals-v1.md'
       - 'docs/evidence/source-task-fit-mcp-vetting-v1.json'
+      - 'docs/evidence/source-task-fit-automation-receipts-v1.json'
+      - 'docs/evidence/source-task-fit-fact-check-v1.json'
+      - 'docs/technical/source-task-fit-two-more-originals-v1.md'
       - 'docs/technical/source-task-fit-review-v1.md'
       - 'tests/test_corpus_reference_dossier.py'
       - 'docs/technical/corpus-reference-dossier-v1.md'
@@ -246,7 +252,7 @@ jobs:
                   assert report[state] is False
           print('PINNED REFERENCE DOSSIER PASS: original MCP source and bounded line evidence, no rights or host promotion')
           PY
-      - name: Qualify three different source-specific method workbenches against exact original Skillz bytes
+      - name: Verify five original source-only method task contracts against the pinned Skillz tree
         shell: bash
         run: |
           set -euo pipefail
@@ -263,6 +269,8 @@ jobs:
               "repo-doctor": "fed90fa0a664611e560bbc3ded630eb9e72253e1",
               "agent-postmortem": "dde789e87da090b92021b3e55304299244f62ac2",
               "permissions-review": "18f46840032829963715ec23894f7826dbbfcb77",
+              "automation-receipts": "94fb288d7d6a3ea6982f22bd8bb9ef77b9de7add",
+              "fact-check": "d83c43282d525682f3e13b8296111d7fe7de46f0",
           }
           roles = {"TRIGGER_AND_LIMIT", "METHOD_STEPS",
                    "EVIDENCE_AND_REPORT", "SAFETY_BOUNDARY"}
@@ -297,7 +305,7 @@ jobs:
                     report["original_evidence_linked_routes_not_task_qualified"],
                     "5 future scenarios, 0 host runs, no approval")
           PY
-          for method in repo-doctor agent-postmortem permissions-review; do
+          for method in repo-doctor agent-postmortem permissions-review automation-receipts fact-check; do
             node bin/qortara-skills.mjs task-fit \
               --review "docs/evidence/source-task-fit-${method}-v1.json" \
               --handoff skillz-export/registry/exports/skill-mason-v1 \
@@ -308,11 +316,12 @@ jobs:
           import json
           from pathlib import Path
           root=Path("corpus-reference-evidence")
-          for name in ("repo-doctor","agent-postmortem","permissions-review"):
+          for name in ("repo-doctor","agent-postmortem","permissions-review",
+                       "automation-receipts","fact-check"):
               direct=json.loads((root/(name+"-task-fit.json")).read_text())
               cli=json.loads((root/("node-"+name+"-task-fit.json")).read_text())
               assert direct==cli,(name,"CLI changed original source review")
-          print("ALL 3 ORIGINAL SOURCE TASK CONTRACTS PASS: exact upstream packages, 15 planned scenarios, no false rights or host approval")
+          print("ALL 5 ORIGINAL SOURCE-ONLY CONTRACTS PASS: exact upstream packages, 25 planned scenarios, no rights or host approval")
           PY
       - name: Replay six original Skillz method tasks and adversarial qualitative controls
         shell: bash
