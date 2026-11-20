@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - 'scripts/request_to_skill.py'
+      - 'scripts/source_task_fit_review.py'
+      - 'tests/test_create_original_task_reference.py'
+      - 'tests/test_source_only_fit_review.py'
+      - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
+      - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
+      - 'docs/evidence/source-task-fit-permissions-review-v1.json'
       - 'scripts/source_outcome_scope_review.py'
       - 'tests/test_source_outcome_scope_review.py'
       - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
@@ -21,6 +27,12 @@ on:
     branches: [main]
     paths:
       - 'scripts/request_to_skill.py'
+      - 'scripts/source_task_fit_review.py'
+      - 'tests/test_create_original_task_reference.py'
+      - 'tests/test_source_only_fit_review.py'
+      - 'docs/evidence/source-task-fit-repo-doctor-v1.json'
+      - 'docs/evidence/source-task-fit-agent-postmortem-v1.json'
+      - 'docs/evidence/source-task-fit-permissions-review-v1.json'
       - 'scripts/source_outcome_scope_review.py'
       - 'tests/test_source_outcome_scope_review.py'
       - 'docs/evidence/source-outcome-scope-mcp-vetting-v1.json'
@@ -58,6 +70,8 @@ jobs:
           python3 --version
           node --version
           python3 -m unittest discover -s tests -p 'test_request_to_skill.py' -v
+          python3 -m unittest discover -s tests -p 'test_create_original_task_reference.py' -v
+          python3 -m unittest discover -s tests -p 'test_source_only_fit_review.py' -v
           python3 -m unittest discover -s tests -p 'test_source_outcome_scope_review.py' -v
           python3 -m unittest discover -s tests -p 'test_user_route_discovery.py' -v
           python3 -m unittest discover -s tests -p 'test_prism_input_preflight.py' -v
@@ -78,6 +92,71 @@ jobs:
           test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
           git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
           test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Consume three actual original Skillz task reviews in ordinary create without promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p request-evidence
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.catalog_index import CorpusIndex
+          from scripts.capability_graph import CapabilityGraph
+          from scripts.request_to_skill import evaluate_request, _verified_original_task_reference, _verified_scope_gap
+          graph=CapabilityGraph(CorpusIndex(
+            "skillz-export/registry/exports/skill-mason-v1","skillz-source"))
+          matrix=[
+            ("repo-doctor","software-engineering/maintenance","local-skills/repo-doctor"),
+            ("agent-postmortem","agent-mcp-development/evaluation","local-skills/agent-postmortem"),
+            ("permissions-review","security/identity-access","local-skills/permissions-review"),
+          ]
+          for title,route,rid in matrix:
+            result=evaluate_request(graph,
+              "Evaluate the named original task with exact pinned source evidence",
+              "ChatGPT",route,"governed:"+rid,
+              scope_evaluator=_verified_scope_gap,
+              task_fit_evaluator=_verified_original_task_reference)
+            ref=result["reviewed_original_task_reference"]
+            assert ref is not None,(title,"original source reference not found")
+            assert ref["governed_review_id"]=="governed:"+rid
+            assert ref["state"]=="SOURCE_VERIFIED_TASK_REFERENCE_NOT_ADMITTED"
+            assert ref["original_entrypoint"]=="skills/"+title+"/SKILL.md"
+            assert len(ref["source_citations"])==4
+            assert len(ref["narrow_task_spec_not_an_admitted_method"]["acceptance_scenarios"])==5
+            assert ref["task_semantically_matched_to_user_request"] is False
+            assert ref["source_rights_qualified"] is False
+            assert ref["host_validated"] is False
+            assert result["refusal"]["code"]=="RIGHTS_UNRESOLVED"
+            assert "ORIGINAL_TASK_FIT_UNQUALIFIED" in result["refusal"]["codes"]
+            assert result["prism_invoked"] is False
+            assert result["composer_invoked"] is False
+            assert result["output_package_created"] is False
+            assert result["production_eligible"] is False
+            Path("request-evidence/"+title+"-task-reference.json").write_text(
+              json.dumps(result,indent=2,sort_keys=True)+"\\n")
+          print("PASS: three actual pinned originals joined to create and safely refused")
+          PY
+          set +e
+          node bin/qortara-skills.mjs create \
+            --request "Evaluate the named original task with exact pinned source evidence" \
+            --route software-engineering/maintenance \
+            --host ChatGPT \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            --method governed:local-skills/repo-doctor \
+            > request-evidence/repo-doctor-node-task-reference.json
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("request-evidence")
+          direct=json.loads((root/"repo-doctor-task-reference.json").read_text())
+          cli=json.loads((root/"repo-doctor-node-task-reference.json").read_text())
+          assert direct==cli,"Node create must return exact source-linked task reference"
+          print("PASS: normal Node create and C3/Python source review exact parity")
+          PY
       - name: Real 247-route discovery from original pinned catalog through ordinary CLI
         shell: bash
         run: |
