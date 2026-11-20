@@ -49,6 +49,8 @@ test('multiple methods reconcile shared outcomes without inventing qualification
  assert.ok(skill.includes('A diagnosis, recommendation, repeated run or proposed repair is not independent proof'));
  assert.ok(skill.includes('Do not choose the more favorable conclusion by default'));
  assert.ok(skill.includes('not independently qualified'));
+ assert.ok(!skill.includes('CI triage + release review: separate evidence axes'),
+  'generic multi-method skills must not acquire CI/release-specific instructions');
  assert.ok(skill.indexOf('## Multi-method evidence reconciliation')<
    skill.indexOf('## Source-backed methods'));
  assert.equal((skill.match(/### method-pr-review/g)||[]).length,1);
