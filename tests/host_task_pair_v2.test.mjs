@@ -85,6 +85,9 @@ test('real-guest-format P0 fixture can be observed without signing or source acc
  assert.equal(verifyHostTaskEvidence(p).rawTranscriptBytesMatched,true);
  const pair=inspectHostTaskPair([p,n]);
  assert.equal(pair.skillId,'release-readiness-review-v2');
+ assert.equal(pair.sourceProofMode,'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL');
+ assert.equal(verifyHostTaskEvidence(p).sourceProofMode,
+  'P0_DEVELOPMENT_WITHOUT_OPERATOR_SOURCE_APPROVAL');
  assert.equal(pair.behavioralOutcome,'NOT_ADJUDICATED');
  assert.equal(pair.sourceRightsEstablished,false);
  assert.equal(pair.hostValidated,false);
@@ -114,6 +117,7 @@ test('new release readiness v2 skill supports a complete two-control intake with
    'sourceRightsEstablished','productionEligible','hostValidated'])
   assert.equal(result[key],false,key+' must remain unqualified');
  assert.equal(result.behavioralOutcome,'NOT_ADJUDICATED');
+ assert.equal(result.sourceProofMode,'SOURCE_PROOF_DIGEST_POINTERS_NOT_AUTHENTICATED');
  assert.equal(result.reportedHostProvider,'chatgpt');
  assert.equal(result.reportedHostModel,'fixture-model');
 });
