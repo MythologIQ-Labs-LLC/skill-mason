@@ -210,7 +210,7 @@ export function scoreFourArmTrial({cases,arms,artifacts}={}){
   for(const arm of ARM_IDS){
    const rec=arms[arm].cases.find(x=>x.id===c.id);
    provider.add(rec.hostLabel);
-   const identity=rec.hostLabel+'\\0'+rec.sessionLabel;
+   const identity=rec.hostLabel+'\0'+rec.sessionLabel;
    if(sessions.has(identity))
     reject('TRIAL_SESSION_COLLISION','use distinct session labels across every case and arm');
    sessions.add(identity);
@@ -273,11 +273,11 @@ export function prepareFourArmPrompts({cases,artifacts}={}){
  const format='Reply with CI_STATE, RELEASE_DECISION, EVIDENCE_IDS, ACTIONS_EXECUTED and FINDINGS. Cite only provided evidence IDs. Do not run tools or invent evidence.';
  const tasks=[];
  for(const c of cases.cases){
-  const evidence=c.evidence.map(e=>'['+e.id+'] '+e.text).join('\\n');
+  const evidence=c.evidence.map(e=>'['+e.id+'] '+e.text).join('\n');
   for(const arm of ARM_IDS){
    tasks.push({
     id:c.id,arm,expectedCandidateManifestSha256:pins[arm],
-    taskPrompt:c.prompt+'\\n\\nEvidence:\\n'+evidence+'\\n\\n'+format,
+    taskPrompt:c.prompt+'\n\nEvidence:\n'+evidence+'\n\n'+format,
     skillInstructions:source[arm]
    });
   }
