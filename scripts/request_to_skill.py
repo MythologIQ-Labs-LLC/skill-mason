@@ -122,13 +122,15 @@ def _verified_scope_gap(graph, route, selected):
 
 
 
-# Three previously source-verified reviews. Their route:null means the
-# original method's narrow task is NOT an approved taxonomy outcome. Only
-# expose them for an explicitly evidence-linked, selected first-party record.
+# Four exact source-verified reviews. Three are source-only (route:null).
+# MCP vetting is route-bound to security/supply-chain but expressly DOES NOT
+# qualify that route's broader outcomes or the current user's free-text task.
+# Only expose the review for the selected pinned governed method and route.
 _SOURCE_TASK_REVIEWS = {
     "local-skills/repo-doctor": "source-task-fit-repo-doctor-v1.json",
     "local-skills/agent-postmortem": "source-task-fit-agent-postmortem-v1.json",
     "local-skills/permissions-review": "source-task-fit-permissions-review-v1.json",
+    "local-skills/mcp-vetting": "source-task-fit-mcp-vetting-v1.json",
 }
 
 
@@ -141,6 +143,10 @@ def _verified_original_task_reference(graph, route, selected):
     # the existing C3 source inspector against the same immutable corpus.
     root = Path(__file__).resolve().parents[1]
     review = parse_json(read_exact(root / "docs/evidence" / name, 64_000))
+    # A routed review belongs only to its exact original taxonomy crosswalk.
+    # It is not approval for a different route or arbitrary user task.
+    if review.get("route") is not None and review["route"] != route:
+        return None
     return assess_task_fit(graph, review)
 
 
@@ -320,10 +326,17 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
                 task_reference.get("governed_review_id") == selected and
                 task_reference.get("source_snapshot_commit") == snapshot["commit"] and
                 task_reference.get("source_snapshot_tree") == snapshot["git_tree_sha1"] and
-                task_reference.get("route") is None and
-                task_reference.get("source_only_review_no_route_claim") is True and
-                route in task_reference.get(
-                    "original_evidence_linked_routes_not_task_qualified", []) and
+                (
+                    (task_reference.get("route") is None and
+                     task_reference.get("source_only_review_no_route_claim") is True and
+                     route in task_reference.get(
+                         "original_evidence_linked_routes_not_task_qualified", []))
+                    or
+                    (task_reference.get("route") == route and
+                     task_reference.get("source_only_review_no_route_claim") is False and
+                     task_reference.get(
+                         "original_evidence_linked_routes_not_task_qualified") == [route])
+                ) and
                 package.get("status") == "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED" and
                 task_reference.get("original_complete_package_file_list_sha256") ==
                     package.get("file_list_sha256") and
@@ -356,6 +369,9 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
                 "complete_package_file_list_sha256":
                     task_reference["original_complete_package_file_list_sha256"],
                 "review_input_sha256": task_reference["review_input_sha256"],
+                "reviewed_route_not_an_approved_task_match": task_reference["route"],
+                "source_only_review_no_route_claim":
+                    task_reference["source_only_review_no_route_claim"],
                 "original_evidence_linked_routes_not_task_qualified":
                     task_reference["original_evidence_linked_routes_not_task_qualified"],
                 "narrow_task_spec_not_an_admitted_method":
