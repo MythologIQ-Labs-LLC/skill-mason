@@ -10,6 +10,28 @@ For a selected first-party reviewed method, a reviewer may request an exact rang
 
 This solves **inspectability and citation custody**. It does **not** solve semantic correctness: a digest authenticates the quoted bytes, not whether those lines prove the claimed user outcome. The reviewer must still judge method completeness against the real task, distinguish narrowly supported workflows from route taxonomy links, and obtain independent rights and host authorization. All dossier outputs preserve `composition_eligible:false`, `rights_qualified:false`, `host_validated:false`, and `prism_invoked:false`.
 
+## Exhaustive original first-party qualification queue
+
+The `--all-first-party` mode inspects **all 48 original first-party governed reviews** from the exact pinned snapshot, including sources with no evidence-linked recognized route. It does not count any discovery path, name hint or external review as a first-party method. Each record retains its source URL and digest if verified, static review status, recognized route links (or explicit unmapped status), file count, incomplete reference lead count and its next *qualification* action.
+
+The four distinct review actions are:
+
+- `REVIEW_OUTCOME_FIT_AND_SOURCE_RIGHTS`: original package bytes found and route linked, but no supported task outcome or rights approved.
+- `REVIEW_ORIGINAL_METHOD_SCOPE_AND_CREATE_EVIDENCE_CROSSWALK`: verified original method with no source-supported route mapping; inspect its actual workflow before creating one.
+- `REPAIR_SOURCE_INTEGRITY_FIRST`: a first-party source cannot be byte-verified or has a malformed/untrusted receipt.
+- `STATIC_REVIEW_BLOCKED`: an original review was rejected or retired and cannot quietly become an approved source.
+
+The queue is ordered by exact governed ID and includes an explicit denominator, status counts and no-omission check. It is **not** an automated quality grade or a ranked list of best methods. The review priority indicates what work is missing, not that the package is fit to execute.
+
+```sh
+python3 -m scripts.corpus_reference_dossier \
+  --handoff skillz-export/registry/exports/skill-mason-v1 \
+  --source-checkout skillz-source \
+  --all-first-party > source-review-queue.json
+```
+
+The pinned corpus CI runs this mode alongside the bounded line-citation example and proves that all 48 original review identities survive without any unearned source, rights, host or composition approval.
+
 ## Actual pinned method under review
 
 The original [MCP Vetting method](https://github.com/Knapp-Kevin/skillz/blob/31a8c518dd97b7828adcc728202fa41388a306d7/skills/mcp-vetting/SKILL.md) has a linked `security/supply-chain` route and a genuine source passage expressly limiting the task to **static preconnection MCP-server review**. Its body describes enumerating tools, tracing credentials, injection/dependency risks, evidence quality and a qualified recommendation. Its own instructions forbid installing, connecting or running the server during vetting.
