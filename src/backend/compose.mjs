@@ -201,7 +201,8 @@ export function renderUnqualifiedTrialPreview(planRaw,methodInputs){
    packageSha256:plan.packagePins.find(p=>p.methodId===m.id).sha256
   })),
   instructions,contentSha256:SHA(utf8(instructions)),
-  sourceBytePinningCheckedByCaller:true,
+  originalPackageByteAuthenticityEstablishedByThisRenderer:false,
+  originalPackageByteAuthenticityMustBeCheckedByCaller:true,
   signerInvoked:false,prismInvoked:false,
   sourceReuseRightsApproved:false,hostSkillInstalled:false,
   consumingHostBehaviorObserved:false,productionEligible:false
