@@ -138,6 +138,7 @@ export function verifyHostTaskEvidence({
   state:'CAPTURE_HASHES_MATCH_UNATTESTED',
   scenario:{...expected.scenario},host:{...expected.host},
   manifestSha256:expected.candidate.manifestSha256,
+  ...(expected.candidate.sourceProofMode?{sourceProofMode:expected.candidate.sourceProofMode}:{}),
   evidenceRecordSha256:SHA(Buffer.from(canonicalJSON(expected))),
   rawTranscriptBytesMatched:true,
   independentObserverAttested:false,hostOriginCryptographicallyVerified:false,
@@ -170,6 +171,7 @@ export function inspectHostTaskPair(cases){
   schema:HOST_PAIR_SCHEMA,state:'CAPTURE_PAIR_COMPLETE_AWAITING_INDEPENDENT_REVIEW',
   skillId:a.scenario.skillId,
   manifestSha256:a.manifestSha256,
+  sourceProofMode:a.sourceProofMode??'SOURCE_PROOF_DIGEST_POINTERS_NOT_AUTHENTICATED',
   reportedHostProvider:a.host.provider,reportedHostModel:a.host.model,
   captures:results.map(r=>({
    polarity:r.scenario.polarity,evidenceRecordSha256:r.evidenceRecordSha256,
