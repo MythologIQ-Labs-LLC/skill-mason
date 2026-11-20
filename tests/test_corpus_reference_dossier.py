@@ -10,7 +10,7 @@ import unittest
 
 from scripts.catalog_handoff import COMMIT, Refusal, canonical, git_blob, sha256
 from scripts.capability_graph import CapabilityGraph
-from scripts.corpus_reference_dossier import reference_dossier, SCHEMA, SOURCE_URL
+from scripts.corpus_reference_dossier import reference_dossier, first_party_reference_inventory, SCHEMA, SOURCE_URL
 from scripts.package_resolver import inspect_package
 from test_catalog_index import Fixture
 
@@ -199,6 +199,83 @@ class ReferenceDossierTests(unittest.TestCase):
         with self.assertRaises(Refusal) as exc:
             reference_dossier(graph, ROUTE, inspector=self.inspect)
         self.assertEqual(exc.exception.code, "SOURCE_PIN")
+
+
+    def test_all_first_party_original_references_are_exposed_for_review(self):
+        queue = first_party_reference_inventory(CapabilityGraph(self.fx.index()),
+                                                inspector=self.inspect)
+        self.assertEqual(queue["schema"], "qortara/first-party-source-reference-inventory/1")
+        self.assertEqual(queue["state"], "FULL_PINNED_FIRST_PARTY_SOURCE_REVIEW_QUEUE")
+        self.assertEqual(queue["total_original_first_party_review_records"], 1)
+        self.assertEqual(queue["route_linked_record_count"], 1)
+        self.assertEqual(queue["unmapped_review_record_count"], 0)
+        self.assertEqual(queue["source_package_inspection_counts"],
+                         {"PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED": 1})
+        self.assertTrue(queue["all_pinned_first_party_review_records_retained"])
+        row = queue["original_source_reference_records"][0]
+        self.assertEqual(row["governed_review_id"], METHOD)
+        self.assertEqual(row["evidence_linked_route_paths"], [ROUTE])
+        self.assertEqual(row["original_entrypoint_url"], SOURCE_URL + ROOT + "SKILL.md")
+        self.assertEqual(row["original_entrypoint_sha256"], sha256(TEXT))
+        self.assertEqual(row["package_file_count"], 2)
+        self.assertEqual(row["next_qualification_action"], "REVIEW_OUTCOME_FIT_AND_SOURCE_RIGHTS")
+        self.assertFalse(queue["production_eligible"])
+        self.assertFalse(row["rights_assessed"])
+        self.assertEqual(canonical(queue),
+                         canonical(first_party_reference_inventory(
+                             CapabilityGraph(self.fx.index()), inspector=self.inspect)))
+
+    def test_unmapped_original_review_still_entered_in_method_scope_queue(self):
+        graph = CapabilityGraph(self.fx.index())
+        graph.paths[ROUTE]["matched"] = []
+        graph.corpus.by_id[METHOD]["raw"]["capability_mapping"]["evidence_linked_paths"] = []
+        queue = first_party_reference_inventory(graph, inspector=self.inspect)
+        self.assertEqual(queue["unmapped_review_record_count"], 1)
+        self.assertEqual(queue["route_linked_record_count"], 0)
+        row = queue["original_source_reference_records"][0]
+        self.assertEqual(row["evidence_linked_route_paths"], [])
+        self.assertEqual(row["next_qualification_action"],
+                         "REVIEW_ORIGINAL_METHOD_SCOPE_AND_CREATE_EVIDENCE_CROSSWALK")
+        self.assertEqual(row["package_inspection"],
+                         "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED")
+        self.assertFalse(queue["outcome_coverage_qualified"])
+
+    def test_source_integrity_refusal_is_counted_not_silently_discarded(self):
+        def missing(_corpus, _method):
+            raise Refusal("PACKAGE_TREE_DRIFT", "source tree does not match")
+        result = first_party_reference_inventory(CapabilityGraph(self.fx.index()),
+                                                 inspector=missing)
+        self.assertEqual(result["source_package_inspection_counts"], {"REFUSED": 1})
+        row = result["original_source_reference_records"][0]
+        self.assertEqual(row["package_refusal_code"], "PACKAGE_TREE_DRIFT")
+        self.assertEqual(row["next_qualification_action"], "REPAIR_SOURCE_INTEGRITY_FIRST")
+        self.assertIsNone(row["original_entrypoint_url"])
+        self.assertFalse(result["composition_eligible"])
+
+    def test_forged_inventory_approval_becomes_explicit_source_refusal(self):
+        def overpromote(corpus, method):
+            altered = self.inspect(corpus, method)
+            altered["rights_assessed"] = True
+            return altered
+        queue = first_party_reference_inventory(CapabilityGraph(self.fx.index()),
+                                                inspector=overpromote)
+        row = queue["original_source_reference_records"][0]
+        self.assertEqual(row["package_refusal_code"], "PACKAGE_INTEGRITY")
+        self.assertEqual(row["next_qualification_action"], "REPAIR_SOURCE_INTEGRITY_FIRST")
+        self.assertFalse(queue["rights_qualified"])
+
+    def test_inventory_refuses_fake_denominator_or_crosswalk_drift(self):
+        graph = CapabilityGraph(self.fx.index())
+        graph.corpus.manifest["counts"]["first_party"] = 2
+        with self.assertRaises(Refusal) as exc:
+            first_party_reference_inventory(graph, inspector=self.inspect)
+        self.assertEqual(exc.exception.code, "REFERENCE_COUNT")
+        graph = CapabilityGraph(self.fx.index())
+        graph.corpus.by_id[METHOD]["raw"]["capability_mapping"]["evidence_linked_paths"] = [
+            "unknown/route"]
+        with self.assertRaises(Refusal) as exc:
+            first_party_reference_inventory(graph, inspector=self.inspect)
+        self.assertEqual(exc.exception.code, "CROSSWALK_DRIFT")
 
 
 if __name__ == "__main__":
