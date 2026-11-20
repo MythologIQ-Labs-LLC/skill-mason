@@ -16,6 +16,7 @@ body:
         - GitHub Pages browser starter draft
         - CI Failure Triage v5 generated SKILL.md (native host installation)
         - CI Failure Triage v5 generated SKILL.md (pasted instructions / emulation)
+        - Four-arm quick comparison (one case, four actual agent replies)
         - Four-arm CI and release preview (baseline / CI-only / release-only / combined)
         - Other development candidate
     validations:

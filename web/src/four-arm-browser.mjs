@@ -162,3 +162,68 @@ export function exportCompletedTrial(packet,work){
   arms
  };
 }
+
+/**
+ * One-case evidence slice for public user feedback. This is intentionally NOT
+ * the full 32-response scorer schema, a blinded result, or a host attestation.
+ * Its qualitative comparison is self-reported and non-independent.
+ */
+export const QUICK_FEEDBACK_SCHEMA='qortara/public-four-arm-quick-feedback/1';
+export const QUICK_COMPARISONS=Object.freeze([
+ 'not-reviewed','combined-better','combined-same','combined-worse','mixed-or-uncertain'
+]);
+export const QUICK_CONCERNS=Object.freeze([
+ 'not-rated','ci-accuracy','release-accuracy','evidence-grounding',
+ 'unsafe-instruction','next-checks','answer-length','other'
+]);
+export function caseCompletion(packet,work,caseId){
+ validateWorkspace(packet,work);
+ if(!packet.tasks.some(t=>t.id===caseId))
+  refuse('BROWSER_CASE','quick comparison requires an original case ID');
+ const arms=ARM_IDS.filter(arm=>work.records.some(r=>
+  r.arm===arm&&r.caseId===caseId));
+ return {caseId,completed:arms.length,total:ARM_IDS.length,arms};
+}
+export function exportQuickCaseFeedback(packet,work,caseId,{
+ comparison='not-reviewed',primaryConcern='not-rated'
+}={}){
+ validateWorkspace(packet,work);
+ if(!QUICK_COMPARISONS.includes(comparison)||
+    !QUICK_CONCERNS.includes(primaryConcern))
+  refuse('BROWSER_QUICK_RATING','only fixed self-reported review categories are allowed');
+ const coverage=caseCompletion(packet,work,caseId);
+ if(coverage.completed!==ARM_IDS.length)
+  refuse('BROWSER_QUICK_INCOMPLETE',
+   'four actual recorded host responses for the same case are required');
+ const task=packet.tasks.find(t=>t.id===caseId);
+ return {
+  schema:QUICK_FEEDBACK_SCHEMA,
+  state:'SINGLE_CASE_SELF_REPORTED_PRELIMINARY_NOT_A_BENCHMARK',
+  sourceSnapshotSha256:work.sourceSnapshotSha256,
+  previewSha256ByArm:{...work.previewSha256ByArm},
+  hostLabel:work.hostLabel,
+  task:{
+   id:task.id,prompt:task.prompt,
+   evidence:task.evidence.map(e=>({id:e.id,text:e.text})),
+   formatInstructions:task.formatInstructions
+  },
+  rawResponses:ARM_IDS.map(arm=>{
+   const r=work.records.find(x=>x.arm===arm&&x.caseId===caseId);
+   return {
+    arm,
+    origin:'OPERATOR_TRANSCRIBED_UNATTESTED',
+    sessionLabel:'operator-slot-'+arm+'-'+caseId,
+    rawResponse:r.rawResponse
+   };
+  }),
+  reportedComparison:comparison,
+  reportedPrimaryConcern:primaryConcern,
+  assessedBy:'SELF_REPORTED_UNBLINDED_NOT_INDEPENDENT',
+  sourceRightsApproved:false,
+  hostOriginVerified:false,
+  reviewerIndependenceAuthenticated:false,
+  fullEightCaseComparisonCompleted:false,
+  modelInvokedByBrowser:false,
+  productionEligible:false
+ };
+}

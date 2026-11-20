@@ -2,7 +2,7 @@ import {
  ARM_IDS,BROWSER_WORKSPACE_SCHEMA,
  validateTrialPacket,newWorkspace,validateWorkspace,
  formatTrialPrompt,recordAnswer,removeAnswer,trialProgress,
- exportCompletedTrial
+ caseCompletion,exportQuickCaseFeedback,exportCompletedTrial
 } from './src/four-arm-browser.mjs';
 
 const el=id=>document.getElementById(id);
@@ -29,10 +29,16 @@ function current(){
  return workspace?.records.find(x=>x.arm===arm.value&&x.caseId===caseSelect.value);
 }
 function advance(){
- for(const a of ARM_IDS){
-  for(const task of packet.tasks){
-   if(!workspace.records.some(r=>r.arm===a&&r.caseId===task.id)){
-    arm.value=a;caseSelect.value=task.id;refresh();
+ // Complete all four arms of the selected case first so a useful four-reply
+ // quality sample does not require finishing the full 32-slot trial.
+ const orderedCases=[
+  caseSelect.value,
+  ...packet.tasks.map(t=>t.id).filter(id=>id!==caseSelect.value)
+ ];
+ for(const id of orderedCases){
+  for(const a of ARM_IDS){
+   if(!workspace.records.some(r=>r.arm===a&&r.caseId===id)){
+    arm.value=a;caseSelect.value=id;refresh();
     inform('Next unrecorded slot selected. Use a fresh agent session.');
     return;
    }
@@ -57,6 +63,9 @@ function refresh(){
  el('next-slot').disabled=state.completed===state.total;
  exportProgress.disabled=false;
  exportComplete.disabled=state.completed!==state.total;
+ const quick=caseCompletion(packet,workspace,caseSelect.value);
+ el('quick-progress').textContent=quick.completed+' of 4 responses recorded for this case.';
+ el('export-quick').disabled=quick.completed!==quick.total;
  el('trial-version').textContent='Source snapshot SHA-256: '+
   packet.corpusSourceSnapshotSha256+
   ' · Current arm instruction SHA-256: '+
@@ -81,7 +90,7 @@ async function startup(){
  }catch(err){
   inform(err?.message??'Unable to load the trial packet.',true);
   for(const x of ['copy-prompt','save-answer','remove-answer','next-slot',
-   'export-progress','export-complete'])el(x).disabled=true;
+   'export-progress','export-complete','export-quick'])el(x).disabled=true;
  }
 }
 host.addEventListener('change',()=>{
@@ -95,7 +104,16 @@ host.addEventListener('change',()=>{
  refresh();
 });
 for(const control of [arm,caseSelect])control.addEventListener('change',()=>{
- if(packet){refresh();inform('Selected slot ready. Only fresh host sessions support a fair comparison.');}
+ if(packet){
+  // These ratings are ephemeral and belong only to the selected case.
+  // Never accidentally export one case's comparison onto another case.
+  if(control===caseSelect){
+   el('quick-comparison').value='not-reviewed';
+   el('quick-concern').value='not-rated';
+  }
+  refresh();
+  inform('Selected slot ready. Only fresh host sessions support a fair comparison.');
+ }
 });
 el('copy-prompt').addEventListener('click',async()=>{
  if(!packet)return;
@@ -128,6 +146,18 @@ exportProgress.addEventListener('click',()=>{
   validateWorkspace(packet,workspace);
   saveDownload(JSON.stringify(workspace,null,2)+'\n','qortara-four-arm-progress.json');
   inform('Saved local progress. This file contains your raw replies; review it before sharing.');
+ }catch(err){inform(err.message,true);}
+});
+el('export-quick').addEventListener('click',()=>{
+ if(!packet)return;
+ try{
+  const result=exportQuickCaseFeedback(packet,workspace,caseSelect.value,{
+   comparison:el('quick-comparison').value,
+   primaryConcern:el('quick-concern').value
+  });
+  saveDownload(JSON.stringify(result,null,2)+'\n',
+   'qortara-four-arm-quick-'+caseSelect.value+'.json');
+  inform('Four replies exported as preliminary, unblinded feedback. Check for sensitive content before sharing. This is not a full trial or a verified quality win.');
  }catch(err){inform(err.message,true);}
 });
 exportComplete.addEventListener('click',()=>{
