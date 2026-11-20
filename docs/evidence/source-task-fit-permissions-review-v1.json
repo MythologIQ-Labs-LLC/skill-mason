@@ -96,10 +96,10 @@
     },
     {
       "relative_path": "SKILL.md",
-      "first_line": 23,
+      "first_line": 25,
       "last_line": 28,
       "citation_role": "METHOD_STEPS",
-      "reviewer_finding": "The original procedure covers tool effects, Git helper hazards, credential classes, last use and enforceable host tightenings."
+      "reviewer_finding": "The verified original method maps credential classes and last-use evidence, ranks consequential tool permissions, and proposes host-enforced restrictions without executing changes."
     },
     {
       "relative_path": "SKILL.md",
@@ -110,10 +110,10 @@
     },
     {
       "relative_path": "SKILL.md",
-      "first_line": 53,
-      "last_line": 59,
+      "first_line": 24,
+      "last_line": 24,
       "citation_role": "SAFETY_BOUNDARY",
-      "reviewer_finding": "The original negative rules prohibit reading secret values, unapproved settings changes, scheduled access and treating prior trust scores as current authority."
+      "reviewer_finding": "The original source explicitly rejects a Bash(git *) prefix as safe and requires independent host-enforced argv, executable and configuration containment."
     }
   ],
   "broader_claims_not_supported": [
