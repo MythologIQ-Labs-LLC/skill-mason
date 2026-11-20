@@ -7,6 +7,7 @@ turning static review, a route crosswalk, or a quoted passage into legal
 permission, semantic coverage or host execution.
 """
 import argparse
+from collections import Counter
 import json
 import re
 import sys
@@ -198,11 +199,131 @@ def reference_dossier(graph, route, *, governed_method=None, citation=None,
     }
 
 
+def first_party_reference_inventory(graph, *, inspector=inspect_package):
+    """Exhaust all pinned first-party reviews, even records with no route.
+
+    This is an actionable *source-review* queue, not a semantic qualification
+    score. Source class and static review status do not authenticate authorship,
+    rights, dependencies, live target host suitability or behavior.
+    """
+    corpus = graph.corpus
+    require(isinstance(corpus.manifest.get("source"), dict) and
+            corpus.manifest["source"].get("commit") == COMMIT and
+            corpus.manifest["source"].get("git_tree_sha1") == TREE,
+            "SOURCE_PIN", "inventory source identity differs from pinned corpus")
+    rows = []
+    priorities = Counter()
+    inspected = Counter()
+    for item in corpus.records:
+        if item["family"] != "governed" or item["source_class"] != "first-party":
+            continue
+        record = item["raw"]
+        rid = record["record_id"]
+        routes = record["capability_mapping"]["evidence_linked_paths"]
+        require(isinstance(routes, list) and len(routes) == len(set(routes)) and
+                all(isinstance(route, str) and route in graph.paths and
+                    rid in graph.paths[route]["matched"] for route in routes),
+                "CROSSWALK_DRIFT", "original reviewed identity disagrees with recognized routes")
+        status = record["review"]["semantic_status"]
+        row = {
+            "governed_review_id": "governed:" + rid,
+            "recorded_static_review": status,
+            "evidence_linked_route_paths": sorted(routes),
+            "route_count": len(routes),
+            "package_inspection": "NOT_INSPECTED",
+            "original_entrypoint_url": None,
+            "original_entrypoint_sha256": None,
+            "package_file_list_sha256": None,
+            "package_file_count": None,
+            "unresolved_inline_reference_count": None,
+            "rights_assessed": False,
+            "method_scope_qualified": False,
+            "host_validated": False,
+            "composition_eligible": False,
+        }
+        try:
+            pkg = inspector(corpus, item["id"])
+            require(isinstance(pkg, dict) and
+                    pkg.get("state") == "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED" and
+                    pkg.get("record_id") == rid and
+                    pkg.get("original_snapshot_commit") == COMMIT and
+                    pkg.get("rights_assessed") is False and
+                    pkg.get("composition_eligible") is False and
+                    pkg.get("method_contract_qualified") is False,
+                    "PACKAGE_INTEGRITY", "source inventory cannot self-approve rights or method")
+            root = pkg.get("source_root")
+            files = pkg.get("files")
+            leads = pkg.get("reference_leads")
+            require(isinstance(root, str) and
+                    root + "SKILL.md" in corpus.first_party_paths and
+                    isinstance(files, list) and
+                    len(files) == pkg.get("package_file_count") and
+                    isinstance(leads, dict) and
+                    all(isinstance(leads.get(key), list) for key in
+                        ("unresolved_within_package", "outside_package_leads",
+                         "unassessed_remote_or_scheme_leads")),
+                    "PACKAGE_INTEGRITY", "full package evidence is missing")
+            entry = [f for f in files if f.get("path") == "SKILL.md"]
+            require(len(entry) == 1 and
+                    corpus.source_files[root + "SKILL.md"]["sha256"] == entry[0].get("sha256"),
+                    "PACKAGE_INTEGRITY", "source entrypoint missing or different")
+            row["package_inspection"] = pkg["state"]
+            row["original_entrypoint_url"] = SOURCE_URL + root + "SKILL.md"
+            row["original_entrypoint_sha256"] = entry[0]["sha256"]
+            row["package_file_list_sha256"] = pkg["package_file_list_sha256"]
+            row["package_file_count"] = len(files)
+            row["unresolved_inline_reference_count"] = sum(
+                len(leads[k]) for k in
+                ("unresolved_within_package", "outside_package_leads",
+                 "unassessed_remote_or_scheme_leads"))
+        except Refusal as exc:
+            row["package_inspection"] = "REFUSED"
+            row["package_refusal_code"] = exc.code
+        inspected[row["package_inspection"]] += 1
+        if status in ("rejected", "retired"):
+            priority = "STATIC_REVIEW_BLOCKED"
+        elif row["package_inspection"] != "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED":
+            priority = "REPAIR_SOURCE_INTEGRITY_FIRST"
+        elif not routes:
+            priority = "REVIEW_ORIGINAL_METHOD_SCOPE_AND_CREATE_EVIDENCE_CROSSWALK"
+        else:
+            priority = "REVIEW_OUTCOME_FIT_AND_SOURCE_RIGHTS"
+        row["next_qualification_action"] = priority
+        priorities[priority] += 1
+        rows.append(row)
+    rows.sort(key=lambda row: row["governed_review_id"])
+    count = corpus.manifest["counts"]["first_party"]
+    require(len(rows) == count and len({r["governed_review_id"] for r in rows}) == count,
+            "REFERENCE_COUNT", "a first-party review was silently omitted")
+    return {
+        "schema": "qortara/first-party-source-reference-inventory/1",
+        "state": "FULL_PINNED_FIRST_PARTY_SOURCE_REVIEW_QUEUE",
+        "exact_source_commit": COMMIT,
+        "exact_source_tree": TREE,
+        "total_original_first_party_review_records": count,
+        "route_linked_record_count": sum(bool(r["route_count"]) for r in rows),
+        "unmapped_review_record_count": sum(not r["route_count"] for r in rows),
+        "source_package_inspection_counts": dict(sorted(inspected.items())),
+        "next_qualification_action_counts": dict(sorted(priorities.items())),
+        "original_source_reference_records": rows,
+        "all_pinned_first_party_review_records_retained": True,
+        "non_first_party_methods_not_authored_or_licensed_by_this_scan": True,
+        "rights_qualified": False,
+        "outcome_coverage_qualified": False,
+        "host_validated": False,
+        "prism_invoked": False,
+        "composition_eligible": False,
+        "production_eligible": False,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--handoff", required=True)
     parser.add_argument("--source-checkout", required=True)
-    parser.add_argument("--route", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--route")
+    mode.add_argument("--all-first-party", action="store_true")
     parser.add_argument("--method")
     parser.add_argument("--file")
     parser.add_argument("--lines")
@@ -210,6 +331,9 @@ def main(argv=None):
     try:
         require((args.file is None) == (args.lines is None),
                 "CITATION_SELECTION", "--file and --lines must be provided together")
+        require(not args.all_first_party or
+                (args.method is None and args.file is None and args.lines is None),
+                "INVENTORY_FLAGS", "all-first-party inventory does not select source or quote lines")
         cite = None
         if args.lines is not None:
             matched = LINE_RANGE.fullmatch(args.lines)
@@ -217,8 +341,9 @@ def main(argv=None):
                     "use --lines FIRST:LAST, inclusive")
             cite = (args.file, int(matched[1]), int(matched[2]))
         graph = CapabilityGraph(CorpusIndex(args.handoff, args.source_checkout))
-        result = reference_dossier(graph, args.route, governed_method=args.method,
-                                  citation=cite)
+        result = (first_party_reference_inventory(graph) if args.all_first_party else
+                  reference_dossier(graph, args.route, governed_method=args.method,
+                                    citation=cite))
         print(json.dumps(result, sort_keys=True, ensure_ascii=False, indent=2))
         return 0
     except Refusal as exc:
