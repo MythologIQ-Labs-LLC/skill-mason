@@ -9,6 +9,8 @@
  */
 import {createHash,createHmac} from 'node:crypto';
 import {scoreFourArmTrial} from './ci-release-combined-score.mjs';
+import {scorePublicFourArmTrial,loadOriginalPublicTrialCases}
+ from './public-four-arm-trial.mjs';
 
 export const REVIEW_PACKET_SCHEMA='qortara/four-arm-blind-review-packet/1';
 export const REVIEW_BINDINGS_SCHEMA='qortara/four-arm-review-bindings/1';
@@ -68,12 +70,12 @@ function identity(seed,id,arm){
  return createHmac('sha256',seed).update('QORTARA-FOUR-ARM-BLIND-V1\0'+id+'\0'+arm).digest('hex');
 }
 /** Deterministic blinding. Retain bindings with operator, deliver packet only. */
-export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
+function prepareFromValidatedComparison({
+ cases,arms,comparison,reviewSeed,sourcePinField,sourcePinByArm
+}){
  const seed=validatedSalt(reviewSeed);
- // Existing four-arm checks preserve exact source/manifest identity, distinct
- // sessions and per-case host comparability. Do not trust raw labels alone.
- const scored=scoreFourArmTrial({cases,arms,artifacts});
- const byId=new Map(cases.cases.map(c=>[c.id,c]));
+ // Both caller lanes validate the complete response set and source identities
+ // BEFORE constructing the review packet. This helper grants no authority.
  const entries=[],bindings=[];
  for(const c of cases.cases){
   for(const arm of ARMS){
@@ -92,7 +94,7 @@ export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
     caseInputSha256:SHA(Buffer.from(transcriptJSON({
       question:c.prompt,evidence:c.evidence
     }))),
-    candidateManifestSha256:scored.candidateManifestSha256ByArm[arm]
+    [sourcePinField]:sourcePinByArm[arm]
    });
   }
  }
@@ -117,18 +119,38 @@ export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
   mappingSha256:SHA(Buffer.from(transcriptJSON(mapping)))
  };
 }
+/** Sealed-candidate lane retains the original packet and mapping contracts. */
+export function prepareBlindReview({cases,arms,artifacts,reviewSeed}={}){
+ const scored=scoreFourArmTrial({cases,arms,artifacts});
+ return prepareFromValidatedComparison({
+  cases,arms,comparison:scored,reviewSeed,
+  sourcePinField:'candidateManifestSha256',
+  sourcePinByArm:scored.candidateManifestSha256ByArm
+ });
+}
+
+/** Public source previews are deliberately NOT signed/eligible skill packages. */
+export async function preparePublicBlindReview({responses,reviewSeed}={}){
+ const scored=await scorePublicFourArmTrial({responses});
+ const cases=await loadOriginalPublicTrialCases();
+ return prepareFromValidatedComparison({
+  cases,arms:responses.arms,comparison:scored,reviewSeed,
+  sourcePinField:'previewContentSha256',
+  sourcePinByArm:scored.previewSha256ByArm
+ });
+}
+
 /**
  * Adjudication requires the COMPLETE raw four-arm cases, EXACT independently
  * held review packet and mapping hashes, a seed held outside reviewer access,
  * and one explicit human judgment per response. No self-awarded independence.
  */
-export function adjudicateBlindReview({
- cases,arms,artifacts,reviewSeed,packet,mapping,
+function adjudicateFromValidatedComparison({
+ cases,comparison,expected,packet,mapping,
  expectedPacketSha256,expectedMappingSha256,judgments
-}={}){
+}){
  if(!hex.test(expectedPacketSha256??'')||!hex.test(expectedMappingSha256??''))
   refuse('REVIEW_PINS','independently retained review-packet and mapping digests required');
- const expected=prepareBlindReview({cases,arms,artifacts,reviewSeed});
  if(expected.packetSha256!==expectedPacketSha256||
     expected.mappingSha256!==expectedMappingSha256||
     transcriptJSON(packet)!==transcriptJSON(expected.packet)||
@@ -160,7 +182,7 @@ export function adjudicateBlindReview({
    refuse('REVIEW_RATIONALE','bounded nonsecret and substantive reviewer explanation required');
   byId.set(j.reviewId,j);
  }
- const pairedResult=scoreFourArmTrial({cases,arms,artifacts});
+ const pairedResult=comparison;
  const adjudicated=Object.fromEntries(ARMS.map(a=>[a,[]]));
  for(const b of expected.mapping.cases){
   const j=byId.get(b.reviewId);
@@ -223,6 +245,44 @@ export function adjudicateBlindReview({
   independentHostBehaviorEstablished:false,
   behavioralImprovementCausallyDemonstrated:false,
   sourceReuseRightsQualified:false,
+  productionEligible:false
+ };
+}
+
+/** Existing sealed-candidate review semantics remain unchanged. */
+export function adjudicateBlindReview({
+ cases,arms,artifacts,reviewSeed,packet,mapping,
+ expectedPacketSha256,expectedMappingSha256,judgments
+}={}){
+ const expected=prepareBlindReview({cases,arms,artifacts,reviewSeed});
+ const comparison=scoreFourArmTrial({cases,arms,artifacts});
+ return adjudicateFromValidatedComparison({
+  cases,comparison,expected,packet,mapping,
+  expectedPacketSha256,expectedMappingSha256,judgments
+ });
+}
+
+/** Public preview-only review. Exact source preview pins are checked first.
+ * This is neither an authenticated model transcript nor reviewer identity.
+ */
+export async function adjudicatePublicBlindReview({
+ responses,reviewSeed,packet,mapping,
+ expectedPacketSha256,expectedMappingSha256,judgments
+}={}){
+ const expected=await preparePublicBlindReview({responses,reviewSeed});
+ const comparison=await scorePublicFourArmTrial({responses});
+ const cases=await loadOriginalPublicTrialCases();
+ const result=adjudicateFromValidatedComparison({
+  cases,comparison,expected,packet,mapping,
+  expectedPacketSha256,expectedMappingSha256,judgments
+ });
+ return {
+  ...result,
+  schema:'qortara/public-four-arm-quality-adjudication/1',
+  state:'PUBLIC_PREVIEW_REVIEWER_JUDGMENTS_RECORDED_UNATTESTED',
+  sourceEvidenceMode:'SOURCE_PINNED_READ_ONLY_PREVIEW_NOT_SIGNED_CANDIDATE',
+  sourceReuseRightsQualified:false,
+  actualHostSkillInstallationVerified:false,
   productionEligible:false
  };
 }
