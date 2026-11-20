@@ -5,6 +5,11 @@ on:
     paths:
       - 'bin/ci-triage-live-host-test.mjs'
       - 'tests/ci_triage_live_host_test.test.mjs'
+      - 'src/backend/host-task-evidence.mjs'
+      - 'bin/host-task-evidence.mjs'
+      - 'tests/backend_host_task_evidence.test.mjs'
+      - 'tests/host_task_pair_v2.test.mjs'
+      - 'docs/technical/host-task-acceptance-v1.md'
       - 'tests/fixtures/ci-triage-agent-host-cases-v1.json'
       - '.github/workflows/first-skill-host-acceptance.yml'
   workflow_dispatch:
@@ -35,6 +40,8 @@ jobs:
           node-version: '22'
       - name: First-party source and host Gherkin contract tests (mock only)
         run: node --test tests/ci_triage_live_host_test.test.mjs
+      - name: Verify any historical P0 release pilot and its two local host controls without approval
+        run: node --test tests/backend_host_task_evidence.test.mjs tests/host_task_pair_v2.test.mjs
 
   actual-host:
     if: github.event_name == 'workflow_dispatch'
