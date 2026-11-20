@@ -168,6 +168,45 @@ function render(recipe,methods){
     '- Missing provenance, rights, source freshness or permissions require refusal.','');
   return text.join('\n');
 }
+/**
+ * Read-only trial instruction preview, NOT a composed candidate or an
+ * eligibility/rights assertion. Intended only for original source byte-pinned
+ * methods that have already passed createRecipeAdapter's package-byte checks.
+ *
+ * This deliberately emits NO RECEIPT.json, skill-mason.json, signed source
+ * approval, guest decision or package installation target.
+ */
+export function renderUnqualifiedTrialPreview(planRaw,methodInputs){
+ const plan=validateRecipe(planRaw);
+ if(!plan.sourceSnapshot||!plan.packagePins)
+  refuse('PREVIEW_SOURCE_PINS','read-only trial requires pinned original source inventory');
+ if(!Array.isArray(methodInputs)||methodInputs.length===0||methodInputs.length>16)
+  refuse('METHOD_SET','bounded original methods required');
+ const methods=methodInputs.map(validateMethod)
+  .sort((a,b)=>a.id.localeCompare(b.id));
+ if(new Set(methods.map(m=>m.id)).size!==methods.length||
+    plan.packagePins.length!==methods.length||
+    plan.packagePins.some((p,i)=>p.methodId!==methods[i].id))
+  refuse('PREVIEW_SOURCE_PINS','every selected method needs a separate original package pin');
+ const coverage=new Set(methods.flatMap(m=>m.covers));
+ if(plan.requiredOutcomes.some(o=>!coverage.has(o)))
+  refuse('OUTCOME_UNCOVERED','all requested outcomes must be explicitly declared');
+ const instructions=render(plan,methods);
+ return Object.freeze({
+  schema:'qortara/source-pinned-trial-preview/1',
+  state:'UNQUALIFIED_READ_ONLY_INSTRUCTIONS_NOT_A_COMPOSED_SKILL',
+  sourceSnapshot:{...plan.sourceSnapshot},
+  methodPins:methods.map(m=>({
+   id:m.id,sourceCommit:m.commit,sourceSha256:m.sha256,
+   packageSha256:plan.packagePins.find(p=>p.methodId===m.id).sha256
+  })),
+  instructions,contentSha256:SHA(utf8(instructions)),
+  sourceBytePinningCheckedByCaller:true,
+  signerInvoked:false,prismInvoked:false,
+  sourceReuseRightsApproved:false,hostSkillInstalled:false,
+  consumingHostBehaviorObserved:false,productionEligible:false
+ });
+}
 function validateDecision(value,expectedHex,pin){
   if(!obj(value)||value.schema!=='qortara/local-eligibility-result/1'||
     value.status!=='GUEST_COMPLETED'||value.application!=='Qortara Skills Eligibility'||
