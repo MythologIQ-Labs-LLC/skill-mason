@@ -22,7 +22,7 @@
       "id": "uncovered-macos",
       "policyState": "POLICY_GATES_INCOMPLETE",
       "decision": "EVIDENCE_INCOMPLETE",
-      "analysis": "Linux job 88 matches b40, but the accepted policy omits the macos release target completely. A single listed green gate does not establish required target coverage or authorize release.",
+      "analysis": "Linux job 88 matches b40, but the accepted policy omitted the macos release target completely. A single listed green gate does not establish required target coverage or authorize release.",
       "gateResults": [
         {
           "gate": "linux",
@@ -52,7 +52,7 @@
       "id": "verified-other-artifact",
       "policyState": "policy-23",
       "decision": "HOLD",
-      "analysis": "The verifier's approval for SHA256:D2 does not authenticate the requested artifact SHA256:D1. A verified signature on one binary is not evidence of the other, even when the build commit is the same. Artifact-signature is BLOCKED for D1.",
+      "analysis": "The verifier's approval for SHA256:D2 does not authenticate the requested artifact SHA256:D1. This is an observed artifact digest mismatch, even when the build commit is the same. Artifact-signature is BLOCKED for D1.",
       "gateResults": [
         {
           "gate": "artifact-signature",
