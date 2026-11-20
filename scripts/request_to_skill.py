@@ -17,6 +17,7 @@ from scripts.catalog_index import CorpusIndex
 from scripts.capability_graph import CapabilityGraph
 from scripts.capability_gap_backlog import load_proposals
 from scripts.source_outcome_scope_review import assess_scope, SCHEMA as SCOPE_SCHEMA, DISPOSITION as SCOPE_DISPOSITION
+from scripts.source_task_fit_review import assess_task_fit, SCHEMA as TASK_FIT_SCHEMA, ROLES as TASK_FIT_ROLES
 from scripts.catalog_handoff import parse_json, read_exact
 from scripts.candidate_comparison import compare
 from scripts.prism_input_preflight import prepare_preflight
@@ -120,9 +121,34 @@ def _verified_scope_gap(graph, route, selected):
     return assess_scope(graph, proposals, review)
 
 
+
+# Three previously source-verified reviews. Their route:null means the
+# original method's narrow task is NOT an approved taxonomy outcome. Only
+# expose them for an explicitly evidence-linked, selected first-party record.
+_SOURCE_TASK_REVIEWS = {
+    "local-skills/repo-doctor": "source-task-fit-repo-doctor-v1.json",
+    "local-skills/agent-postmortem": "source-task-fit-agent-postmortem-v1.json",
+    "local-skills/permissions-review": "source-task-fit-permissions-review-v1.json",
+}
+
+
+def _verified_original_task_reference(graph, route, selected):
+    rid = selected.removeprefix("governed:")
+    name = _SOURCE_TASK_REVIEWS.get(rid)
+    if name is None:
+        return None
+    # The review and complete original package are independently rechecked by
+    # the existing C3 source inspector against the same immutable corpus.
+    root = Path(__file__).resolve().parents[1]
+    review = parse_json(read_exact(root / "docs/evidence" / name, 64_000))
+    return assess_task_fit(graph, review)
+
+
+
 def evaluate_request(graph, request, host, route=None, governed_method=None,
                      *, external_selection=None, comparator=compare,
-                     preflight=prepare_preflight, scope_evaluator=None):
+                     preflight=prepare_preflight, scope_evaluator=None,
+                     task_fit_evaluator=None):
     """One real task requirement -> reviewed source disposition or typed refusal.
 
     Even an externally byte-verified method is *not* licensed or signed by the
@@ -276,6 +302,74 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
                     "SCOPE_REVIEW_INTEGRITY",
                     "source-scope review must identify the exact selected method and remain a denial")
 
+    # Original task-fit is descriptive source evidence, not matching the
+    # current user request to an approved skill. Bind its full package file
+    # list and immutable snapshot to C4 so it cannot refer to a swapped source.
+    task_reference = None
+    if selected is not None and task_fit_evaluator is not None:
+        task_reference = task_fit_evaluator(graph, route, selected)
+        if task_reference is not None:
+            rid = selected.removeprefix("governed:")
+            chosen = matched[rid]
+            package = chosen["package_bytes"]
+            citations = task_reference.get("source_evidence")
+            require(
+                task_reference.get("schema") == TASK_FIT_SCHEMA and
+                task_reference.get("state") ==
+                    "BOUNDED_ORIGINAL_SOURCE_TASK_REFERENCE_NOT_ADMITTED" and
+                task_reference.get("governed_review_id") == selected and
+                task_reference.get("source_snapshot_commit") == snapshot["commit"] and
+                task_reference.get("source_snapshot_tree") == snapshot["git_tree_sha1"] and
+                task_reference.get("route") is None and
+                task_reference.get("source_only_review_no_route_claim") is True and
+                route in task_reference.get(
+                    "original_evidence_linked_routes_not_task_qualified", []) and
+                package.get("status") == "PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED" and
+                task_reference.get("original_complete_package_file_list_sha256") ==
+                    package.get("file_list_sha256") and
+                chosen["source_class"] == "first-party" and
+                chosen["review_status"] ==
+                    task_reference.get("original_static_review_status") and
+                isinstance(citations, list) and len(citations) == len(TASK_FIT_ROLES) and
+                {row.get("role") for row in citations if isinstance(row, dict)}
+                    == TASK_FIT_ROLES and
+                all(row.get("source_file_sha256") and
+                    row.get("exact_excerpt_sha256") and
+                    row.get("source_url") and
+                    row.get("original_lines_for_review")
+                    for row in citations if isinstance(row, dict)) and
+                task_reference.get("acceptance_scenarios_planned_not_executed") == 5 and
+                task_reference.get("actual_consumer_host_task_runs") == 0 and
+                task_reference.get("source_quotes_prove_bytes_not_reviewers_semantic_conclusion")
+                    is True and
+                all(task_reference.get(field) is False for field in
+                    ("rights_qualified", "host_validated",
+                     "outcome_coverage_qualified", "operator_source_acceptance_signed",
+                     "prism_invoked", "composition_eligible", "production_eligible")),
+                "TASK_REFERENCE_INTEGRITY",
+                "original task-fit review must match the exact inspected source, not grant rights")
+            task_reference = {
+                "state": "SOURCE_VERIFIED_TASK_REFERENCE_NOT_ADMITTED",
+                "governed_review_id": selected,
+                "original_entrypoint": task_reference["source_entrypoint"],
+                "original_git_blob_sha1": task_reference["entrypoint_git_blob_sha1"],
+                "complete_package_file_list_sha256":
+                    task_reference["original_complete_package_file_list_sha256"],
+                "review_input_sha256": task_reference["review_input_sha256"],
+                "original_evidence_linked_routes_not_task_qualified":
+                    task_reference["original_evidence_linked_routes_not_task_qualified"],
+                "narrow_task_spec_not_an_admitted_method":
+                    task_reference["reviewer_proposed_task_spec_not_an_admitted_method"],
+                "source_citations": citations,
+                "broader_claims_not_supported":
+                    task_reference["broader_claims_not_supported"],
+                "task_semantically_matched_to_user_request": False,
+                "source_rights_qualified": False,
+                "outcome_coverage_qualified": False,
+                "host_validated": False,
+                "composition_eligible": False,
+            }
+
     # Keep the primary source/method refusal stable; report the independent
     # source-outcome blocker alongside it, never as permission to compose.
     refusal_codes = list(refusal_codes)
@@ -283,6 +377,8 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         refusal_codes.append(coverage["gap_code"])
     if scope_gap is not None and "METHOD_SCOPE_UNESTABLISHED" not in refusal_codes:
         refusal_codes.append("METHOD_SCOPE_UNESTABLISHED")
+    if task_reference is not None and "ORIGINAL_TASK_FIT_UNQUALIFIED" not in refusal_codes:
+        refusal_codes.append("ORIGINAL_TASK_FIT_UNQUALIFIED")
 
     return {
         "schema": SCHEMA,
@@ -293,6 +389,7 @@ def evaluate_request(graph, request, host, route=None, governed_method=None,
         "pinned_source": snapshot,
         "comparison_receipt_sha256": sha256(canonical(comparison)),
         "source_outcome_coverage": coverage,
+        "reviewed_original_task_reference": task_reference,
         "reviewed_method_scope_gap": (None if scope_gap is None else {
             "state": scope_gap["state"],
             "source_entrypoint": scope_gap["source_entrypoint"],
@@ -368,7 +465,8 @@ def main(argv=None):
             if args.external_checkout is not None else None)
         outcome = evaluate_request(graph, args.request, args.host, args.route,
                                    args.method, external_selection=evidence,
-                                   scope_evaluator=_verified_scope_gap)
+                                   scope_evaluator=_verified_scope_gap,
+                                   task_fit_evaluator=_verified_original_task_reference)
         print(json.dumps(outcome, indent=2, ensure_ascii=False, sort_keys=True))
         # Expected refusal is a nonzero exit, so unattended builds cannot
         # mistake a fully blocked task for a generated skill.
