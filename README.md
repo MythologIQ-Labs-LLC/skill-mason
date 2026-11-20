@@ -12,10 +12,11 @@ Qortara Skills is building an evidence-driven compiler for portable AI-agent ski
 
 ## Public evaluation: try it and tell us what works
 
-We welcome external qualitative testing of **two different development experiences**:
+We welcome external qualitative testing of **three development testing experiences**:
 
 - **[Browser starter preview](https://mythologiq-labs-llc.github.io/skill-mason/):** Enter an outcome and download a structured, template-based `SKILL.md`. No registration or API key; this is **not** the source-qualified Prism compiler. After generating, use the on-page feedback export to record actual usefulness without sending your prompt or draft to this repository.
 - **[CI Failure Triage v5 external trial](trials/ci-failure-triage-v5/README.md):** A real, pinned Prism P0-generated development candidate with its exact [SKILL.md](trials/ci-failure-triage-v5/SKILL.md), five fictional CI scenarios and instructions for consenting agents to run it via native skill loading or clearly labeled prompt-based emulation.
+- **[Guided four-arm host trial](https://mythologiq-labs-llc.github.io/skill-mason/trial.html):** Compare baseline, CI Triage v5, Release Readiness v2 and combined source-pinned instructions on eight fictional tasks in your own ChatGPT, Claude or Codex sessions. Copy the full prompt, capture raw replies in your browser, save/resume progress and export the standard 32-response JSON for offline scoring and blind review. No API key, prerequisite downloads, account or automatic transcript upload on the test page. These are **unqualified preview instructions**, not signed or Prism-approved skills ([guide](trials/ci-release-four-arm/README.md)).
 
 **[Report observed results](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml).** Tell us the host used, whether the output was useful without changes, where the agent made unsupported causal claims, and how much editing was necessary. Do not share live credentials, private logs, personal data or private agent transcripts. GitHub issue submissions are public and may require a GitHub sign-in. Negative findings are welcome; published CI green is not proof of consuming-host quality.
 

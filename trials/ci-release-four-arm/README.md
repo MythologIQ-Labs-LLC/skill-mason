@@ -2,7 +2,17 @@
 
 **Status: development-only, unqualified original-source previews.** This is a public test of whether combining two methods improves actual agent answers. It is **not** an installed, signed, rights-approved or production-qualified skill. The host is not granted permission to run commands, access secrets, modify a repository, publish a release or adopt an unverified source.
 
-**[Prepare a free trial packet](../../bin/public-four-arm-trial.mjs)** · [Task source](../../tests/fixtures/combined-ci-release-boundaries-v1.json) · [Submit observed feedback](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml)
+**[Run the browser trial](https://mythologiq-labs-llc.github.io/skill-mason/trial.html)** · [Generate the local JSON packet](../../bin/public-four-arm-trial.mjs) · [Task source](../../tests/fixtures/combined-ci-release-boundaries-v1.json) · [Submit observed feedback](https://github.com/MythologIQ-Labs-LLC/skill-mason/issues/new?template=skill-trial-feedback.yml)
+
+## Run the guided trial in your browser (recommended)
+
+**[Open the four-arm browser trial](https://mythologiq-labs-llc.github.io/skill-mason/trial.html)**. This public GitHub Pages page uses the **same source-pinned three instruction previews and original eight fictional evidence cases** as the repository CLI, built and validated from the first-party source bytes at site publication. No model API key, Prism artifact, GitHub login, local Node installation or initial artifact download is needed.
+
+Choose one agent host (ChatGPT, Claude, Codex or other) and complete each of the 32 arm/task slots in a **fresh, separate, tool-disabled agent session**. The page assembles the full source instructions and selected evidence into a one-click copyable prompt. Paste the actual unchanged reply into the page, then record it. The page can save progress in a local JSON file and restore that file later, so testers do not need to finish 32 sessions at once.
+
+After all 32 replies are recorded, choose **Export 32 replies**. The export uses the exact `qortara/public-four-arm-host-responses/1` schema that the CLI scorer and the public blind reviewer already accept. The browser does **not** invoke a model or automatically upload, grade, synchronize, or publish responses. The exported records contain local pseudonymous slot labels, **not independently verified host session IDs**. The reviewer still needs to evaluate actual source-grounded correctness independently; a structurally passing reply is not automatically a correct one. Check exported files for sensitive information before sharing anywhere.
+
+The web deployment is intentionally coupled to original source method and renderer revisions. Each generated packet contains its exact source and instruction SHA-256 pins. A progress file from another source revision is **refused rather than silently rebound** to changed instructions. You can always use an older repository checkout to analyze its corresponding earlier responses.
 
 ## Get the instructions with no signing keys or model API
 
