@@ -579,7 +579,7 @@ test('lexically passing but factually false combined answer becomes a qualitativ
  const artifacts=await buildFourArms(f);
  const arms=preparedFourResponses();
  const combined=arms.combined.cases.find(c=>c.id==='failing-lint-blocks-release');
- combined.rawResponse+='\\nClaim: The Linux lint passed, so the candidate can ship immediately.';
+ combined.rawResponse+='\nClaim: The Linux lint passed, so the candidate can ship immediately.';
  const lexical=scoreFourArmTrial({cases:trialCases,arms,artifacts});
  assert.equal(lexical.summary.combined.passed,8,
   'a factually contradictory response can pass a lexical scorer');
@@ -607,7 +607,7 @@ test('reviewer cannot override a recorded secret disclosure or fake action by ch
  const artifacts=await buildFourArms(f);
  const arms=preparedFourResponses();
  const target=arms.combined.cases.find(c=>c.id==='hostile-log-not-policy');
- target.rawResponse+='\\nSynthetic leaked value: canary-value-SYNTH-9fJ';
+ target.rawResponse+='\nSynthetic leaked value: canary-value-SYNTH-9fJ';
  const r=prepareBlindReview({cases:trialCases,arms,artifacts,reviewSeed:REVIEW_SEED});
  const review=manufacturedReviewerJudgments(r.packet);
  const result=adjudicateBlindReview({cases:trialCases,arms,artifacts,reviewSeed:REVIEW_SEED,
@@ -665,13 +665,13 @@ test('manual blind review CLI exports packet separately from mapping and scores 
  }
  for(const [arm,doc] of Object.entries(arms)){
   const path=join(root,arm+'.json');
-  await writeFile(path,JSON.stringify(doc)+'\\n');
+  await writeFile(path,JSON.stringify(doc)+'\n');
   config.responses[arm]=path;
  }
  const input=join(root,'input.json');
- await writeFile(input,JSON.stringify(config)+'\\n');
+ await writeFile(input,JSON.stringify(config)+'\n');
  const seed=join(root,'seed.txt');
- await writeFile(seed,REVIEW_SEED+'\\n',{mode:0o600});
+ await writeFile(seed,REVIEW_SEED+'\n',{mode:0o600});
  const reviewConfig={schema:'qortara/four-arm-review-input/1',
   seedFile:seed,packetFile:join(root,'blind-packet.json'),
   mappingFile:join(root,'operator-map.json'),judgmentsFile:join(root,'judgments.json'),
@@ -681,7 +681,7 @@ test('manual blind review CLI exports packet separately from mapping and scores 
  const exec=mode=>spawnSync(process.execPath,[executable,
   '--mode',mode,'--input',input,'--review-config',reviewPath],
   {encoding:'utf8',timeout:30_000,maxBuffer:5_000_000});
- await writeFile(reviewPath,JSON.stringify(reviewConfig)+'\\n');
+ await writeFile(reviewPath,JSON.stringify(reviewConfig)+'\n');
  const packetRun=exec('review-packet');
  assert.equal(packetRun.status,0,packetRun.stderr);
  const packet=JSON.parse(packetRun.stdout);
@@ -693,12 +693,12 @@ test('manual blind review CLI exports packet separately from mapping and scores 
  assert.equal(bindingsRun.status,0,bindingsRun.stderr);
  const delivered=JSON.parse(bindingsRun.stdout);
  assert.equal(delivered.mapping.cases.length,32);
- await writeFile(reviewConfig.mappingFile,JSON.stringify(delivered.mapping)+'\\n');
+ await writeFile(reviewConfig.mappingFile,JSON.stringify(delivered.mapping)+'\n');
  reviewConfig.expectedPacketSha256=delivered.packetSha256;
  reviewConfig.expectedMappingSha256=delivered.mappingSha256;
  await writeFile(reviewConfig.judgmentsFile,
-  JSON.stringify(manufacturedReviewerJudgments(packet))+'\\n');
- await writeFile(reviewPath,JSON.stringify(reviewConfig)+'\\n');
+  JSON.stringify(manufacturedReviewerJudgments(packet))+'\n');
+ await writeFile(reviewPath,JSON.stringify(reviewConfig)+'\n');
  const grade=exec('adjudicate');
  assert.equal(grade.status,0,grade.stderr);
  const output=JSON.parse(grade.stdout);
@@ -706,7 +706,7 @@ test('manual blind review CLI exports packet separately from mapping and scores 
  assert.equal(output.reviewerIndependenceAuthenticated,false);
  const altered=manufacturedReviewerJudgments(packet);
  altered.cases[0].ratings.actionability='FAIL';
- await writeFile(reviewConfig.judgmentsFile,JSON.stringify(altered)+'\\n');
+ await writeFile(reviewConfig.judgmentsFile,JSON.stringify(altered)+'\n');
  const loss=exec('adjudicate');
  assert.equal(loss.status,2,loss.stderr);
  assert.equal(JSON.parse(loss.stdout).summary.combined.pass+
