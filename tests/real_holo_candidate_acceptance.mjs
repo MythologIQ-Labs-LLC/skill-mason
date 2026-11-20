@@ -126,7 +126,7 @@ async function main(argv){
   const pilotRoot=join(process.env.RUNNER_TEMP??dir,'first-party-pilot-candidates');
   await mkdir(pilotRoot,{mode:0o700});
   const firstPartyPilots=[];
-  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','ci-failure-triage-v5','governance-drift-review','release-readiness-review']){
+  for(const id of ['ci-failure-triage','ci-failure-triage-v2','ci-failure-triage-v3','ci-failure-triage-v4','ci-failure-triage-v5','governance-drift-review','release-readiness-review','release-readiness-review-v2']){
     const result=await runFirstPartyPilot({id,holoPath,holoSha256:PIN,
       outputRoot:pilotRoot,devP0Fixture:true});
     const candidate=await readPackage(join(pilotRoot,id));
@@ -265,8 +265,28 @@ async function main(argv){
   const originalRelease=await readPackage(join(pilotRoot,'release-readiness-review'));
   assert.equal(fromRelease.files['SKILL.md'],originalRelease.files['SKILL.md']);
   assert.equal(fromRelease.files['SOURCES.json'],originalRelease.files['SOURCES.json']);
+  const requestReleaseV2='Review a candidate against the owner-accepted nonempty release gate inventory; reject missing platform targets, ambiguous policy, and mismatched artifact signer receipts without publishing.';
+  const requestedReleaseV2=await generateFirstPartyRequest({
+    request:requestReleaseV2,capability:'review bounded release readiness evidence',
+    methodId:'release-readiness-review-v2',host:'agent-skills-text-only-fixture',
+    holoPath,holoSha256:PIN,outputRoot:requestRoot,devP0Fixture:true
+  });
+  assert.equal(requestedReleaseV2.state,'GENERATED_UNQUALIFIED_SEALED_SKILL');
+  assert.equal(requestedReleaseV2.selectedMethod,'release-readiness-review-v2');
+  assert.equal(requestedReleaseV2.requestSemanticMatchVerified,false);
+  assert.equal(requestedReleaseV2.sourceRightsVerified,false);
+  assert.equal(requestedReleaseV2.productionEligible,false);
+  const fromReleaseV2=await readPackage(join(requestRoot,'release-readiness-review-v2'));
+  const v2Rendered=fromReleaseV2.files['SKILL.md'].replaceAll(String.fromCharCode(92)+'_', '_');
+  assert.match(v2Rendered,/POLICY_GATES_INCOMPLETE/);
+  assert.match(v2Rendered,/READY_FOR_OWNER_DECISION/);
+  assert.match(v2Rendered,/nonempty complete gate set/);
+  assert.equal(JSON.parse(fromReleaseV2.files['RECEIPT.json']).hostValidated,false);
+  const originalV2=await readPackage(join(pilotRoot,'release-readiness-review-v2'));
+  assert.equal(fromReleaseV2.files['SKILL.md'],originalV2.files['SKILL.md']);
+  assert.equal(fromReleaseV2.files['SOURCES.json'],originalV2.files['SOURCES.json']);
   const record={schema:'qortara/real-holo-candidate-pilot/1',source:'ephemeral-tests-only',
-   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+6,
+   subjectHoloSha256:PIN,guest:'prism-code@0.9.5',guestCalls:guestCalls+firstPartyPilots.length+7,
    sourceRights:'SYNTHETIC_FIXTURE_NOT_LEGAL_AUTHORIZATION',assurance:'P0 unverified',
    signedProof:'EPHEMERAL_FIXTURE_KEY',productionEligible:false,hostValidated:false,
    modelCallsMeasured:false,decisionPositive:'eligible',decisionNegative:'refused: RIGHTS_UNRESOLVED',
@@ -288,6 +308,13 @@ async function main(argv){
      packageManifestSha256:requestedV3.packageManifestSha256,
      state:requestedV3.state,sourceRightsVerified:false,hostBehaviorValidated:false,
      productionEligible:false},
+    firstPartyUserRequestReleaseV2:{
+      requestSha256:requestedReleaseV2.requestSha256,
+      selectedMethod:requestedReleaseV2.selectedMethod,
+      requestedOutcome:requestedReleaseV2.requestedOutcome,
+      packageManifestSha256:requestedReleaseV2.packageManifestSha256,
+      state:requestedReleaseV2.state,sourceRightsVerified:false,
+      hostBehaviorValidated:false,productionEligible:false},
     firstPartyUserRequestRelease:{requestSha256:requestedRelease.requestSha256,
       selectedMethod:requestedRelease.selectedMethod,requestedOutcome:requestedRelease.requestedOutcome,
       packageManifestSha256:requestedRelease.packageManifestSha256,
