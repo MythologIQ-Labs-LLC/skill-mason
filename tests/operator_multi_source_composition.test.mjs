@@ -193,6 +193,11 @@ test('two real historical methods combine into one disk-sealed P0 candidate with
  assert.match(skill,/Declared coverage does not establish/);
  assert.match(skill,/A diagnosis, recommendation, repeated run or proposed repair is not independent proof/);
  assert.match(skill,/Do not report overall approval when any mandatory outcome remains blocked or unverified/);
+ assert.match(skill,/CI triage \\+ release review: separate evidence axes/);
+ assert.match(skill,/A same-commit green retry is not proof of root-cause repair/);
+ assert.match(skill,/Without verified nonempty owner policy, release status is EVIDENCE_INCOMPLETE/);
+ assert.match(skill,/queued\\/skipped\\/unrun target is NOT_ESTABLISHED/);
+ assert.match(skill,/Never claim a signature would fail against a trust root that was not actually tested/);
  for(const component of f.components){
   const expected='- '+component.method.covers[0]+': '+component.method_id;
   assert.ok(skill.includes(expected),expected);
