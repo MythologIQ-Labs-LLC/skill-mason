@@ -1,0 +1,4 @@
+d 4096 .
+f 1479 ./application-acceptance.json
+f 44161 ./lexlean-attestation.json
+f 70398 ./manifest.json

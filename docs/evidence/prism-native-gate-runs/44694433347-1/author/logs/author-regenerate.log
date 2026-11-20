@@ -1,0 +1,9 @@
+GATE_SOURCE repo=/opt/prism-gate/run/repo commit=fc2d519f79e8d600fe7cefe31b1b0ba64288be92 tree=af5abdd7a8967f0ccd280001f4862734daaff806 subdir=prism
+GATE_RUN image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none egress_network=none egress_proxy=none uid=1000:1000 docker_socket=not-mounted seed_tmp=none workdir=/opt/prism-gate/run/work/author-regenerate
+lexlean.lock is current
+formatted 0 modules
+lexlean.lock is current
+3 modules are canonical
+lexlean.lock is current
+check passed (semantic ID: 2866b2ce6e3c6bec29d380dd66f1e62ca31c85fa8e8d61d76f44cbecdbeaba13)
+GATE_EXIT=0 image=ghcr.io/afflom/prismpm-sdk-patched@sha256:3dfa5f7284ace57c08bfe8d2effe2e08ab41da1a53f5820d48cccd498bd528c3 net=none elapsed=12s cmd=bash -c set -euo pipefail; cd eligibility; lexlean lock; lexlean fmt; lexlean lock; lexlean fmt --check; lexlean lock --check; cd ..; prismpm --project eligibility check

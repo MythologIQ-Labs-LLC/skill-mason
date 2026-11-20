@@ -1,0 +1,1 @@
+prism_nested_ratchet: REFUSED before any audit runs: the baseline fc2d519f79e8 holds a ratcheted instance at prism/ and the candidate a6971f9234a4 does not. The instance was moved or removed; that is a governed change, not something a commit may do to leave the ratchet behind.
