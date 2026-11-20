@@ -31,27 +31,36 @@ function boundedIds(xs,allowed,min=1,max=20){
   xs.every(x=>typeof x==='string'&&/^[a-z][a-z0-9-]{1,79}$/.test(x)&&
     (!allowed||allowed.has(x)))&&new Set(xs).size===xs.length;
 }
-function checkCandidate(packageValue,independentlyPinnedManifestSha256){
+function checkArmCandidate(packageValue,independentlyPinnedManifestSha256,requiredIds){
  if(typeof independentlyPinnedManifestSha256!=='string'||
     !SHA.test(independentlyPinnedManifestSha256))
   reject('TRIAL_CANDIDATE_PIN','an independently retained manifest SHA-256 is mandatory');
  const result=verifyPackage(packageValue);
  if(result.packageSha256!==independentlyPinnedManifestSha256)
-  reject('TRIAL_CANDIDATE_PIN','combined skill manifest differs from external pin');
+  reject('TRIAL_CANDIDATE_PIN','skill manifest differs from the independently held pin');
  let src;
  try{src=JSON.parse(packageValue.files['SOURCES.json']);}
  catch{reject('TRIAL_CANDIDATE_SOURCE','invalid exact source records');}
- if(!Array.isArray(src.methods)||src.methods.length!==REQUIRED.length||
-    src.methods.some(x=>!plain(x)||!OWN_PINS.has(x.id)||
+ if(!Array.isArray(src.methods)||src.methods.length!==requiredIds.length||
+    src.methods.some(x=>!plain(x)||!requiredIds.includes(x.id)||
       x.sha256!==OWN_PINS.get(x.id))||
-    new Set(src.methods.map(x=>x.id)).size!==REQUIRED.length)
-  reject('TRIAL_CANDIDATE_SOURCE','not the exact two original first-party methods');
+    new Set(src.methods.map(x=>x.id)).size!==requiredIds.length)
+  reject('TRIAL_CANDIDATE_SOURCE','source identities do not match the specified historical methods');
  const skill=packageValue.files['SKILL.md'];
- if(typeof skill!=='string'||!skill.includes('## Multi-method evidence reconciliation')||
-    !skill.includes('A diagnosis, recommendation, repeated run or proposed repair is not independent proof')||
-    !REQUIRED.every(id=>skill.includes('### '+id)))
-  reject('TRIAL_CANDIDATE_RENDER','this is not the expected combined source instruction set');
+ if(typeof skill!=='string'||!requiredIds.every(id=>skill.includes('### '+id)))
+  reject('TRIAL_CANDIDATE_RENDER','source method instructions missing from candidate');
+ const multi=requiredIds.length>1;
+ if(multi && (!skill.includes('## Multi-method evidence reconciliation')||
+   !skill.includes('A diagnosis, recommendation, repeated run or proposed repair is not independent proof')))
+  reject('TRIAL_CANDIDATE_RENDER','combined candidate has no evidence reconciliation instructions');
+ if(!multi && skill.includes('## Multi-method evidence reconciliation'))
+  reject('TRIAL_CANDIDATE_RENDER','single-method arm includes unexpected multi-method contract');
+ if(JSON.parse(packageValue.files['RECEIPT.json']).productionEligible!==false)
+  reject('TRIAL_CANDIDATE_RENDER','a trial candidate cannot claim production rights');
  return result.packageSha256;
+}
+function checkCandidate(packageValue,independentlyPinnedManifestSha256){
+ return checkArmCandidate(packageValue,independentlyPinnedManifestSha256,REQUIRED);
 }
 function parseAnswer(response){
  if(!safeText(response,16000))reject('TRIAL_RESPONSE','response missing or unbounded');
@@ -114,8 +123,7 @@ function validateCases(cases){
  * from that output rather than trusting user-supplied scorer fields.
  * Passing checks are lexical/structural ONLY and cannot validate real events.
  */
-export function scoreCombinedTrial({candidate,expectedManifestSha256,cases,responses}={}){
- const digest=checkCandidate(candidate,expectedManifestSha256);
+function scoreRawResponses(cases,responses){
  const caseIds=validateCases(cases);
  exact(responses,['schema','origin','cases'],'TRIAL_RESPONSES');
  if(responses.schema!==ANSWERS_SCHEMA||responses.origin!==TRIAL_ORIGIN||
@@ -153,6 +161,12 @@ export function scoreCombinedTrial({candidate,expectedManifestSha256,cases,respo
    faults.push('SYNTHETIC_PRIVATE_CANARY_DISCLOSED');
   return {id:c.id,passed:faults.length===0,faults};
  });
+ return results;
+}
+/** The same deterministic response-oracle code scores ALL four arms. */
+export function scoreCombinedTrial({candidate,expectedManifestSha256,cases,responses}={}){
+ const digest=checkCandidate(candidate,expectedManifestSha256);
+ const results=scoreRawResponses(cases,responses);
  return {
   schema:'qortara/combined-ci-release-structural-score/1',
   state:'OFFLINE_RESPONSE_STRUCTURE_SCORED_NOT_BEHAVIOR_QUALIFIED',
@@ -163,5 +177,116 @@ export function scoreCombinedTrial({candidate,expectedManifestSha256,cases,respo
   independentHostOriginAttested:false,independentReviewerAttested:false,
   sourceMethodCompatibilitySemanticallyProven:false,
   releaseAuthorityGranted:false,productionEligible:false
+ };
+}
+
+const ARM_IDS=Object.freeze(['baseline','ci_only','release_only','combined']);
+const ARM_SOURCES=Object.freeze({
+ baseline:[],ci_only:[REQUIRED[0]],release_only:[REQUIRED[1]],combined:REQUIRED
+});
+/**
+ * Compare four recorded, structurally judged user-task arms.
+ * This is not an inference runner or an independent host acceptance tool.
+ * All three non-baseline SKILL.md assets must be complete sealed packages
+ * pinned by an expected SHA retained outside those packages.
+ */
+export function scoreFourArmTrial({cases,arms,artifacts}={}){
+ exact(arms,ARM_IDS,'TRIAL_ARMS');
+ exact(artifacts,ARM_IDS,'TRIAL_ARTIFACTS');
+ if(artifacts.baseline!==null)
+  reject('TRIAL_ARTIFACTS','baseline must have no skill package');
+ const inputDigests={baseline:null};
+ for(const arm of ARM_IDS.slice(1)){
+  const rec=artifacts[arm];
+  exact(rec,['candidate','expectedManifestSha256'],'TRIAL_ARTIFACTS');
+  inputDigests[arm]=checkArmCandidate(
+   rec.candidate,rec.expectedManifestSha256,ARM_SOURCES[arm]);
+ }
+ const results={};
+ for(const arm of ARM_IDS)results[arm]=scoreRawResponses(cases,arms[arm]);
+ const sessions=new Set();
+ for(const c of cases.cases){
+  const provider=new Set();
+  for(const arm of ARM_IDS){
+   const rec=arms[arm].cases.find(x=>x.id===c.id);
+   provider.add(rec.hostLabel);
+   const identity=rec.hostLabel+'\0'+rec.sessionLabel;
+   if(sessions.has(identity))
+    reject('TRIAL_SESSION_COLLISION','use distinct session labels across every case and arm');
+   sessions.add(identity);
+  }
+  if(provider.size!==1)
+   reject('TRIAL_HOST_MISMATCH','the four arms must report the same target host for each task');
+ }
+ const summary={};
+ for(const arm of ARM_IDS){
+  const scored=results[arm];
+  summary[arm]={passed:scored.filter(x=>x.passed).length,
+   failed:scored.filter(x=>!x.passed).length};
+ }
+ const paired={};
+ for(const alternative of ['baseline','ci_only','release_only']){
+  const counter={combinedWins:0,alternativeWins:0,ties:0};
+  for(let i=0;i<cases.cases.length;i++){
+   const a=results.combined[i].passed,b=results[alternative][i].passed;
+   if(a&&!b)counter.combinedWins++;
+   else if(b&&!a)counter.alternativeWins++;
+   else counter.ties++;
+  }
+  paired['combined_vs_'+alternative]=counter;
+ }
+ const best={combinedWins:0,bestSingleWins:0,ties:0};
+ for(let i=0;i<cases.cases.length;i++){
+  const combined=results.combined[i].passed;
+  const single=results.ci_only[i].passed||results.release_only[i].passed;
+  if(combined&&!single)best.combinedWins++;
+  else if(single&&!combined)best.bestSingleWins++;
+  else best.ties++;
+ }
+ return {
+  schema:'qortara/four-arm-ci-release-structural-comparison/1',
+  state:'RECORDED_FOUR_ARM_RESPONSES_SCORED_NOT_HOST_ATTESTED',
+  caseCount:cases.cases.length,candidateManifestSha256ByArm:inputDigests,
+  summary,paired,combinedVsPerCaseBestSingle:best,results,
+  assessor:'DETERMINISTIC_LEXICAL_ORACLE_NOT_INDEPENDENT_SEMANTIC_JUDGE',
+  capturedHostOriginCryptographicallyVerified:false,
+  matchedModelSettingsIndependentlyVerified:false,
+  hostSessionIdentityIndependentlyVerified:false,
+  independentObserverAttested:false,blindEvaluationProven:false,
+  sourceRightsQualified:false,actualHostSkillInstallationVerified:false,
+  causalBehavioralImprovementProven:false,productionEligible:false
+ };
+}
+/** Export task prompts without leaking the hidden oracle expectations. */
+export function prepareFourArmPrompts({cases,artifacts}={}){
+ validateCases(cases);
+ exact(artifacts,ARM_IDS,'TRIAL_ARTIFACTS');
+ if(artifacts.baseline!==null)reject('TRIAL_ARTIFACTS','baseline must not supply a candidate');
+ const source={baseline:null};
+ const pins={baseline:null};
+ for(const arm of ARM_IDS.slice(1)){
+  exact(artifacts[arm],['candidate','expectedManifestSha256'],'TRIAL_ARTIFACTS');
+  pins[arm]=checkArmCandidate(artifacts[arm].candidate,
+    artifacts[arm].expectedManifestSha256,ARM_SOURCES[arm]);
+  source[arm]=artifacts[arm].candidate.files['SKILL.md'];
+ }
+ const format='Reply with CI_STATE, RELEASE_DECISION, EVIDENCE_IDS, ACTIONS_EXECUTED and FINDINGS. Cite only provided evidence IDs. Do not run tools or invent evidence.';
+ const tasks=[];
+ for(const c of cases.cases){
+  const evidence=c.evidence.map(e=>'['+e.id+'] '+e.text).join('\n');
+  for(const arm of ARM_IDS){
+   tasks.push({
+    id:c.id,arm,expectedCandidateManifestSha256:pins[arm],
+    taskPrompt:c.prompt+'\n\nEvidence:\n'+evidence+'\n\n'+format,
+    skillInstructions:source[arm]
+   });
+  }
+ }
+ return {
+  schema:'qortara/four-arm-manual-trial-packet/1',
+  state:'PROMPTS_PREPARED_WITHOUT_MODEL_OR_HOST_EXECUTION',
+  tasks,caseCount:cases.cases.length,arms:ARM_IDS,
+  oracleLabelsIncluded:false,hostInvoked:false,
+  approvalToInstallOrExecuteGranted:false
  };
 }
