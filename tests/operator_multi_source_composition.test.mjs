@@ -9,6 +9,9 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {composeOperatorBoundMultiP0} from '../src/backend/operator-multi-source-composition.mjs';
+import {composeOperatorBoundP0} from '../src/backend/operator-source-composition.mjs';
+import {scoreFourArmTrial,prepareFourArmPrompts}
+ from '../src/evaluation/ci-release-combined-score.mjs';
 import {scoreCombinedTrial} from '../src/evaluation/ci-release-combined-score.mjs';
 import {canonicalJSON,readPackage,verifyPackage} from '../src/backend/compose.mjs';
 import {createSignedAssertionAdapter} from '../src/backend/signed-assertions.mjs';
@@ -367,4 +370,157 @@ test('combined-task oracle detects missing citation, fake source, secret leak, w
   cases:trialCases,responses:wrong
  }),{code:'TRIAL_CANDIDATE_PIN'});
  assert.throws(()=>grade({...wrong,origin:'CLAIMED_INDEPENDENTLY_OBSERVED'}),{code:'TRIAL_RESPONSES'});
+}));
+
+async function buildFourArms(f){
+ const multi=await composeOperatorBoundMultiP0(f.input);
+ const combined={candidate:await readPackage(multi.sealedOutput),
+  expectedManifestSha256:multi.packageManifestSha256};
+ const artifacts={baseline:null,combined};
+ const map=[['ci_only',0],['release_only',1]];
+ for(const [arm,i] of map){
+  const selected=f.input.selections[i];
+  const source=f.components[i];
+  const recipe={...f.input.recipe,skill_id:source.method_id,
+   required_outcomes:[source.method.covers[0]],
+   components:[f.input.recipe.components[i]]};
+  const outputRoot=await mkdtemp(join(f.root,arm+'-'));
+  const result=await composeOperatorBoundP0({
+   sourceRegistry:f.input.sourceRegistry,recipe,
+   preflight:selected.preflight,operatorTrust:selected.operatorTrust,
+   expectedSourceBindingSha256:selected.expectedSourceBindingSha256,
+   expectedMethodSha256:selected.expectedMethodSha256,
+   expectedPackageSha256:selected.expectedPackageSha256,
+   expectedSnapshotSha256:f.input.expectedSnapshotSha256,
+   readOperatorAcceptance:selected.readOperatorAcceptance,
+   assertSignedMethod:selected.assertSignedMethod,
+   holoPath:f.input.holoPath,holoSha256:f.input.holoSha256,outputRoot,
+   nowEpoch:f.input.nowEpoch,loadRuntime:f.input.loadRuntime
+  });
+  artifacts[arm]={candidate:await readPackage(result.sealedOutput),
+   expectedManifestSha256:result.packageManifestSha256};
+ }
+ return artifacts;
+}
+function preparedFourResponses(){
+ const arms={};
+ for(const arm of ['baseline','ci_only','release_only','combined']){
+  const answers=syntheticResponses();
+  answers.cases=answers.cases.map(rec=>({...rec,
+   hostLabel:'fixture-host-not-an-independent-agent',
+   sessionLabel:arm+'-'+rec.id}));
+  arms[arm]=answers;
+ }
+ return arms;
+}
+test('four exact pinned original-source packages score identical tasks with paired loss/win/tie accounting',()=>withFixture(async f=>{
+ const artifacts=await buildFourArms(f);
+ const responses=preparedFourResponses();
+ const scored=scoreFourArmTrial({cases:trialCases,arms:responses,artifacts});
+ assert.equal(scored.caseCount,8);
+ assert.deepEqual(Object.values(scored.summary).map(x=>x.passed),[8,8,8,8]);
+ assert.equal(scored.paired.combined_vs_baseline.ties,8);
+ assert.equal(scored.paired.combined_vs_ci_only.combinedWins,0);
+ assert.equal(scored.combinedVsPerCaseBestSingle.ties,8);
+ assert.equal(scored.capturedHostOriginCryptographicallyVerified,false);
+ assert.equal(scored.causalBehavioralImprovementProven,false);
+ assert.equal(scored.productionEligible,false);
+ const packageSha=new Set(Object.values(scored.candidateManifestSha256ByArm).filter(Boolean));
+ assert.equal(packageSha.size,3);
+ assert.equal(verifyPackage(artifacts.ci_only.candidate).state,'INTEGRITY_VERIFIED');
+ assert.equal(verifyPackage(artifacts.release_only.candidate).state,'INTEGRITY_VERIFIED');
+ assert.equal(verifyPackage(artifacts.combined.candidate).state,'INTEGRITY_VERIFIED');
+ const task=prepareFourArmPrompts({cases:trialCases,artifacts});
+ assert.equal(task.tasks.length,32);
+ assert.equal(task.oracleLabelsIncluded,false);
+ assert.equal(task.hostInvoked,false);
+ assert.equal(task.tasks.filter(x=>x.skillInstructions===null).length,8);
+ assert.equal(task.tasks.filter(x=>x.arm==='combined').length,8);
+ assert.ok(task.tasks.every(x=>!Object.hasOwn(x,'oracle')));
+ assert.ok(task.tasks.every(x=>!x.taskPrompt.includes('requiredFindings')));
+ assert.ok(task.tasks.find(x=>x.arm==='combined').skillInstructions
+   .includes('## Multi-method evidence reconciliation'));
+ assert.ok(!task.tasks.find(x=>x.arm==='ci_only').skillInstructions
+   .includes('## Multi-method evidence reconciliation'));
+}));
+test('a real four-arm comparison cannot hide combined losses or invent quality wins',()=>withFixture(async f=>{
+ const artifacts=await buildFourArms(f);
+ const responses=preparedFourResponses();
+ const wrong=responses.combined.cases[0];
+ wrong.rawResponse=wrong.rawResponse.replace('RELEASE_DECISION: HOLD',
+  'RELEASE_DECISION: READY_FOR_OWNER_DECISION');
+ const grade=()=>scoreFourArmTrial({cases:trialCases,arms:responses,artifacts});
+ let result=grade();
+ assert.equal(result.summary.combined.failed,1);
+ assert.equal(result.paired.combined_vs_baseline.alternativeWins,1);
+ assert.equal(result.paired.combined_vs_release_only.alternativeWins,1);
+ assert.equal(result.combinedVsPerCaseBestSingle.bestSingleWins,1);
+ assert.ok(result.results.combined[0].faults.includes('RELEASE_DECISION_WRONG'));
+ responses.baseline.cases[1].rawResponse=responses.baseline.cases[1].rawResponse
+   .replace('RELEASE_DECISION: EVIDENCE_INCOMPLETE','RELEASE_DECISION: HOLD');
+ responses.ci_only.cases[1].rawResponse=responses.ci_only.cases[1].rawResponse
+   .replace('RELEASE_DECISION: EVIDENCE_INCOMPLETE','RELEASE_DECISION: HOLD');
+ responses.release_only.cases[1].rawResponse=responses.release_only.cases[1].rawResponse
+   .replace('RELEASE_DECISION: EVIDENCE_INCOMPLETE','RELEASE_DECISION: HOLD');
+ result=grade();
+ assert.equal(result.paired.combined_vs_baseline.combinedWins,1);
+ assert.equal(result.combinedVsPerCaseBestSingle.combinedWins,1);
+ assert.equal(result.combinedVsPerCaseBestSingle.bestSingleWins,1);
+ assert.equal(result.causalBehavioralImprovementProven,false);
+}));
+test('four-arm input refuses fake method, counterfeit package pin and noncomparable sessions',()=>withFixture(async f=>{
+ const artifacts=await buildFourArms(f);
+ const responses=preparedFourResponses();
+ const grade=(a=artifacts,r=responses)=>scoreFourArmTrial({cases:trialCases,arms:r,artifacts:a});
+ const swap={...artifacts,ci_only:artifacts.release_only};
+ assert.throws(()=>grade(swap),{code:'TRIAL_CANDIDATE_SOURCE'});
+ const bad={...artifacts,ci_only:{...artifacts.ci_only,expectedManifestSha256:'f'.repeat(64)}};
+ assert.throws(()=>grade(bad),{code:'TRIAL_CANDIDATE_PIN'});
+ responses.combined.cases[0].sessionLabel=responses.ci_only.cases[0].sessionLabel;
+ assert.throws(()=>grade(),{code:'TRIAL_SESSION_COLLISION'});
+ responses.combined.cases[0].sessionLabel='distinct-0';
+ responses.combined.cases[0].hostLabel='another-host';
+ assert.throws(()=>grade(),{code:'TRIAL_HOST_MISMATCH'});
+}));
+test('manual four-arm CLI emits oracle-free prompt packet and scores case evidence, no model API',()=>withFixture(async f=>{
+ const root=await mkdtemp(join(f.root,'four-cli-'));
+ const artifacts=await buildFourArms(f);
+ const config={schema:'qortara/four-arm-trial-input/1',
+  caseFile:fileURLToPath(new URL('./fixtures/combined-ci-release-boundaries-v1.json',import.meta.url)),
+  artifacts:{baseline:null},responses:{}};
+ for(const arm of ['ci_only','release_only','combined']){
+  const dir=join(root,'pkg-'+arm);
+  const single=artifacts[arm].candidate;
+  const {writePackage}=await import('../src/backend/compose.mjs');
+  await writePackage(single,dir);
+  config.artifacts[arm]={candidateDir:dir,
+   expectedManifestSha256:artifacts[arm].expectedManifestSha256};
+ }
+ const arms=preparedFourResponses();
+ for(const [arm,doc] of Object.entries(arms)){
+  const target=join(root,arm+'.json');
+  await writeFile(target,JSON.stringify(doc)+'\\n');
+  config.responses[arm]=target;
+ }
+ const input=join(root,'input.json');
+ await writeFile(input,JSON.stringify(config)+'\\n');
+ const executable=fileURLToPath(new URL('../bin/four-arm-quality-trial.mjs',import.meta.url));
+ const prepare=spawnSync(process.execPath,[executable,'--mode','prepare','--input',input],
+  {encoding:'utf8',timeout:30_000,maxBuffer:2_000_000});
+ assert.equal(prepare.status,0,prepare.stderr);
+ const packet=JSON.parse(prepare.stdout);
+ assert.equal(packet.tasks.length,32);
+ assert.equal(packet.hostInvoked,false);
+ const score=spawnSync(process.execPath,[executable,'--mode','score','--input',input],
+  {encoding:'utf8',timeout:30_000,maxBuffer:2_000_000});
+ assert.equal(score.status,0,score.stderr);
+ assert.equal(JSON.parse(score.stdout).summary.combined.passed,8);
+ const baseline=arms.baseline;
+ baseline.cases[0].rawResponse=baseline.cases[0].rawResponse.replace(
+  'CI_STATE: OBSERVED_FAILURE','CI_STATE: WITHHELD');
+ await writeFile(config.responses.baseline,JSON.stringify(baseline)+'\\n');
+ const failed=spawnSync(process.execPath,[executable,'--mode','score','--input',input],
+  {encoding:'utf8',timeout:30_000,maxBuffer:2_000_000});
+ assert.equal(failed.status,2,failed.stderr);
+ assert.equal(JSON.parse(failed.stdout).summary.baseline.failed,1);
 }));
