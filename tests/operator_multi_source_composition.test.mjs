@@ -179,6 +179,21 @@ test('two real historical methods combine into one disk-sealed P0 candidate with
  assert.ok(pkg.files['SKILL.md'].includes('release-readiness-review-v2'));
  assert.ok(pkg.files['SKILL.md'].includes('DIAGNOSIS'));
  assert.ok(pkg.files['SKILL.md'].includes('release'));
+ const skill=pkg.files['SKILL.md'];
+ assert.match(skill,/## Multi-method evidence reconciliation/);
+ assert.match(skill,/Compiler-supplied coordination contract, not source-method evidence/);
+ assert.match(skill,/Declared coverage does not establish/);
+ assert.match(skill,/A diagnosis, recommendation, repeated run or proposed repair is not independent proof/);
+ assert.match(skill,/Do not report overall approval when any mandatory outcome remains blocked or unverified/);
+ for(const component of f.components){
+  const expected='- '+component.method.covers[0]+': '+component.method_id;
+  assert.ok(skill.includes(expected),expected);
+ }
+ assert.ok(skill.indexOf('## Multi-method evidence reconciliation') <
+   skill.indexOf('## Source-backed methods'));
+ assert.ok(skill.includes('DIAGNOSIS'));
+ assert.ok(skill.includes('POLICY\\_GATES\\_INCOMPLETE')||
+   skill.includes('POLICY_GATES_INCOMPLETE'));
  assert.equal(result.signedFourFactSignaturesIndependentlyReplayedByThisModule,false);
  assert.equal(result.legalSourceRightsIndependentlyEstablishedByThisModule,false);
  assert.equal(result.actualHostSkillExecutionObserved,false);
