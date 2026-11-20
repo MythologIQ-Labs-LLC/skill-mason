@@ -281,3 +281,40 @@ test('Gherkin: route report uses exclusive write and preserves existing evidence
   await assert.rejects(run(args,deps),{code:'EEXIST'});
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('create accepts nonadmitting source-cited task reference and refuses forged elevation',async()=>{
+ const ident='local-skills/repo-doctor';
+ const reference={
+   state:'SOURCE_VERIFIED_TASK_REFERENCE_NOT_ADMITTED',
+   governed_review_id:'governed:'+ident,
+   complete_package_file_list_sha256:'2'.repeat(64),
+   task_semantically_matched_to_user_request:false,
+   source_rights_qualified:false,outcome_coverage_qualified:false,
+   host_validated:false,composition_eligible:false,
+   source_citations:Array.from({length:4},()=>({source_url:'original pinned citation'})),
+   narrow_task_spec_not_an_admitted_method:{
+     acceptance_scenarios:Array.from({length:5},(_,i)=>({id:i}))}
+ };
+ const result={...REFUSED,refusal:{...REFUSED.refusal,
+   codes:['RIGHTS_UNRESOLVED','ORIGINAL_TASK_FIT_UNQUALIFIED']},
+   inspected_governed_record_not_selected_for_composition:'governed:'+ident,
+   candidates:[{governed_id:ident,source_class:'first-party',
+     package_bytes:{status:'PINNED_FIRST_PARTY_PACKAGE_BYTES_VERIFIED',
+       file_list_sha256:'2'.repeat(64)},eligible:false}],
+   reviewed_original_task_reference:reference};
+ const flags=parseCommand(REQUEST_ARGS).flags;
+ assert.equal((await createRequest(flags,{requestRunner:async()=>result}))
+   .reviewed_original_task_reference.state,reference.state);
+ for(const variant of [
+   {...reference,source_rights_qualified:true},
+   {...reference,host_validated:true},
+   {...reference,task_semantically_matched_to_user_request:true},
+   {...reference,governed_review_id:'governed:other'},
+   {...reference,complete_package_file_list_sha256:'f'.repeat(64)},
+   {...reference,source_citations:[]}
+ ]){
+   await assert.rejects(createRequest(flags,{requestRunner:async()=>({
+     ...result,reviewed_original_task_reference:variant})}),{
+       code:'TASK_REFERENCE_PROMOTION'});
+ }
+});
