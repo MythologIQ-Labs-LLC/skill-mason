@@ -173,7 +173,7 @@ def _governed(raw, counts):
     return rows
 
 
-def _observations(discovery, manifest, source_checkout, counts):
+def _observations(discovery, manifest, source_checkout, counts, records):
     require(isinstance(discovery, dict) and
             discovery.get("schema_version") == DISCOVERY_SCHEMA,
             "SNAPSHOT_SCHEMA", "discovery manifests unsupported")
@@ -214,7 +214,21 @@ def _observations(discovery, manifest, source_checkout, counts):
     first = _paths(entrypoints.get("first_party"), "first-party entrypoints")
     engine = _paths(entrypoints.get("engine_maintenance_only"),
                     "maintenance-only entrypoints")
-    require(len(first) == counts["first_party"] and
+    # Reviewed first-party identities and still-materialized packages differ
+    # after source retirements. A recorded local_package exists only when the
+    # pinned producer found a real source entrypoint and hashed its files.
+    reviewed_first = [r for r in records.values() if r["source_class"] == "first-party"]
+    local_claims = [
+        isinstance(r.get("identity"), dict) and "local_package" in r["identity"]
+        for r in reviewed_first
+    ]
+    require(all(local_claims) or not any(local_claims),
+            "SNAPSHOT_SCHEMA", "mixed legacy and explicit first-party package inventory")
+    physical_count = (sum(r["identity"]["local_package"] is not None
+                          for r in reviewed_first)
+                      if all(local_claims) else counts["first_party"])
+    require(len(reviewed_first) == counts["first_party"] and
+            len(first) == physical_count and
             all(p in index for p in first + engine),
             "SNAPSHOT_COUNT", "first party package entrypoint population differs")
 
@@ -338,7 +352,7 @@ def inspect_candidate(handoff, source_checkout, *, expected_manifest_blob,
     rows = _governed(exports["governed.ndjson"], counts)
     surfaces = _observations(
         parse_json(exports["discovery-manifests.json"]),
-        manifest, source_checkout, counts)
+        manifest, source_checkout, counts, rows)
     return {"manifest": manifest, "manifest_blob": expected_manifest_blob,
             "source_receipt": source_receipt, "records": rows, **surfaces,
             "candidate_pin_is_caller_supplied_not_authenticated_publisher": True,
