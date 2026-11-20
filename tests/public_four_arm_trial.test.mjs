@@ -107,7 +107,7 @@ test('the public trial repeats exactly the immutable, SHA-pinned original source
  const adapter=createRecipeAdapter(reg);
  const {plan,methods}=adapter(recipeForPilot('ci-failure-triage-v5',reg));
  assert.throws(()=>renderUnqualifiedTrialPreview({...plan,packagePins:[]},methods),
-  {code:'PREVIEW_SOURCE_PINS'});
+  {code:'SOURCE_PIN'});
  assert.throws(()=>renderUnqualifiedTrialPreview(plan,[{...methods[0],methodText:'untrusted rewrite'}]),
   {code:'SOURCE_MISMATCH'});
  assert.throws(()=>renderUnqualifiedTrialPreview({...plan,requiredOutcomes:['invented approval']},methods),
