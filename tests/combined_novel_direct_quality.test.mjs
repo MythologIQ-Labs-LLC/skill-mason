@@ -22,7 +22,7 @@ test('eight preregistered novel CI/release tasks retain evidence only, never hid
  assert.equal(fixture.cases.length,8);
  assert.equal(new Set(fixture.cases.map(x=>x.id)).size,8);
  for(const c of fixture.cases){
-  assert.deepEqual(Object.keys(c).sort(),['id','question','evidence']);
+  assert.deepEqual(Object.keys(c).sort(),['evidence','id','question']);
   assert.ok(c.question.length>30);
   assert.ok(c.evidence.length>=3);
   assert.equal(new Set(c.evidence.map(x=>x.id)).size,c.evidence.length);
