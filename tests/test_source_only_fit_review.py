@@ -16,6 +16,10 @@ EXPECTED = {
                          "dde789e87da090b92021b3e55304299244f62ac2"),
     "permissions-review": ("local-skills/permissions-review",
                            "18f46840032829963715ec23894f7826dbbfcb77"),
+    "automation-receipts": ("local-skills/automation-receipts",
+                            "94fb288d7d6a3ea6982f22bd8bb9ef77b9de7add"),
+    "fact-check": ("local-skills/fact-check",
+                   "d83c43282d525682f3e13b8296111d7fe7de46f0"),
 }
 
 
