@@ -67,6 +67,49 @@ class SnapshotTests(unittest.TestCase):
         with self.assertRaises(Refusal) as e:self.verify(m)
         self.assertEqual(e.exception.code,'SOURCE_INVENTORY')
 
+    def add_generated_release_fixture(self):
+        generated = self.repo / 'registry/exports/skill-mason-v1'
+        generated.mkdir(parents=True)
+        (generated / 'manifest.json').write_bytes(b'{"previous":"immutable"}\n')
+        (generated / 'governed.ndjson').write_bytes(b'{"historical":true}\n')
+        run(self.repo, 'add', 'registry/exports/skill-mason-v1')
+        run(self.repo, 'commit', '-qm', 'historical generated export')
+        self.commit = run(self.repo, 'rev-parse', 'HEAD')
+        self.tree = run(self.repo, 'rev-parse', 'HEAD^{tree}')
+        self.manifest['source']['commit'] = self.commit
+        self.manifest['source']['git_tree_sha1'] = self.tree
+        return generated
+
+    def test_generated_handoff_files_are_not_recursive_source_inputs(self):
+        self.add_generated_release_fixture()
+        verified = self.verify()
+        self.assertEqual(verified['file_sha256_verified'], 2)
+        self.assertEqual(verified['gitlinks_verified'], 0)
+
+    def test_manifest_cannot_redeclare_generated_exports_as_inputs(self):
+        generated = self.add_generated_release_fixture()
+        raw = (generated / 'manifest.json').read_bytes()
+        m = copy.deepcopy(self.manifest)
+        m['source_files'].append({
+            'path': 'registry/exports/skill-mason-v1/manifest.json',
+            'bytes': len(raw), 'git_blob_sha1': git_blob(raw), 'sha256': sha256(raw)})
+        with self.assertRaises(Refusal) as exc:
+            self.verify(m)
+        self.assertEqual(exc.exception.code, 'SOURCE_DECLARATION')
+
+    def test_exclusion_does_not_hide_missing_unrelated_source_files(self):
+        self.add_generated_release_fixture()
+        (self.repo / 'missing-source.txt').write_bytes(b'must not be silently omitted\n')
+        run(self.repo, 'add', 'missing-source.txt')
+        run(self.repo, 'commit', '-qm', 'new real source')
+        self.commit = run(self.repo, 'rev-parse', 'HEAD')
+        self.tree = run(self.repo, 'rev-parse', 'HEAD^{tree}')
+        self.manifest['source']['commit'] = self.commit
+        self.manifest['source']['git_tree_sha1'] = self.tree
+        with self.assertRaises(Refusal) as exc:
+            self.verify()
+        self.assertEqual(exc.exception.code, 'SOURCE_INVENTORY')
+
     def test_symlinked_file_refuses_even_if_git_pin_matches(self):
         target=Path(self.temp.name)/'outside.txt'
         target.write_bytes(b'no rights implied\n')
