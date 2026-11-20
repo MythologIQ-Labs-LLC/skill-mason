@@ -13,6 +13,11 @@ on:
       - 'pilots/first-party/ci-failure-triage-v3/procedure.json'
       - 'pilots/first-party/ci-failure-triage-v5/procedure.json'
       - 'tests/ci_triage_v5_qualitative.test.mjs'
+      - 'tests/release_readiness_qualitative.test.mjs'
+      - 'tests/fixtures/release-readiness-v1-evaluation-12.json'
+      - 'docs/evidence/release-readiness-v1-direct-review-12.json'
+      - 'scripts/grade_release_readiness_trial.mjs'
+      - 'docs/evidence/release-readiness-v1-qualitative-review.md'
       - 'docs/technical/request-first-party-positive-v1.md'
       - '.github/workflows/request-first-party-positive.yml'
       - 'tests/real_holo_candidate_acceptance.mjs'
@@ -46,7 +51,22 @@ jobs:
             tests/ci_triage_v2_source.test.mjs \
             tests/ci_triage_v3_source.test.mjs \
             tests/ci_triage_v4_quality.test.mjs \
-            tests/ci_triage_v5_qualitative.test.mjs
+            tests/ci_triage_v5_qualitative.test.mjs \
+            tests/release_readiness_pilot.test.mjs \
+            tests/release_readiness_qualitative.test.mjs
+      - name: Replay 12 actual authored release-readiness task reviews against source-bound negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/grade_release_readiness_trial.mjs > release-readiness-local-review-result.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const r=JSON.parse(readFileSync("release-readiness-local-review-result.json","utf8"));
+            if(r.total!==12||r.failed!==0||r.passed!==12||r.reviewerIndependent!==false||
+               r.actualConsumingHostExecutions!==0||r.productionEligible!==false)
+              process.exit(1);
+            console.log("PASS 12/12 authored release-readiness reviews (NONINDEPENDENT; zero host tests)");
+          '
       - name: Prove no positive output on missing native Prism runtime
         shell: bash
         run: |
