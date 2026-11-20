@@ -59,12 +59,14 @@ class OrdinaryCreateSourceTaskTests(unittest.TestCase):
     def evaluate(self, task_fit_evaluator=None):
         return self.f.evaluate(task_fit_evaluator=task_fit_evaluator)
 
-    def test_four_pinned_originals_are_integrated(self):
+    def test_six_pinned_originals_are_integrated(self):
         self.assertEqual(set(_SOURCE_TASK_REVIEWS), {
             "local-skills/repo-doctor",
             "local-skills/agent-postmortem",
             "local-skills/permissions-review",
             "local-skills/mcp-vetting",
+            "local-skills/automation-receipts",
+            "local-skills/fact-check",
         })
         self.assertIsNone(self.evaluate()["reviewed_original_task_reference"])
 
