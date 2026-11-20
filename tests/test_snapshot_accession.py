@@ -48,6 +48,38 @@ class SnapshotAccessionTests(unittest.TestCase):
     def persist(self):
         self.fx.persist()
 
+    def test_indexed_retired_first_party_without_materialized_package(self):
+        """A preserved retired review is not automatically an active source file."""
+        self.fx.records[0]["review"]["semantic_status"] = "retired"
+        self.fx.records[0]["identity"] = {"local_package": None}
+        self.fx.paths.pop("skills/original/SKILL.md")
+        self.fx.first_party = []
+        self.fx.discovery["repository_entrypoints"]["first_party"] = []
+        self.fx.persist()
+        result = self.candidate()
+        self.assertEqual(len(result["first_party"]), 0)
+        self.assertEqual(len(result["records"]), 2)
+        self.assertEqual(result["records"]["local-skills/alpha"]["review"]["semantic_status"], "retired")
+        self.assertFalse(result["composition_eligible"])
+
+    def test_cannot_hide_tracked_entrypoint_by_omitting_discovery_pointer(self):
+        self.fx.records[0]["identity"] = {"local_package": None}
+        self.fx.first_party = []
+        self.fx.discovery["repository_entrypoints"]["first_party"] = []
+        self.fx.persist()
+        with self.assertRaises(Refusal) as error:
+            self.candidate()
+        self.assertEqual(error.exception.code, "SNAPSHOT_COUNT")
+
+    def test_materialized_package_claim_must_match_first_party_directory(self):
+        self.fx.records[0]["identity"] = {"local_package": {"files": []}}
+        self.fx.first_party = []
+        self.fx.discovery["repository_entrypoints"]["first_party"] = []
+        self.fx.persist()
+        with self.assertRaises(Refusal) as error:
+            self.candidate()
+        self.assertEqual(error.exception.code, "SNAPSHOT_COUNT")
+
     def test_identical_complete_snapshots_have_exact_zero_deltas(self):
         report = compare_snapshots(self.old, self.candidate())
         self.assertEqual(report["state"], "PINNED_SNAPSHOT_DIFF_ONLY")
