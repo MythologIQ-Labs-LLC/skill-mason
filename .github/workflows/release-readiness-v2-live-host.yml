@@ -1,0 +1,123 @@
+name: Release-readiness v2 real model A/B evaluation (manual only)
+
+# A real model is called ONLY on a deliberate workflow_dispatch with explicit
+# model + independently recorded candidate and archive SHA-256 inputs. This
+# is NOT installation into ChatGPT, rights approval or host admission.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Explicit authorized OpenAI text-only model ID (12 bounded calls)
+        type: string
+        required: true
+      artifact_id:
+        description: Existing P0 candidate artifact ID (no dynamic latest)
+        type: string
+        required: true
+      archive_sha256:
+        description: Independently retained SHA-256 of the exact GitHub artifact ZIP
+        type: string
+        required: true
+      candidate_sha256:
+        description: Independently retained original skill-mason.json SHA-256 of release-v2 candidate
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Run unqualified sealed-source and holdout negative tests without API keys
+        run: node --test tests/release_readiness_live_host_test.test.mjs
+
+  opt-in-live-text-api:
+    needs: [offline-contract]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Verify exact operator-supplied archive identity and extract one sealed v2 candidate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+          ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$ARTIFACT_ID" =~ ^[0-9]{7,20}$ ]] || { echo 'ARTIFACT_ID_INVALID'; exit 2; }
+          [[ "$ARCHIVE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo 'ARCHIVE_PIN_INVALID'; exit 2; }
+          [[ "$CANDIDATE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo 'PACKAGE_PIN_INVALID'; exit 2; }
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/host-candidate.zip"
+          printf '%s  %s\n' "$ARCHIVE_SHA256" "$RUNNER_TEMP/host-candidate.zip" | sha256sum -c -
+          python3 - <<'PY'
+          import os, pathlib, zipfile
+          root=pathlib.Path(os.environ["RUNNER_TEMP"])
+          names=["SKILL.md","SOURCES.json","RECEIPT.json","skill-mason.json",".qortara-complete"]
+          with zipfile.ZipFile(root/"host-candidate.zip") as z:
+              infos=z.infolist()
+              if len(infos)>300 or sum(x.file_size for x in infos)>32*1024*1024:
+                  raise SystemExit("ARCHIVE_TOO_LARGE")
+              for info in infos:
+                  p=pathlib.PurePosixPath(info.filename)
+                  if "\\" in info.filename or p.is_absolute() or ".." in p.parts or info.is_dir()==False and ((info.external_attr>>16)&0o170000)==0o120000:
+                      raise SystemExit("ARCHIVE_UNSAFE_ENTRY")
+              roots={str(pathlib.PurePosixPath(x.filename).parent) for x in infos
+                     if x.filename.endswith("/release-readiness-review-v2/SKILL.md")
+                     or x.filename=="release-readiness-review-v2/SKILL.md"}
+              if len(roots)!=1:
+                  raise SystemExit("CANDIDATE_MISSING_OR_AMBIGUOUS")
+              base=next(iter(roots))
+              archive={x.filename:x for x in infos}
+              dest=root/"release-readiness-review-v2"
+              dest.mkdir(mode=0o700)
+              for name in names:
+                  key=base+"/"+name
+                  if key not in archive or archive[key].is_dir() or archive[key].file_size>500_000:
+                      raise SystemExit("CANDIDATE_INCOMPLETE")
+                  target=dest/name
+                  target.write_bytes(z.read(key))
+                  target.chmod(0o600)
+          with open(os.environ["GITHUB_ENV"],"a") as out:
+              out.write("CANDIDATE_DIR="+str(dest)+"\n")
+          PY
+      - name: Require authorized provider key and execute twelve bounded OpenAI text-only A/B calls
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.SKILL_MASON_HOST_OPENAI_API_KEY }}
+          HOST_MODEL: ${{ inputs.model }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+        run: |
+          set -euo pipefail
+          test -n "${OPENAI_API_KEY:-}" || { echo 'HOST_AUTH: owner-configured secret required'; exit 2; }
+          node bin/release-readiness-live-host-test.mjs \
+            --candidate-dir "$CANDIDATE_DIR" \
+            --expected-package-sha256 "$CANDIDATE_SHA256" \
+            --model "$HOST_MODEL" \
+            --report "$RUNNER_TEMP/release-v2-real-model-ab-report.json"
+      - name: Preserve case-by-case failures, raw responses and token usage without calling it host installation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-v2-text-model-ab-unreviewed
+          path: ${{ runner.temp }}/release-v2-real-model-ab-report.json
+          if-no-files-found: ignore
+          retention-days: 7
