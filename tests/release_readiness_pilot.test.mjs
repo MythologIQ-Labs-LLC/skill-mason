@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {loadFirstPartyPilots,recipeForPilot,PILOT_DEFINITIONS,
-  PILOT_RELEASE_SOURCE_COMMIT} from '../src/backend/first-party-pilots.mjs';
+  PILOT_RELEASE_SOURCE_COMMIT,PILOT_RELEASE_V2_SOURCE_COMMIT} from '../src/backend/first-party-pilots.mjs';
 import {parseTextProcedure} from '../src/backend/text-procedure.mjs';
 import {createRecipeAdapter} from '../src/backend/recipe-adapter.mjs';
 import {createComposer,verifyPackage} from '../src/backend/compose.mjs';
@@ -38,8 +38,9 @@ test('original release readiness method is pinned by both independent digests an
  assert.equal(git(bytes),BLOB);
  assert.equal(PILOT_DEFINITIONS.find(x=>x.id===NAME).gitBlob,BLOB);
  assert.equal(source.method.commit,PILOT_RELEASE_SOURCE_COMMIT);
- assert.equal(registry.sourceSnapshot.commit,PILOT_RELEASE_SOURCE_COMMIT);
- assert.equal(registry.components.length,7);
+ assert.equal(registry.sourceSnapshot.commit,PILOT_RELEASE_V2_SOURCE_COMMIT);
+ assert.equal(source.method.commit,PILOT_RELEASE_SOURCE_COMMIT);
+ assert.equal(registry.components.length,8);
  assert.equal(source.method.covers[0],'review release readiness evidence');
  assert.equal(source.method.methodText,bytes.toString('utf8'));
 });
