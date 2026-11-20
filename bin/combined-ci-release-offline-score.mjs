@@ -19,8 +19,9 @@ async function jsonAt(path){
 }
 async function main(args){
  const required=['--candidate-dir','--expected-package-sha256','--cases','--responses'];
- if(args.length!==8||new Set(args.filter((_,i)=>i%2===0)).size!==4||
-    required.some(k=>!args.includes(k)))
+ const labels=args.filter((_,i)=>i%2===0);
+ if(args.length!==8||new Set(labels).size!==4||
+    required.some(k=>!labels.includes(k)))
   fail('TRIAL_USAGE','usage: --candidate-dir ABS --expected-package-sha256 SHA256 --cases ABS --responses ABS');
  const opt=Object.fromEntries([0,2,4,6].map(i=>[args[i],args[i+1]]));
  if(!isAbsolute(opt['--candidate-dir']))
