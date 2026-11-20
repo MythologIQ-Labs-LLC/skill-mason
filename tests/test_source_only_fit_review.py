@@ -20,6 +20,12 @@ EXPECTED = {
                             "94fb288d7d6a3ea6982f22bd8bb9ef77b9de7add"),
     "fact-check": ("local-skills/fact-check",
                    "d83c43282d525682f3e13b8296111d7fe7de46f0"),
+    "compare": ("local-skills/compare",
+                "37b5d493dfa87ff1ce20e7b44d7d095e2eeed700"),
+    "session-continuity": ("local-skills/session-continuity",
+                           "93b8f0be84bdb39153386c27b46294233c39bb8b"),
+    "decision-log": ("local-skills/decision-log",
+                     "53b82e2a4838cdba57ee2e4c9158d6d2b4150c6b"),
 }
 
 
