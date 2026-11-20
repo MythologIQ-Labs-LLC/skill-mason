@@ -62,7 +62,6 @@ export async function composeOperatorBoundP0({
      method.id!==source.governedId||
      pin.methodId!==method.id||pin.sha256!==expectedMethodSha256||
      plan.sourceSnapshot.commit!==source.snapshotCommit||
-     method.commit!==source.snapshotCommit||
      plan.targetHost!==source.host)
     refuse('SOURCE_METHOD_MISMATCH',
       'operator-accepted source, package, snapshot, host and composed method must match exactly');
@@ -115,7 +114,8 @@ export async function composeOperatorBoundP0({
     sealedOutput:destination,
     guestInvoked:true,guestAssurance:'P0 unverified',
     signedApprovalCheckedUsingConfiguredOperatorTrust:true,
-    signedFourFactsCheckedUsingConfiguredOperatorTrust:true,
+    signedFourFactAdapterReturnedEvidence:true,
+    signedFourFactSignatureIndependentlyReplayedByThisModule:false,
     externalTrustCustodyEstablishedByThisModule:false,
     legalSourceRightsIndependentlyEstablishedByThisModule:false,
     actualHostSkillExecutionObserved:false,
