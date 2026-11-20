@@ -16,10 +16,10 @@ import {execute,parseArgs} from '../bin/host-task-evidence.mjs';
 const PIN='a'.repeat(64);
 const bytes=x=>Buffer.from(x,'utf8');
 const error=code=>({code});
-function ready(){return {schema:'qortara/local-eligibility-result/1',
+function ready({requestHex,holoSha256}){return {schema:'qortara/local-eligibility-result/1',
  status:'GUEST_COMPLETED',application:'Qortara Skills Eligibility',
- requestHex:'01010101',response:'eligible',responseHex:'656c696769626c65',
- engine:'prism-code@0.9.5',artifact:{sha256:PIN},productionEligible:false,exitCode:0};}
+ requestHex,response:'eligible',responseHex:'656c696769626c65',
+ engine:'prism-code@0.9.5',artifact:{sha256:holoSha256},productionEligible:false,exitCode:0};}
 async function makeCandidate(id,{nonce='b'}={}){
  const registry=await loadFirstPartyPilots();
  const {plan,methods}=createRecipeAdapter(registry)(recipeForPilot(id,registry));
