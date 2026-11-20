@@ -115,8 +115,30 @@ function render(recipe,methods){
     '> The steps below are source-pinned candidate instructions, not authorization to install or run tools.','',
     '## Intended outcomes','',...recipe.requiredOutcomes.map(o=>'- '+mdLine(o)),'',
     '## Target host','',mdLine(recipe.targetHost),'',
-    '## Source-backed methods','',
   ];
+  if(methods.length>1){
+    // This section is owned by the deterministic compiler. It expresses
+    // evidence isolation, NOT inferred semantic compatibility or another
+    // source-authored procedure. The covers entries are declarations only.
+    text.push('## Multi-method evidence reconciliation','',
+      '> **Compiler-supplied coordination contract, not source-method evidence.**',
+      '> Declared coverage does not establish that these methods work together,',
+      '> that an outcome has passed, or that this skill is approved for a host.','',
+      '### Declared outcome-to-method map (not independently qualified)','');
+    for(const outcome of recipe.requiredOutcomes){
+      const declared=methods.filter(m=>m.covers.includes(outcome))
+        .map(m=>m.id).sort();
+      text.push('- '+mdLine(outcome)+': '+declared.map(mdLine).join(', '));
+    }
+    text.push('','### Reconciliation rules','',
+      '1. Apply each source method only when its own use-when conditions and required inputs are satisfied. A declared outcome is not a finding or a verified capability.',
+      '2. Keep observations, source revision, artifact identity, evidence citations, unknowns and proposed checks separate for every required outcome. Never fill missing evidence in one method using an unsupported conclusion from another.',
+      '3. A diagnosis, recommendation, repeated run or proposed repair is not independent proof that a downstream required gate passed. Do not promote one method\'s output into another method\'s verified evidence without an independently observed, correctly revision-bound source.',
+      '4. When methods disagree, evidence is stale or identities mismatch, record the contradiction and withhold affected claims. Do not choose the more favorable conclusion by default.',
+      '5. Reconcile the final answer per requested outcome: method(s) used, exact relevant evidence, observed status or NOT_ESTABLISHED, unresolved conditions, and next authorized verification. Do not report overall approval when any mandatory outcome remains blocked or unverified.',
+      '6. Follow the stricter applicable source-method stop condition and the host\'s existing authority restrictions. Never execute tools, disclose secrets, grant rights or infer publication approval from the combination.','');
+  }
+  text.push('## Source-backed methods','');
   for(const m of methods){
     text.push('### '+mdLine(m.id),'',
       'Source: '+mdLine(m.origin)+' @ '+m.commit+' ('+mdLine(m.sourcePath)+')',
