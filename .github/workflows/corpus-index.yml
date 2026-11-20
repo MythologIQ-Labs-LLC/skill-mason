@@ -54,6 +54,9 @@ on:
       - 'docs/technical/package-inspection-v1.md'
       - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
+      - 'scripts/audit_route_search_grounding.py'
+      - 'tests/test_capability_search_grounding.py'
+      - 'docs/technical/discovery-engine-audit-20261120.md'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
@@ -118,6 +121,9 @@ on:
       - 'docs/technical/package-inspection-v1.md'
       - 'tests/test_corpus_evolution.py'
       - 'scripts/capability_graph.py'
+      - 'scripts/audit_route_search_grounding.py'
+      - 'tests/test_capability_search_grounding.py'
+      - 'docs/technical/discovery-engine-audit-20261120.md'
       - 'tests/test_catalog_index.py'
       - 'scripts/catalog_handoff.py'
       - 'scripts/verify_catalog_source.py'
@@ -169,6 +175,36 @@ jobs:
           test "$(git -C skillz-export rev-parse HEAD)" = efba572262fc5fa3ff1934b054aa4f15ce149c1a
           git -C skillz-export -c core.hooksPath=/dev/null worktree add --detach ../skillz-source 31a8c518dd97b7828adcc728202fa41388a306d7
           test "$(git -C skillz-source rev-parse 'HEAD^{tree}')" = e6d5dfeb42bcd7777ddff52605922fead62135ff
+      - name: Audit source-grounded route discovery on all 247 pinned routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_capability_search_grounding.py' -v
+          mkdir -p corpus-reference-evidence
+          python3 -m scripts.audit_route_search_grounding \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/route-search-grounding.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x = json.loads(Path('corpus-reference-evidence/route-search-grounding.json').read_text())
+          assert x['schema'] == 'qortara/route-search-source-grounding-audit/1'
+          assert x['total_recognized_routes'] == 247
+          assert x['heldout_independent_labeling_performed'] is False
+          assert x['semantic_top1_precision_recall_established'] is False
+          assert x['composition_eligible'] is False
+          assert x['production_eligible'] is False
+          assert len(x['probes']) == 8
+          for p in x['probes'][:5]:
+              assert p['legacy_serialized_json_match_count'] == 247
+              assert p['source_values_exact_token_match_count'] < 247
+              print('PHANTOM JSON KEY',p['query'],
+                    'old:',p['legacy_serialized_json_match_count'],
+                    'corrected:',p['source_values_exact_token_match_count'],
+                    'old-only:',p['legacy_only_unsupported_query_hits'])
+          print('SOURCE-ONLY ROUTE SEARCH PASS: all 247 routes, eight probes, no rights or semantic promotion')
+          PY
       - name: Inspect source-grounded reference method and line citation from pinned corpus
         shell: bash
         run: |
