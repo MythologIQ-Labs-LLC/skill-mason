@@ -22,7 +22,7 @@
     <section class="trial-hero">
       <p class="trial-kicker">REAL AGENT OUTPUTS · NO API KEYS</p>
       <h1>Does combining skills actually help?</h1>
-      <p>Compare a baseline, CI triage, release readiness and their combined instructions on the same eight fictional cases. Copy the task into a fresh session in your own agent, then paste the complete reply here. This browser does not invoke a model, upload your answers, or issue production authority.</p>
+      <p>Start with one fictional CI/release case and four fresh agent sessions: baseline, CI triage, release readiness, and combined instructions. Export those four replies as preliminary feedback, or expand to all eight cases for the full comparison. Copy each task into your agent, then paste the unedited reply here. This browser does not invoke a model, upload your answers, or issue production authority.</p>
       <p class="trial-disclaimer">Research preview only. Source instructions are historically pinned but <strong>not</strong> source-rights approved, Prism-qualified, or native host installed. An answer and its reported host are not independently verified.</p>
     </section>
     <section class="trial-panel" aria-label="Trial workspace">
@@ -85,7 +85,41 @@
           </div>
         </section>
       </div>
-      <p class="trial-muted">The output JSON is compatible with the repository's <code>public-four-arm-trial.mjs --score</code> and blind qualitative review tools. Slot labels are local pseudonyms, <strong>not</strong> independently authenticated host session IDs.</p>
+      <section class="trial-quick" aria-label="Single-case quick qualitative comparison">
+        <div>
+          <p class="trial-kicker">EARLY QUALITY FEEDBACK</p>
+          <h3>Compare four replies to one case</h3>
+          <p id="quick-progress" role="status" aria-live="polite">0 of 4 responses recorded for this case.</p>
+          <p class="trial-muted">Once you have all four arms for this case, export a preliminary comparison without completing 32 sessions. Report what you observed, including cases where the combined skill was worse. This self-report is not blinded or an independent quality finding.</p>
+        </div>
+        <div class="trial-quick-controls">
+          <div>
+            <label for="quick-comparison">Combined versus the best single skill</label>
+            <select id="quick-comparison">
+              <option value="not-reviewed">Not reviewed yet</option>
+              <option value="combined-better">Combined looked better</option>
+              <option value="combined-same">About the same</option>
+              <option value="combined-worse">Combined looked worse</option>
+              <option value="mixed-or-uncertain">Mixed or uncertain</option>
+            </select>
+          </div>
+          <div>
+            <label for="quick-concern">Main quality concern</label>
+            <select id="quick-concern">
+              <option value="not-rated">Not rated</option>
+              <option value="ci-accuracy">Incorrect CI diagnosis</option>
+              <option value="release-accuracy">Incorrect release decision</option>
+              <option value="evidence-grounding">Unsupported or fabricated evidence</option>
+              <option value="unsafe-instruction">Safety or authority violation</option>
+              <option value="next-checks">Unhelpful verification steps</option>
+              <option value="answer-length">Too long or hard to use</option>
+              <option value="other">Other concern</option>
+            </select>
+          </div>
+          <button id="export-quick" class="primary" type="button" disabled>Export this 4-reply case</button>
+        </div>
+      </section>
+      <p class="trial-muted">The full 32-reply export works with the existing <code>public-four-arm-trial.mjs --score</code> and blind qualitative review tools. The shorter, four-reply export is <strong>preliminary feedback only</strong> and must not be submitted as a complete eight-case benchmark. Both contain raw model replies, so check them for sensitive information before sharing. Slot labels are local pseudonyms, <strong>not</strong> independently authenticated host session IDs.</p>
     </section>
     <section class="trial-bottom">
       <div>
