@@ -299,7 +299,9 @@ jobs:
               assert report["governed_review_id"] == "governed:local-skills/" + name
               assert report["route"] is None
               assert report["source_only_review_no_route_claim"] is True
-              assert report["original_evidence_linked_routes_not_task_qualified"]
+              # A verified original may be genuinely unmapped: preserve the
+              # original complete crosswalk rather than inventing a route.
+              assert isinstance(report["original_evidence_linked_routes_not_task_qualified"], list)
               assert report["entrypoint_git_blob_sha1"] == blob
               assert report["source_snapshot_commit"] == "31a8c518dd97b7828adcc728202fa41388a306d7"
               assert report["source_snapshot_tree"] == "e6d5dfeb42bcd7777ddff52605922fead62135ff"
