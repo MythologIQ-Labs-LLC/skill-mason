@@ -190,7 +190,7 @@ class CorpusIndexTests(unittest.TestCase):
             else:
                 self.assertEqual(index.search(query)["total_matches"], 0)
         self.assertEqual(index.search("LEXICAL_EXAMPLE", family="g1-g3")["total_matches"], 14)
-        self.assertFalse(index.search("lexical-example", family="g1-g3")["composition_eligible"])
+        self.assertFalse(index.search("lexical-example", family="g1-g3")["outcome_coverage_assessed"])
 
     def test_retrieval_covers_shards_without_promoting_lexical_leads(self):
         index = self.fx.index()
