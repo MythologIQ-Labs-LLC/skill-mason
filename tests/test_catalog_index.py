@@ -161,7 +161,7 @@ class CorpusIndexTests(unittest.TestCase):
 
     def test_rejected_and_unmapped_record_retains_original_data(self):
         index = self.fx.index()
-        result = index.search("sentinel", family="governed", limit=1)
+        result = index.search("preserve", family="governed", limit=1)
         self.assertEqual(result["total_matches"], 2)
         self.assertTrue(result["truncated"])
         item = index.record("governed:external/beta")
@@ -170,6 +170,27 @@ class CorpusIndexTests(unittest.TestCase):
         self.assertEqual(item["raw"]["original_evidence"]["sentinel"],
                          "preserve even when rejected")
         self.assertEqual(item["composition_eligibility"], "not-assessed")
+
+    def test_raw_metadata_key_traps_do_not_fabricate_governed_leads(self):
+        index = self.fx.index()
+        for query in ("record_id", "original_evidence", "semantic_status",
+                      "evidence_linked_paths", "name_only_hints"):
+            with self.subTest(query=query):
+                self.assertEqual(index.search(query, family="governed")["total_matches"], 0)
+        self.assertEqual(index.search("preserve", family="governed")["total_matches"], 2)
+        self.assertEqual(index.search("external beta", family="governed")["total_matches"], 1)
+
+    def test_raw_values_require_complete_words_not_substrings(self):
+        index = self.fx.index()
+        for query in ("reje", "preser", "beta123", "__ / --"):
+            if query == "__ / --":
+                with self.assertRaises(Refusal) as error:
+                    index.search(query)
+                self.assertEqual(error.exception.code, "QUERY_REQUIRED")
+            else:
+                self.assertEqual(index.search(query)["total_matches"], 0)
+        self.assertEqual(index.search("LEXICAL_EXAMPLE", family="g1-g3")["total_matches"], 14)
+        self.assertFalse(index.search("lexical-example", family="g1-g3")["outcome_coverage_assessed"])
 
     def test_retrieval_covers_shards_without_promoting_lexical_leads(self):
         index = self.fx.index()

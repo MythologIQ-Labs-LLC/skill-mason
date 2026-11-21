@@ -53,6 +53,10 @@ on:
       - 'tests/test_package_resolver.py'
       - 'docs/technical/package-inspection-v1.md'
       - 'tests/test_corpus_evolution.py'
+      - 'scripts/source_lexical.py'
+      - 'scripts/discovery_retrieval_audit.py'
+      - 'tests/test_discovery_retrieval_audit.py'
+      - 'docs/technical/discovery-retrieval-spectrum-20261120.md'
       - 'scripts/capability_graph.py'
       - 'scripts/audit_route_search_grounding.py'
       - 'tests/test_capability_search_grounding.py'
@@ -204,6 +208,36 @@ jobs:
                     'corrected:',p['source_values_exact_token_match_count'],
                     'old-only:',p['legacy_only_unsupported_query_hits'])
           print('SOURCE-ONLY ROUTE SEARCH PASS: all 247 routes, eight probes, no rights or semantic promotion')
+          PY
+      - name: Falsify whole-taxonomy natural-language discovery without promoting the probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_discovery_retrieval_audit.py' -v
+          python3 -m scripts.discovery_retrieval_audit \
+            --handoff skillz-export/registry/exports/skill-mason-v1 \
+            --source-checkout skillz-source \
+            > corpus-reference-evidence/discovery-retrieval-spectrum.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x = json.loads(Path('corpus-reference-evidence/discovery-retrieval-spectrum.json').read_text())
+          assert x['schema'] == 'qortara/discovery-retrieval-falsification/1'
+          assert x['recognized_routes'] == 247
+          assert x['route_identity_echo_NOT_semantic_accuracy']['found_somewhere'] == 247
+          assert x['benchmarks'] == {
+              'total': 46, 'in_scope_13_only': 26,
+              'outside_13_not_necessarily_outside_247': 12,
+              'adversarial_or_ambiguous': 8}
+          assert x['source_commit'] == '31a8c518dd97b7828adcc728202fa41388a306d7'
+          assert x['source_tree'] == 'e6d5dfeb42bcd7777ddff52605922fead62135ff'
+          assert x['decision'] == 'NO_GO_AUTOMATIC_ROUTE_SELECTION'
+          assert not x['benchmark_labels_independently_adjudicated']
+          assert not x['full_247_route_natural_language_labels_available']
+          assert x['outside_13_not_counted_as_247_false_positives']
+          assert not x['composition_eligible'] and not x['production_eligible']
+          print('DISCOVERY NO-GO: full 247-route source-name and exact-token comparison')
+          print(json.dumps(x['methods'], indent=2, sort_keys=True))
           PY
       - name: Inspect source-grounded reference method and line citation from pinned corpus
         shell: bash
