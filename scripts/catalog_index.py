@@ -15,6 +15,7 @@ from scripts.catalog_handoff import (
     require, sha256,
 )
 from scripts.verify_catalog_source import read_source, safe_relative, verify_source_tree
+from scripts.source_lexical import source_tokens
 
 
 SCHEMA = "qortara/corpus-opportunity-index/1"
@@ -277,15 +278,17 @@ class CorpusIndex:
                 "QUERY_FAMILY", "unsupported family")
         require(type(limit) is int and 0 < limit <= MAX_RESULTS,
                 "QUERY_LIMIT", "limit must be between 1 and " + str(MAX_RESULTS))
-        tokens = query.casefold().split()
+        query_tokens = source_tokens(query)
+        require(bool(query_tokens), "QUERY_REQUIRED",
+                "query must contain at least one searchable lexical token")
         results = []
         total = 0
         for item in self.records:
             if family != "all" and item["family"] != family:
                 continue
-            # Lexical retrieval only. This never means the candidate covers an outcome.
-            indexed_text = json.dumps(item["raw"], sort_keys=True, ensure_ascii=False).casefold()
-            if all(token in indexed_text for token in tokens):
+            # Original raw VALUE tokens only. JSON keys and substrings must
+            # never fabricate a method lead; values still prove no method fit.
+            if query_tokens.issubset(source_tokens(item["raw"])):
                 total += 1
                 if len(results) < limit:
                     results.append({k: v for k, v in item.items() if k != "raw"})
